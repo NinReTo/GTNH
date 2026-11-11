@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+/*
+ * Значения переменных --bg, --text1 … --line, --scene-screens и
+ * --overlap-screens задаются в app/layout.tsx из lib/config.ts.
+ * Здесь они только получают имена для классов Tailwind.
+ */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-text1: var(--text1);
+  --color-text2: var(--text2);
+  --color-text3: var(--text3);
+  --color-accent: var(--accent);
+  --color-line: var(--line);
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text1);
+  font-family: var(--font-sans);
+}
+
+/* Блок сцены: высотой в несколько экранов, холст внутри прилипает к верху. */
+.scene-section {
+  height: calc(var(--scene-screens) * 100svh);
+}
+
+/* Лендинг подтянут вверх и наезжает на хвост сцены. */
+.landing {
+  margin-top: calc(var(--overlap-screens) * -100svh);
+}
+
+/* Текстуры мода 16×16 показываем без сглаживания — пиксели остаются квадратами. */
+.pixelated {
+  image-rendering: pixelated;
+}
+
+input[type="range"] {
+  accent-color: var(--accent);
+  width: 100%;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
