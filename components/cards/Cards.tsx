@@ -14,12 +14,19 @@ function CardPicture({ spec, href, label }: { spec: CardSpec; href?: string; lab
   const element = useRef<HTMLDivElement>(null);
   const image = useCardStore((state) => state.images[specKey(spec)]);
   const request = useCardStore((state) => state.request);
-  const setActive = useCardStore((state) => state.setActive);
+  const activateCard = useCardStore((state) => state.activate);
+  const key = specKey(spec);
 
-  useEffect(() => request(spec), [request, spec]);
+  // Снимок заказываем ровно в размер карточки на странице: растянутый снимок мылится,
+  // и при наведении казалось бы, что качество вдруг улучшилось.
+  useEffect(() => {
+    if (element.current) request(spec, Math.round(element.current.getBoundingClientRect().width));
+    // spec пересоздаётся при каждой отрисовке, а смысл в нём один — имя карточки.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request, key]);
 
   const activate = () => {
-    if (element.current) setActive({ spec, element: element.current, href });
+    if (element.current) activateCard({ spec, element: element.current, href });
   };
 
   return (
