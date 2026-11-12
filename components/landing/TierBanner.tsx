@@ -1,41 +1,61 @@
 "use client";
 
+import { useRef, type PointerEvent } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
-import { HERO } from "@/lib/config";
+import { useRouter } from "next/navigation";
+import { HERO, ICON } from "@/lib/config";
 import type { Tier } from "@/lib/tiers";
 
 const Scene = dynamic(() => import("@/components/scene/Scene"), { ssr: false });
 const Workshop = dynamic(() => import("@/components/scene/Workshop"), { ssr: false });
 
 /**
- * Мини-шапка яруса напряжения: широкая полоса с живой сценой, как большая
- * шапка (мышкой вертится, блоки у курсора раздвигаются), и вход на страницу яруса.
+ * Мини-шапка яруса напряжения: маленькая живая сцена, как большая шапка
+ * (мышкой вертится, блоки у курсора раздвигаются). Щелчок без поворота —
+ * переход на страницу яруса.
  */
 export function TierBanner({ tier }: { tier: Tier }) {
+  const router = useRouter();
+  const press = useRef<readonly [number, number] | null>(null);
   const href = `/tiers/${tier.id}`;
+
+  const handlePointerDown = (event: PointerEvent<HTMLElement>) => {
+    press.current = [event.clientX, event.clientY];
+  };
+  const handlePointerUp = (event: PointerEvent<HTMLElement>) => {
+    const start = press.current;
+    press.current = null;
+    if (!start) return;
+    if (Math.hypot(event.clientX - start[0], event.clientY - start[1]) <= ICON.clickSlop) router.push(href);
+  };
+
   return (
-    <article className="relative overflow-hidden border border-line" style={{ aspectRatio: HERO.bannerAspect }}>
+    <article
+      className="group relative overflow-hidden border border-line bg-bg transition-colors hover:border-text3"
+      style={{ aspectRatio: HERO.bannerAspect }}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+    >
       {tier.scene.kind === "workshop" ? (
         <Workshop aspect={HERO.bannerAspect} isBanner />
       ) : (
         <Scene slug={tier.scene.slug} aspect={HERO.bannerAspect} />
       )}
-      <div className="pointer-events-none absolute inset-y-0 left-0 flex w-full max-w-md flex-col justify-end bg-gradient-to-r from-bg via-bg/80 to-transparent p-6 sm:p-10">
-        <span className="block h-1 w-12" style={{ backgroundColor: tier.color }} />
-        <h3 className="mt-4 font-mono text-5xl font-bold uppercase leading-none" style={{ color: tier.color }}>
+      <a
+        href={href}
+        className="pointer-events-auto absolute bottom-0 left-0 flex items-baseline gap-2 bg-gradient-to-r from-bg via-bg/80 to-transparent py-2 pl-3 pr-8"
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => {
+          event.preventDefault();
+          router.push(href);
+        }}
+      >
+        <span className="block h-3 w-1" style={{ backgroundColor: tier.color }} />
+        <span className="font-mono text-lg font-bold uppercase leading-none" style={{ color: tier.color }}>
           {tier.title}
-        </h3>
-        <p className="mt-2 font-mono text-xs uppercase tracking-[0.2em] text-text2">{tier.subtitle}</p>
-        <p className="mt-4 text-sm leading-relaxed text-text2">{tier.summary}</p>
-        <Link
-          href={href}
-          className="pointer-events-auto mt-6 inline-block self-start border px-4 py-2 font-mono text-xs uppercase tracking-[0.2em] transition-colors hover:bg-text1 hover:text-bg"
-          style={{ borderColor: tier.color, color: tier.color }}
-        >
-          Открыть {tier.title} →
-        </Link>
-      </div>
+        </span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-text2">{tier.subtitle}</span>
+      </a>
     </article>
   );
 }

@@ -34,15 +34,19 @@ interface CardState {
   /** Очередь на съёмку. Снимки делаются по одному. */
   readonly queue: readonly CardSpec[];
   readonly active: ActiveCard | null;
+  /** Живая модель уже нарисовала кадр: теперь она закрывает снимок под собой целиком. */
+  readonly isLiveReady: boolean;
   readonly request: (spec: CardSpec) => void;
   readonly done: (key: string, image: string) => void;
   readonly setActive: (active: ActiveCard | null) => void;
+  readonly setLiveReady: (isLiveReady: boolean) => void;
 }
 
 export const useCardStore = create<CardState>((set) => ({
   images: {},
   queue: [],
   active: null,
+  isLiveReady: false,
   request: (spec) =>
     set((state) => {
       const key = specKey(spec);
@@ -54,5 +58,7 @@ export const useCardStore = create<CardState>((set) => ({
       images: { ...state.images, [key]: image },
       queue: state.queue.filter((queued) => specKey(queued) !== key),
     })),
-  setActive: (active) => set({ active }),
+  // Новая карточка — живая модель ещё не готова, пока что виден снимок.
+  setActive: (active) => set({ active, isLiveReady: false }),
+  setLiveReady: (isLiveReady) => set({ isLiveReady }),
 }));

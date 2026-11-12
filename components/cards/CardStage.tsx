@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, OrbitControls } from "@react-three/drei";
-import { CAMERA, ICON, LIGHT } from "@/lib/config";
+import { CAMERA, ICON, LIGHT, THEME } from "@/lib/config";
 import { specCamera, specKey, useCardStore, type CardSpec } from "@/lib/cards";
 import { pickDpr } from "@/lib/perf";
 import { PointerContext, toPointer, type Pointer } from "@/lib/store";
@@ -77,6 +77,22 @@ function SnapshotCanvas() {
   );
 }
 
+/**
+ * Сообщает, что живая модель нарисовала первый кадр. Стоит внутри того же
+ * ожидания загрузки, что и модель, поэтому срабатывает только когда модель
+ * действительно на экране.
+ */
+function ReadySignal() {
+  const setLiveReady = useCardStore((state) => state.setLiveReady);
+  const isSent = useRef(false);
+  useFrame(() => {
+    if (isSent.current) return;
+    isSent.current = true;
+    setLiveReady(true);
+  });
+  return null;
+}
+
 /** Живая модель активной карточки: её вертят мышкой, блоки у курсора раздвигаются. */
 function Live({ spec }: { spec: CardSpec }) {
   useCardCamera(spec);
@@ -97,6 +113,7 @@ function Live({ spec }: { spec: CardSpec }) {
       <Suspense fallback={null}>
         <CardLight />
         <CardContent spec={spec} />
+        <ReadySignal />
       </Suspense>
     </>
   );
@@ -123,6 +140,7 @@ function boxOf(element: HTMLElement): Box {
 function LiveLayer() {
   const router = useRouter();
   const active = useCardStore((state) => state.active);
+  const isLiveReady = useCardStore((state) => state.isLiveReady);
   const setActive = useCardStore((state) => state.setActive);
   const [box, setBox] = useState<Box | null>(null);
   const [dpr] = useState(() => pickDpr(window.innerWidth, window.innerHeight, window.devicePixelRatio));
@@ -169,6 +187,9 @@ function LiveLayer() {
         width: box?.width ?? ICON.snapshotSize,
         height: box?.height ?? ICON.snapshotSize,
         visibility: active ? "visible" : "hidden",
+        // Пока живая модель грузится, сквозь прозрачный холст виден снимок. Как только она
+        // нарисовалась — закрываем снимок фоном, иначе повёрнутая модель и снимок видны вместе.
+        backgroundColor: active && isLiveReady ? THEME.bg : "transparent",
       }}
       className="z-20 cursor-grab active:cursor-grabbing"
       onPointerMove={handlePointerMove}

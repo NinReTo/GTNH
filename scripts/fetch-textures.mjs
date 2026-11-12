@@ -3,6 +3,7 @@
  *
  *   node scripts/fetch-textures.mjs            — всё
  *   node scripts/fetch-textures.mjs gregtech   — только текстуры мода
+ *   node scripts/fetch-textures.mjs winter     — только зимняя шапка
  *
  * Источники:
  *  - блоки машин — оригинальные текстуры GT5-Unofficial (LGPL-3.0), с GitHub;
@@ -250,14 +251,43 @@ async function fetchPolyHaven() {
   console.log("  ✓ workshop_1k.hdr");
 }
 
+/**
+ * Зимняя шапка: снег под эмблемой и зимний вечер для отражений (Poly Haven,
+ * CC0), планета — карта Земли из примеров three.js (лицензия MIT, снимок NASA).
+ * Планету делаем светлее и бледнее: зимой на тёмном фоне она так и выглядит.
+ */
+async function fetchWinter() {
+  console.log("Зима: Poly Haven (CC0) snow_02, winter_evening; three.js (MIT) earth_atmos_2048");
+  const snow = await (await fetch("https://api.polyhaven.com/files/snow_02", { headers: HEADERS })).json();
+  await saveMap(await download(snow.Diffuse["1k"].jpg.url), "snow-color.webp", ASSETS.snowTextureSize);
+  await saveMap(await download(snow.nor_gl["1k"].jpg.url), "snow-normal.webp", ASSETS.snowTextureSize, { normal: true });
+  await saveMap(await download(snow.Rough["1k"].jpg.url), "snow-roughness.webp", ASSETS.snowTextureSize, { grey: true });
+
+  const hdri = await (await fetch("https://api.polyhaven.com/files/winter_evening", { headers: HEADERS })).json();
+  await writeFile(path.join(OUT_HDRI, "winter_evening_1k.hdr"), await download(hdri.hdri["1k"].hdr.url));
+  console.log("  ✓ winter_evening_1k.hdr");
+
+  const earth = await download(`https://cdn.jsdelivr.net/gh/mrdoob/three.js@${ASSETS.threeExamplesTag}/examples/textures/planets/earth_atmos_2048.jpg`);
+  await sharp(earth)
+    .modulate({ saturation: ASSETS.earthSaturation, brightness: ASSETS.earthBrightness })
+    .webp({ quality: ASSETS.webpQuality })
+    .toFile(path.join(OUT_PBR, "earth.webp"));
+  console.log("  ✓ earth.webp");
+}
+
 await mkdir(OUT_GT, { recursive: true });
 await mkdir(OUT_PBR, { recursive: true });
 await mkdir(OUT_HDRI, { recursive: true });
-await fetchEbf();
-await fetchSteamAge();
-await drawWaterTank();
-if (process.argv[2] !== "gregtech") {
+const only = process.argv[2];
+if (only !== "winter") {
+  await fetchEbf();
+  await fetchSteamAge();
+  await drawWaterTank();
+}
+if (only !== "gregtech" && only !== "winter") {
   await fetchAmbientCg();
   await fetchPolyHaven();
 }
+// Отдельно зиму можно докачать так: node scripts/fetch-textures.mjs winter
+if (only !== "gregtech") await fetchWinter();
 console.log("Готово.");
