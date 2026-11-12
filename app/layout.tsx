@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { HERO, THEME } from "@/lib/config";
+import { TierTabs } from "@/components/landing/TierTabs";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin", "cyrillic"] });
@@ -30,7 +31,10 @@ const themeVariables = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ru" className={`${geistSans.variable} ${geistMono.variable} antialiased`} style={themeVariables}>
-      <body>{children}</body>
+      <body>
+        <TierTabs />
+        {children}
+      </body>
     </html>
   );
 }

@@ -2,7 +2,6 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
-import { HERO } from "@/lib/config";
 
 const Scene = dynamic(() => import("./Scene"), { ssr: false });
 const Workshop = dynamic(() => import("./Workshop"), { ssr: false });
@@ -43,8 +42,6 @@ type SceneSectionProps = {
   slug?: string;
   /** Зимняя шапка с эмблемой GT New Horizons вместо цеха — для главной. */
   isLogo?: boolean;
-  /** Что лежит поверх сцены в левом верхнем углу (мини-шапки напряжений). */
-  corner?: ReactNode;
   /** Подписи поверх сцены: заголовок и пояснение. */
   children: ReactNode;
 };
@@ -53,15 +50,10 @@ type SceneSectionProps = {
  * Шапка страницы: неподвижный блок со сценой, ниже — сразу текст. Сцену
  * вертят перетаскиванием, блоки у курсора раздвигаются.
  */
-export function SceneSection({ slug, isLogo = false, corner, children }: SceneSectionProps) {
+export function SceneSection({ slug, isLogo = false, children }: SceneSectionProps) {
   return (
     <section className="hero relative w-full overflow-hidden" aria-label="Трёхмерная модель">
       {slug ? <Scene slug={slug} /> : isLogo ? <WinterLogo /> : <Workshop />}
-      {corner && (
-        <div className="absolute left-4 top-4 z-10 grid gap-3 sm:left-8 sm:top-8" style={{ width: `max(14rem, calc(${HERO.miniWidth} * 100%))` }}>
-          {corner}
-        </div>
-      )}
       <BenchButton />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-bg via-bg/70 to-transparent p-6 pt-24 sm:p-12 sm:pt-32">
         {children}

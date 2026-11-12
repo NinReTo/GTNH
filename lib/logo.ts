@@ -1,4 +1,4 @@
-import { CAMERA, LOGO, WINTER } from "./config";
+import { LOGO, WINTER } from "./config";
 import { pullback, type CameraSetup } from "./camera";
 
 /** Полный оборот в радианах: углы эмблемы в настройках заданы долями оборота. */
@@ -110,11 +110,6 @@ export function snowCaps(): SnowCap[] {
     }
     return [];
   });
-}
-
-/** Эмблема правее центра, если шапка широкая; на узком экране — по центру. */
-export function logoOffsetX(aspect: number): number {
-  return aspect > CAMERA.referenceAspect ? LOGO.offsetX : 0;
 }
 
 /** Камера зимней шапки; на узком экране отъезжает, как и остальные сцены. */

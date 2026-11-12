@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { CAMERA, LOGO, SNOW } from "@/lib/config";
-import { logoArcs, logoBars, logoOffsetX, placeBar, snowCaps, tilt, winterCamera } from "@/lib/logo";
+import { logoArcs, logoBars, placeBar, snowCaps, tilt, winterCamera } from "@/lib/logo";
 import { flakePosition, hash01, makeFlakes } from "@/lib/snow";
 
 describe("эмблема GT New Horizons", () => {
@@ -69,9 +69,20 @@ describe("эмблема GT New Horizons", () => {
     expect(tilt(-Math.PI / 2)).toBeCloseTo(Math.PI / 2);
   });
 
-  test("на широкой шапке эмблема правее центра, на узкой — по центру", () => {
-    expect(logoOffsetX(CAMERA.referenceAspect * 2)).toBe(LOGO.offsetX);
-    expect(logoOffsetX(CAMERA.referenceAspect / 2)).toBe(0);
+  test("кольцо обнимает планету вплотную: внутренний край кольца чуть больше шара", () => {
+    const inner = LOGO.ringRadius - LOGO.band / 2;
+    expect(inner).toBeGreaterThan(LOGO.globeRadius);
+    expect(inner - LOGO.globeRadius).toBeLessThan(LOGO.band / 2);
+  });
+
+  test("эмблема по центру кадра", () => {
+    const camera = winterCamera(CAMERA.referenceAspect);
+    expect(camera.position[0]).toBe(0);
+    expect(camera.target[0]).toBe(0);
+  });
+
+  test("эмблема не касается снега", () => {
+    expect(LOGO.height - (LOGO.ringRadius + LOGO.stemOverhang)).toBeGreaterThan(0);
   });
 
   test("камера шапки смотрит на эмблему и отъезжает на узком экране", () => {

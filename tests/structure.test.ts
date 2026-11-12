@@ -212,6 +212,10 @@ describe("каталог", () => {
     }
   });
 
+  test("у каждой эры есть значок вкладки из текстур мода", () => {
+    for (const tier of TIERS) expect(existsSync(`public/textures/gregtech/${tier.icon}.webp`), tier.icon).toBe(true);
+  });
+
   test("у ярусов разные цвета, записанные как #rrggbb", () => {
     expect(new Set(TIERS.map((tier) => tier.color)).size).toBe(TIERS.length);
     for (const tier of TIERS) expect(tier.color).toMatch(/^#[0-9a-f]{6}$/);

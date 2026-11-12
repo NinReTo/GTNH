@@ -10,15 +10,13 @@ import { Structure3D } from "./Structure3D";
 type WorkshopProps = {
   /** Соотношение сторон блока со сценой; по умолчанию — шапки во всю ширину окна. */
   aspect?: number;
-  /** Мини-шапка: цех с другой стороны, чтобы не повторять большую шапку. */
-  isBanner?: boolean;
 };
 
 /**
  * Паровой цех — все постройки паровой эры на одном полу. Мышкой его можно
  * повернуть, блоки у курсора раздвигаются, как на страницах машин.
  */
-export default function Workshop({ aspect, isBanner = false }: WorkshopProps) {
+export default function Workshop({ aspect }: WorkshopProps) {
   const [settings] = useState(readSettings);
   // Шапка во всю ширину окна и высотой HERO.screens экрана.
   const [windowAspect] = useState(() => window.innerWidth / (window.innerHeight * HERO.screens));
@@ -27,7 +25,7 @@ export default function Workshop({ aspect, isBanner = false }: WorkshopProps) {
   return (
     <SceneCanvas
       settings={settings}
-      camera={workshopCamera(aspect ?? windowAspect, isBanner ? WORKSHOP.bannerCameraPosition : WORKSHOP.cameraPosition)}
+      camera={workshopCamera(aspect ?? windowAspect)}
       fogNear={WORKSHOP.fogNear}
       fogFar={WORKSHOP.fogFar}
     >

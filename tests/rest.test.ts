@@ -120,13 +120,6 @@ describe("паровой цех в шапке", () => {
     expect(turned?.rotationY).toBeCloseTo(Math.PI / 2);
   });
 
-  test("мини-шапка смотрит на цех с другой стороны, но на ту же середину", () => {
-    const hero = workshopCamera();
-    const banner = workshopCamera(CAMERA.referenceAspect, WORKSHOP.bannerCameraPosition);
-    expect(banner.target).toEqual(hero.target);
-    expect(banner.position).not.toEqual(hero.position);
-  });
-
   test("камера цеха смотрит на цех сверху и отъезжает на узком экране", () => {
     const wide = workshopCamera();
     const narrow = workshopCamera(CAMERA.referenceAspect / 2);
@@ -274,7 +267,6 @@ describe("согласованность настроек", () => {
   test("шапка ниже экрана: под ней сразу видно продолжение", () => {
     expect(HERO.screens).toBeGreaterThan(0);
     expect(HERO.screens).toBeLessThan(1);
-    expect(HERO.bannerAspect).toBeGreaterThan(1);
   });
 
   test("щелчок по карточке отличается от поворота", () => {
@@ -303,7 +295,7 @@ describe("правило «все числа в lib/config.ts»", () => {
     "components/cards/CardStage.tsx",
     "components/cards/CardContent.tsx",
     "components/cards/Cards.tsx",
-    "components/landing/TierBanner.tsx",
+    "components/landing/TierTabs.tsx",
     "lib/cards.ts",
     "lib/logo.ts",
     "lib/snow.ts",

@@ -1,9 +1,7 @@
-import { TierBanner } from "@/components/landing/TierBanner";
 import { VoltageLadder } from "@/components/landing/VoltageLadder";
 import { SectionHeading } from "@/components/landing/ui";
 import { SceneSection } from "@/components/scene/SceneSection";
 import { ASSETS } from "@/lib/config";
-import { TIERS } from "@/lib/tiers";
 
 const MOD_SOURCE = `https://github.com/GTNewHorizons/GT5-Unofficial/tree/${ASSETS.gregtechCommit}`;
 const prose = "mt-6 max-w-xl text-base leading-relaxed text-text2";
@@ -12,18 +10,13 @@ const link = "text-text1 underline decoration-accent underline-offset-4 hover:te
 export default function Home() {
   return (
     <>
-      <SceneSection
-        isLogo
-        corner={TIERS.map((tier) => (
-          <TierBanner key={tier.id} tier={tier} />
-        ))}
-      >
+      <SceneSection isLogo>
         <p className="font-mono text-xs uppercase tracking-[0.3em] text-accent">GregTech New Horizons · Minecraft 1.7.10</p>
         <h1 className="mt-4 max-w-3xl font-mono text-4xl font-bold uppercase leading-none tracking-tight text-text1 sm:text-6xl">
           Машины GregTech
         </h1>
         <p className="mt-4 max-w-md text-base leading-relaxed text-text2">
-          Постройки из настоящих блоков мода, по ярусам напряжения. Выберите ярус слева вверху.
+          Постройки из настоящих блоков мода, по эрам и ярусам напряжения. Выберите эру во вкладках сверху.
         </p>
       </SceneSection>
 

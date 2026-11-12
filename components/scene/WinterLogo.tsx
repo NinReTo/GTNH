@@ -18,7 +18,7 @@ import {
   type Texture,
 } from "three";
 import { CAMERA, HERO, LOGO, MATERIAL, SNOW, THEME, WINTER, WORKSHOP } from "@/lib/config";
-import { logoArcs, logoBars, logoOffsetX, placeBar, snowCaps, winterCamera, type Arc } from "@/lib/logo";
+import { logoArcs, logoBars, placeBar, snowCaps, winterCamera, type Arc } from "@/lib/logo";
 import { pickDpr } from "@/lib/perf";
 import { flakePosition, makeFlakes } from "@/lib/snow";
 import { Effects } from "./Effects";
@@ -102,6 +102,15 @@ function Emblem() {
   );
 }
 
+/**
+ * Порядок рисования. Эмблема лежит в плоскости через центр планеты — кольцо
+ * обнимает шар по краю, как на значке. Чтобы буквы N и H, проходящие сквозь
+ * шар, были видны поверх него, планета рисуется раньше эмблемы и не оставляет
+ * следа глубины. После эмблемы рисуется невидимый шар той же формы — только
+ * глубина: снежинки за планетой не просвечивают сквозь неё.
+ */
+const ORDER = { ground: -2, globe: -1, emblem: 0, globeDepth: 1 } as const;
+
 /** Планета за эмблемой — зимняя, бледная, медленно вращается; вокруг голубое свечение атмосферы. */
 function Globe() {
   const map = useTexture("/textures/pbr/earth.webp");
@@ -120,15 +129,20 @@ function Globe() {
 
   return (
     <group>
-      <mesh ref={globe}>
+      <mesh ref={globe} renderOrder={ORDER.globe}>
         <sphereGeometry args={[LOGO.globeRadius, LOGO.globeSegments, LOGO.globeSegments]} />
         <meshStandardMaterial
+          depthWrite={false}
           map={map}
           color={LOGO.globeTint}
           roughness={1}
           emissive={LOGO.globeGlowColor}
           emissiveIntensity={LOGO.globeGlow}
         />
+      </mesh>
+      <mesh renderOrder={ORDER.globeDepth}>
+        <sphereGeometry args={[LOGO.globeRadius, LOGO.globeSegments, LOGO.globeSegments]} />
+        <meshBasicMaterial colorWrite={false} />
       </mesh>
       <mesh scale={LOGO.atmosphereScale}>
         <sphereGeometry args={[LOGO.globeRadius, LOGO.globeSegments, LOGO.globeSegments]} />
@@ -167,7 +181,7 @@ function SnowGround() {
   }, [textures]);
 
   return (
-    <mesh rotation-x={-Math.PI / 2} receiveShadow>
+    <mesh rotation-x={-Math.PI / 2} receiveShadow renderOrder={ORDER.ground}>
       <planeGeometry args={[WINTER.groundSize, WINTER.groundSize]} />
       <meshStandardMaterial {...textures} />
     </mesh>
@@ -229,7 +243,6 @@ export default function WinterLogo() {
   const [aspect] = useState(() => window.innerWidth / (window.innerHeight * HERO.screens));
   const [dpr] = useState(() => pickDpr(window.innerWidth, window.innerHeight, window.devicePixelRatio));
   const camera = winterCamera(aspect);
-  const offset = logoOffsetX(aspect);
 
   return (
     <div ref={wrapper} className="h-full w-full cursor-grab active:cursor-grabbing">
@@ -244,16 +257,14 @@ export default function WinterLogo() {
         <directionalLight position={[...WINTER.keyLightPosition]} color={WINTER.keyLightColor} intensity={WINTER.keyLightIntensity} />
         <Suspense fallback={null}>
           <Environment files="/hdri/winter_evening_1k.hdr" environmentIntensity={WINTER.environmentIntensity} />
-          <group position={[offset, LOGO.height, 0]}>
+          <group position={[0, LOGO.height, 0]}>
             <Globe />
-            <group position-z={LOGO.frontOffset}>
-              <Emblem />
-            </group>
+            <Emblem />
           </group>
           <SnowGround />
           <ContactShadows
             frames={1}
-            position={[offset, 0, 0]}
+            position={[0, 0, 0]}
             opacity={WORKSHOP.contactShadowOpacity}
             blur={WORKSHOP.contactShadowBlur}
             scale={WORKSHOP.contactShadowScale}
