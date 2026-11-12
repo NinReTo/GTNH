@@ -5,7 +5,7 @@ import { HeatCalculator } from "@/components/landing/HeatCalculator";
 import { MachineDiagram } from "@/components/landing/MachineDiagram";
 import { SectionHeading, formatNumber } from "@/components/landing/ui";
 import { SceneSection } from "@/components/scene/SceneSection";
-import { ASSETS, DIAGRAM, GAME } from "@/lib/config";
+import { DIAGRAM, GAME } from "@/lib/config";
 import { coilHeat } from "@/lib/heat";
 import { GROUP_TITLES, MACHINES, findMachine, structureOf } from "@/lib/machines";
 
@@ -26,7 +26,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 const prose = "mt-6 max-w-xl text-base leading-relaxed text-text2";
 const link = "text-text1 underline decoration-accent underline-offset-4 hover:text-accent";
-const SOURCE_BASE = `https://github.com/GTNewHorizons/GT5-Unofficial/blob/${ASSETS.gregtechCommit}/src/main/java`;
 
 export default async function MachinePage({ params }: PageProps) {
   const machine = findMachine((await params).slug);
@@ -79,7 +78,7 @@ export default async function MachinePage({ params }: PageProps) {
           <div className="mx-auto max-w-6xl px-6 py-24 sm:px-12 lg:py-36">
             <SectionHeading index="02" kicker="Структура" title="Из чего сложена" />
             <p className={prose}>
-              Схема взята из исходного кода мода дословно — теми же строками, какими её описали авторы. Наведите на
+              Схема взята из первоисточника дословно — теми же строками, какими её описали авторы мода. Наведите на
               строку справа, чтобы найти такие блоки в постройке.
             </p>
             <div className="mt-12">
@@ -87,8 +86,8 @@ export default async function MachinePage({ params }: PageProps) {
             </div>
             <p className="mt-8 font-mono text-xs text-text3">
               Источник:{" "}
-              <a className={link} href={`${SOURCE_BASE}/${machine.source}`} target="_blank" rel="noopener noreferrer">
-                {machine.source.split("/").pop()}
+              <a className={link} href={machine.source} target="_blank" rel="noopener noreferrer">
+                {decodeURIComponent(machine.source.split("/").pop() ?? machine.source)}
               </a>
             </p>
           </div>

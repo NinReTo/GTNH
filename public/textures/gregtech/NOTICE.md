@@ -62,4 +62,13 @@
 | `smelter-controller.webp` | бронзовые кирпичи + `OVERLAY_FRONT_STEAM_ALLOY_SMELTER_MULTI_ACTIVE` |
 | `hammer-controller.webp` | бронзовые кирпичи + `OVERLAY_FRONT_STEAM_FORGE_HAMMER_ACTIVE` |
 | `pump-controller.webp` | дерево + `OVERLAY_FRONT_WATER_PUMP_ACTIVE` |
+| `hull-{bronze|steel}-{plain|bricked}-{side|top|bottom}.webp` | `MACHINE_BRONZE(BRICKS)_*` / `MACHINE_STEEL(BRICKS)_*` — грани корпуса одноблочных машин |
 | `single-bronze-*.webp`, `single-steel-*.webp` | корпус `MACHINE_BRONZE(BRICKS)_SIDE` / `MACHINE_STEEL(BRICKS)_SIDE` + `OVERLAY_FRONT_STEAM_*` |
+
+## Нарисовано для этого проекта
+
+`water-tank.webp` — стенка водяного бака. Сам бак — из мода Railcraft, а его
+лицензия разрешает использовать текстуры только в текстурпаках для Railcraft,
+поэтому эта текстура **не взята из Railcraft**, а нарисована заново по пикселям
+(рисунок и палитра — в `scripts/fetch-textures.mjs` и `lib/config.ts`).
+Она распространяется вместе с кодом проекта.

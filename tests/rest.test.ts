@@ -1,11 +1,12 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
-import { CAMERA, FLOOR, FOG, GAME, HOVER, LIGHT, PERF, SCROLL, THEME } from "@/lib/config";
+import { CAMERA, FLOOR, FOG, GAME, HOVER, ICON, LIGHT, PERF, SCROLL, THEME, WORKSHOP } from "@/lib/config";
 import { cameraSetup, iconCameraSetup, pullback, sizeScale } from "@/lib/camera";
 import { coilHeat, heatBonuses, heatCapacity, voltageHeatBonus } from "@/lib/heat";
 import { clamp, clamp01, inverseLerp, smooth01 } from "@/lib/math";
 import { perfRows, pickDpr } from "@/lib/perf";
 import { parseDisabledEffects, toPointer } from "@/lib/store";
+import { footprint, workshopCamera, workshopPlacements } from "@/lib/workshop";
 
 describe("камера", () => {
   const reference = [3, CAMERA.referenceSize, 3] as const;
@@ -57,6 +58,14 @@ describe("камера", () => {
     expect(distance(big)).toBeGreaterThan(distance(small));
   });
 
+  test("камера значка одиночного куба подъезжает ближе, но не ближе нижнего предела", () => {
+    const cube = iconCameraSetup([1, 1, 1]);
+    const furnace = iconCameraSetup([3, 4, 3]);
+    const distance = (setup: typeof cube) => Math.hypot(...setup.position.map((value, axis) => value - setup.target[axis]));
+    expect(distance(cube)).toBeLessThan(distance(furnace));
+    expect(distance(cube) / distance(furnace)).toBeCloseTo(ICON.minScale);
+  });
+
   test("к постройке мельче расчётной не подъезжает", () => {
     expect(sizeScale([3, 3, 3])).toBe(1);
     expect(cameraSetup([3, 3, 3])).toEqual(cameraSetup(reference));
@@ -72,6 +81,51 @@ describe("камера", () => {
     expect(CAMERA.minPolarAngle).toBeGreaterThan(0);
     expect(CAMERA.maxPolarAngle).toBeLessThan(Math.PI / 2);
     expect(CAMERA.minPolarAngle).toBeLessThan(CAMERA.maxPolarAngle);
+  });
+});
+
+describe("паровой цех в шапке", () => {
+  const placements = workshopPlacements();
+
+  test("все постройки цеха есть в каталоге", () => {
+    expect(placements.length).toBe(WORKSHOP.layout.length);
+  });
+
+  test("между любыми двумя постройками остаётся метр на раздвижение блоков", () => {
+    const boxes = placements.map(footprint);
+    for (let first = 0; first < boxes.length; first += 1) {
+      for (let second = first + 1; second < boxes.length; second += 1) {
+        const a = boxes[first];
+        const b = boxes[second];
+        const gapX = Math.max(b.minX - a.maxX, a.minX - b.maxX);
+        const gapZ = Math.max(b.minZ - a.maxZ, a.minZ - b.maxZ);
+        expect(Math.max(gapX, gapZ), `${placements[first].key} и ${placements[second].key}`).toBeGreaterThanOrEqual(1);
+      }
+    }
+  });
+
+  test("весь цех стоит на полу и не выходит за его край", () => {
+    for (const box of placements.map(footprint)) {
+      for (const edge of [box.minX, box.maxX, box.minZ, box.maxZ]) expect(Math.abs(edge)).toBeLessThan(FLOOR.size / 2);
+    }
+  });
+
+  test("свой свет только у построек с огнём внутри", () => {
+    const lit = placements.filter((placement) => placement.hasLight).map((placement) => placement.machine.slug);
+    expect(new Set(lit)).toEqual(new Set(["bricked-blast-furnace", "coke-oven"]));
+  });
+
+  test("поворот в долях оборота переводится в радианы", () => {
+    const turned = placements.find((placement) => placement.machine.slug === "steam-compressor");
+    expect(turned?.rotationY).toBeCloseTo(Math.PI / 2);
+  });
+
+  test("камера цеха смотрит на цех сверху и отъезжает на узком экране", () => {
+    const wide = workshopCamera();
+    const narrow = workshopCamera(CAMERA.referenceAspect / 2);
+    expect(wide.position[1]).toBeGreaterThan(wide.target[1]);
+    const distance = (setup: typeof wide) => Math.hypot(...setup.position.map((value, axis) => value - setup.target[axis]));
+    expect(distance(narrow)).toBeCloseTo(distance(wide) * 2);
   });
 });
 
@@ -259,6 +313,9 @@ describe("правило «все числа в lib/config.ts»", () => {
     "components/scene/Structure3D.tsx",
     "components/icons/IconStage.tsx",
     "components/icons/MachineIcon.tsx",
+    "components/scene/SceneCanvas.tsx",
+    "components/scene/Workshop.tsx",
+    "lib/workshop.ts",
     "components/scene/Floor.tsx",
     "components/scene/Effects.tsx",
     "components/scene/TransitionEffect.ts",

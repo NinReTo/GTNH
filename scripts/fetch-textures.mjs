@@ -161,6 +161,59 @@ async function fetchSteamAge() {
       await composeFace(hull[single.hull], [single.overlay], `single-${tier}-${id}.webp`);
     }
   }
+
+  // Остальные грани одноблочной машины: бока, верх и низ корпуса её яруса (как в MTEBasicMachineBronze/Steel).
+  for (const tier of ["BRONZE", "STEEL"]) {
+    for (const [hull, infix] of [["plain", ""], ["bricked", "BRICKS"]]) {
+      for (const side of ["SIDE", "TOP", "BOTTOM"]) {
+        const file = `hull-${tier.toLowerCase()}-${hull}-${side.toLowerCase()}.webp`;
+        await savePixel(await gtTexture(`MACHINE_${tier}${infix}_${side}`), file);
+      }
+    }
+  }
+}
+
+/**
+ * Стенка водяного бака. Это блок Railcraft, а его лицензия разрешает
+ * использовать текстуры только в текстурпаках для самого Railcraft, — поэтому
+ * стенка нарисована заново: доски, железная обвязка с заклёпками, железный
+ * пояс посередине. Буквы — цвета из ASSETS.waterTankPalette.
+ */
+const WATER_TANK_PIXELS = [
+  "IIIIIIIIIIIIIIII",
+  "IrwWwdwWwwdwWwrI",
+  "IwwWwdwwWwdwWwwI",
+  "IwWwwdWwwWdwwWwI",
+  "IwwWwdwWwwdWwwwI",
+  "IwWwwdwwWwdwwWwI",
+  "IiiiiiiiiiiiiiiI",
+  "IrIIIIIIIIIIIIrI",
+  "IwwWwdwWwwdwWwwI",
+  "IwWwwdwwWwdwwWwI",
+  "IwwWwdWwwWdwWwwI",
+  "IwWwwdwWwwdwwWwI",
+  "IwwWwdwwWwdWwwwI",
+  "IwWwwdwWwwdwWwwI",
+  "IrwWwdwwWwdwwWrI",
+  "IIIIIIIIIIIIIIII",
+];
+
+async function drawWaterTank() {
+  console.log("Нарисовано для проекта: стенка водяного бака");
+  const side = WATER_TANK_PIXELS.length;
+  const channels = 3;
+  const data = Buffer.alloc(side * side * channels);
+  WATER_TANK_PIXELS.forEach((row, y) => {
+    [...row].forEach((letter, x) => {
+      const hex = ASSETS.waterTankPalette[letter];
+      if (!hex) throw new Error(`В рисунке бака буква «${letter}» без цвета`);
+      const offset = (y * side + x) * channels;
+      [hex.slice(1, 3), hex.slice(3, 5), hex.slice(5, 7)].forEach((pair, channel) => {
+        data[offset + channel] = Number.parseInt(pair, 16);
+      });
+    });
+  });
+  await savePixel(await sharp(data, { raw: { width: side, height: side, channels } }).png().toBuffer(), "water-tank.webp");
 }
 
 async function saveMap(buffer, file, size, { normal = false, grey = false } = {}) {
@@ -202,6 +255,7 @@ await mkdir(OUT_PBR, { recursive: true });
 await mkdir(OUT_HDRI, { recursive: true });
 await fetchEbf();
 await fetchSteamAge();
+await drawWaterTank();
 if (process.argv[2] !== "gregtech") {
   await fetchAmbientCg();
   await fetchPolyHaven();

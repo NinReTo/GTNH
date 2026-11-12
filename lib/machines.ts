@@ -1,3 +1,4 @@
+import { ASSETS } from "./config";
 import { buildStructure, type BlockKind, type Structure, type StructureDef } from "./structure";
 
 /**
@@ -31,6 +32,7 @@ export const KINDS = {
   ironBlock: { label: "Блок железа", texture: "iron-block" },
   glass: { label: "Стекло", texture: "glass", isGlass: true },
   wood: { label: "Деревянный корпус", texture: "wood", isMatte: true },
+  waterTankSiding: { label: "Стенка водяного бака", texture: "water-tank", isMatte: true },
   maceratorController: { label: "Контроллер", texture: "macerator-controller", face: { rule: "front", base: "bronze-bricks" }, isMatte: true },
   furnaceController: { label: "Контроллер", texture: "furnace-controller", face: { rule: "front", base: "bronze-bricks" }, isMatte: true },
   compressorController: { label: "Контроллер", texture: "compressor-controller", face: { rule: "front", base: "bronze-bricks" }, isMatte: true },
@@ -60,7 +62,7 @@ export interface Machine {
   /** Абзацы для страницы машины, простым языком. */
   readonly story: readonly string[];
   readonly facts: readonly Fact[];
-  /** Файл в исходниках мода, откуда взята схема. */
+  /** Откуда взята схема: ссылка на файл в исходниках мода или на страницу вики. */
   readonly source: string;
   readonly def: StructureDef & { readonly kinds: Readonly<Record<string, KindId>> };
 }
@@ -74,7 +76,7 @@ const STEAM_FACTS: readonly Fact[] = [
 const STEAM_NOTE =
   "У постройки два яруса. Бронзовый показан здесь. Стальной (высокого давления) собирается точно так же, только из стальных блоков — он работает быстрее и ест больше пара. Паровой люк и шины для предметов ставятся на место любого обычного кирпича.";
 
-const MULTI = "gregtech/common/tileentities/machines/multi";
+const MULTI = `https://github.com/GTNewHorizons/GT5-Unofficial/blob/${ASSETS.gregtechCommit}/src/main/java/gregtech/common/tileentities/machines/multi`;
 
 export const MACHINES: readonly Machine[] = [
   {
@@ -132,6 +134,35 @@ export const MACHINES: readonly Machine[] = [
       ],
       kinds: { C: "cokeBrick", "~": "cokeController" },
       hollow: "-",
+    },
+  },
+  {
+    slug: "water-tank",
+    name: "Water Tank",
+    title: "Водяной бак",
+    group: "primitive",
+    summary: "Собирает воду прямо из воздуха. Медленно, зато бесплатно — до парового насоса другого способа нет.",
+    story: [
+      "Паровым котлам нужна вода, и первая вода в игре берётся из воздуха. Водяной бак — это полый куб три на три на три из двадцати шести стенок, а внутри копится вода.",
+      "У бака нет ни контроллера, ни люков: его просто ставят и ждут. Чем влажнее место, тем быстрее он наполняется; дождь ускоряет втрое, а крыша над баком — замедляет вдвое.",
+      "Бак — из соседнего мода Railcraft. Его текстуры распространять нельзя, поэтому стенка здесь нарисована заново, в том же духе. Позже бак сменяет паровой насос: он даёт воды в десятки раз больше.",
+    ],
+    facts: [
+      { label: "Размер", value: "3 × 3 × 3" },
+      { label: "Стенок", value: "26" },
+      { label: "Работает на", value: "влажности воздуха" },
+      { label: "Даёт воды", value: "до 30 л/с" },
+    ],
+    source: "https://wiki.gtnewhorizons.com/wiki/Water_Tank",
+    def: {
+      layers: [
+        ["TTT", "TTT", "TTT"],
+        ["TTT", "T-T", "TTT"],
+        ["TTT", "TTT", "TTT"],
+      ],
+      kinds: { T: "waterTankSiding" },
+      hollow: "-",
+      interior: "water",
     },
   },
   {
@@ -260,7 +291,7 @@ export const MACHINES: readonly Machine[] = [
     story: [
       "Паровым котлам постоянно нужна вода, и носить её вёдрами быстро надоедает. Насос качает воду сам.",
       "Основание — деревянные корпуса, над ними — вышка из десяти бронзовых рам. Сколько воды насос даёт, зависит от влажности места, где он стоит: в болоте больше, в пустыне почти ничего.",
-      "У насоса тоже два яруса: с бронзовыми рамами и со стальными. Паровой люк ставится на место любого деревянного корпуса.",
+      "Насос сменяет водяной бак: тот собирает воду из воздуха бесплатно, но в десятки раз медленнее. У насоса тоже два яруса — с бронзовыми рамами и со стальными. Паровой люк ставится на место любого деревянного корпуса.",
     ],
     facts: [
       { label: "Размер", value: "3 × 3 × 4" },
@@ -342,9 +373,13 @@ export function structureOf(machine: Machine): Structure {
   return structure;
 }
 
+/** Корпус одноблочной машины: гладкий металл или металл с кирпичом (у печей). */
+export type Hull = "plain" | "bricked";
+
 /** Одноблочная паровая машина для иерархии на главной: что делает и какой у неё фасад. */
 export interface SingleBlock {
   readonly id: string;
+  readonly hull: Hull;
   readonly title: string;
   readonly does: string;
   /** Многоблочная версия, если она есть. */
@@ -354,11 +389,18 @@ export interface SingleBlock {
 }
 
 export const SINGLE_BLOCKS: readonly SingleBlock[] = [
-  { id: "macerator", title: "Дробилка", does: "руду в пыль", multiSlug: "steam-macerator" },
-  { id: "furnace", title: "Печь", does: "пыль в слитки", multiSlug: "steam-furnace" },
-  { id: "alloy-smelter", title: "Плавильня сплавов", does: "два металла в сплав", multiSlug: "steam-alloy-smelter" },
-  { id: "hammer", title: "Молот", does: "слитки в пластины", multiSlug: "steam-forge-hammer" },
-  { id: "compressor", title: "Компрессор", does: "сжимает в блоки", multiSlug: "steam-compressor" },
-  { id: "extractor", title: "Экстрактор", does: "вытягивает резину и краски" },
-  { id: "water-pump", title: "Насос", does: "качает воду для котлов", multiSlug: "steam-water-pump", isMultiOnly: true },
+  { id: "macerator", hull: "plain", title: "Дробилка", does: "руду в пыль", multiSlug: "steam-macerator" },
+  { id: "furnace", hull: "bricked", title: "Печь", does: "пыль в слитки", multiSlug: "steam-furnace" },
+  { id: "alloy-smelter", hull: "bricked", title: "Плавильня сплавов", does: "два металла в сплав", multiSlug: "steam-alloy-smelter" },
+  { id: "hammer", hull: "plain", title: "Молот", does: "слитки в пластины", multiSlug: "steam-forge-hammer" },
+  { id: "compressor", hull: "plain", title: "Компрессор", does: "сжимает в блоки", multiSlug: "steam-compressor" },
+  { id: "extractor", hull: "plain", title: "Экстрактор", does: "вытягивает резину и краски" },
+  {
+    id: "water-pump",
+    hull: "plain",
+    title: "Насос",
+    does: "качает воду для котлов; до него воду даёт водяной бак",
+    multiSlug: "steam-water-pump",
+    isMultiOnly: true,
+  },
 ];

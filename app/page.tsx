@@ -1,37 +1,23 @@
 import type { ReactNode } from "react";
 import { IconStageLoader } from "@/components/icons/IconStageLoader";
-import { MachineIcon } from "@/components/icons/MachineIcon";
+import { MachineIcon, SingleBlockIcon } from "@/components/icons/MachineIcon";
 import { PerfChart } from "@/components/landing/PerfChart";
 import { ScrollDiagram } from "@/components/landing/ScrollDiagram";
 import { VoltageLadder } from "@/components/landing/VoltageLadder";
 import { SectionHeading, formatNumber } from "@/components/landing/ui";
-import { ASSETS, DIAGRAM, GAME, PERF, SCROLL } from "@/lib/config";
+import { SceneSection } from "@/components/scene/SceneSection";
+import { ASSETS, GAME, PERF, SCROLL } from "@/lib/config";
 import { MACHINES, SINGLE_BLOCKS } from "@/lib/machines";
 
 const MOD_SOURCE = `https://github.com/GTNewHorizons/GT5-Unofficial/tree/${ASSETS.gregtechCommit}`;
-const TEXTURES = "/textures/gregtech";
 
 const prose = "mt-6 max-w-xl text-base leading-relaxed text-text2";
 const link = "text-text1 underline decoration-accent underline-offset-4 hover:text-accent";
 const columnHead = "font-mono text-[11px] uppercase tracking-[0.2em] text-text3";
 /** Сетка лестницы: название машины, бронзовая, стальная, многоблочная. Без горизонтальной прокрутки — значки рисуются поверх страницы и вылезли бы за обрезанный край. */
-const ladderGrid = "grid grid-cols-[minmax(0,1.3fr)_minmax(0,0.6fr)_minmax(0,0.6fr)_minmax(0,1fr)] items-center gap-3 sm:gap-6";
-
-/** Значок 16×16 из текстур мода, увеличенный без сглаживания. */
-function Pixel({ file, label }: { file: string; label: string }) {
-  return (
-    <span className="flex flex-col items-start gap-2">
-      {/* eslint-disable-next-line @next/next/no-img-element -- текстуру 16×16 нельзя сглаживать, оптимизатор картинок её размоет */}
-      <img
-        src={`${TEXTURES}/${file}.webp`}
-        alt={label}
-        width={DIAGRAM.catalog.tierIcon}
-        height={DIAGRAM.catalog.tierIcon}
-        className="pixelated h-auto w-full max-w-16"
-      />
-    </span>
-  );
-}
+const ladderGrid = "grid grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))] items-center gap-3 sm:gap-6";
+/** Значок в ячейке лестницы не шире этого, иначе строки вытягиваются в высоту. */
+const cell = "block w-full max-w-40";
 
 function Missing() {
   return <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-text3">нет</span>;
@@ -66,33 +52,33 @@ export default function Home() {
     <>
       <IconStageLoader />
 
-      <main className="relative z-10 bg-bg">
-        <header className="mx-auto max-w-6xl px-6 pt-16 pb-12 sm:px-12 lg:pt-24">
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-accent">GregTech New Horizons · Minecraft 1.7.10</p>
-          <h1 className="mt-4 font-mono text-4xl font-bold uppercase leading-none tracking-tight text-text1 sm:text-7xl">
-            Паровая эра
-          </h1>
-          <p className="mt-6 max-w-xl text-base leading-relaxed text-text2">
-            Первые машины мода — до электричества. Ниже они выстроены лестницей, от самых простых к самым большим.
-            Наведите на постройку — она повернётся и раздвинется, нажмите — откроется её страница с большой моделью.
-          </p>
-        </header>
+      <SceneSection>
+        <p className="font-mono text-xs uppercase tracking-[0.3em] text-accent">GregTech New Horizons · Minecraft 1.7.10</p>
+        <h1 className="mt-4 max-w-3xl font-mono text-4xl font-bold uppercase leading-none tracking-tight text-text1 sm:text-7xl">
+          Паровая эра
+        </h1>
+        <p className="mt-6 max-w-md text-base leading-relaxed text-text2">
+          Паровой цех из настоящих блоков мода: домна, коксовые печи, водяной бак и паровые машины. Тяните мышкой —
+          цех повернётся, наведите на блоки — они раздвинутся. Ниже все машины выстроены лестницей.
+        </p>
+      </SceneSection>
 
+      <main className="landing relative z-10 bg-bg pt-16 lg:pt-24">
         {/* 01 — лестница: ступени сверху вниз, значки справа */}
         <section className="mx-auto max-w-6xl px-6 pb-24 sm:px-12 lg:pb-36">
           <Step
             number="0"
             title="Без энергии"
             aside={
-              <div className="grid max-w-md grid-cols-2 gap-4">
+              <div className="grid max-w-xl grid-cols-3 gap-4">
                 {primitive.map((machine) => (
                   <MachineIcon key={machine.slug} slug={machine.slug} />
                 ))}
               </div>
             }
           >
-            Самое начало. Ни пара, ни электричества: коксовая печь пережигает уголь в кокс, а кирпичная домна на этом
-            коксе выплавляет первую сталь. Обе — постройки из кирпича, которые работают на собственном жаре.
+            Самое начало. Ни пара, ни электричества: коксовая печь пережигает уголь в кокс, кирпичная домна на этом
+            коксе выплавляет первую сталь, а водяной бак собирает из воздуха воду для будущих котлов.
           </Step>
 
           <Step number="1 → 3" title="Пар: от одного блока к постройке">
@@ -116,10 +102,17 @@ export default function Home() {
                 <span className="block font-mono text-sm uppercase tracking-[0.15em] text-text1">{single.title}</span>
                 <span className="text-sm text-text2">{single.does}</span>
               </span>
-              {single.isMultiOnly ? <Missing /> : <Pixel file={`single-bronze-${single.id}`} label={`${single.title}, бронза`} />}
-              {single.isMultiOnly ? <Missing /> : <Pixel file={`single-steel-${single.id}`} label={`${single.title}, сталь`} />}
+              {(["bronze", "steel"] as const).map((tier) =>
+                single.isMultiOnly ? (
+                  <Missing key={tier} />
+                ) : (
+                  <span key={tier} className={cell}>
+                    <SingleBlockIcon id={single.id} tier={tier} hull={single.hull} title={single.title} />
+                  </span>
+                ),
+              )}
               {single.multiSlug ? (
-                <span className="block w-full max-w-40">
+                <span className={cell}>
                   <MachineIcon slug={single.multiSlug} />
                 </span>
               ) : (
@@ -129,8 +122,8 @@ export default function Home() {
           ))}
           <p className="mt-6 max-w-2xl text-sm leading-relaxed text-text3">
             Пар для всех этих машин дают котлы — угольный, солнечный и лавовый, тоже в бронзовом и стальном
-            исполнении. Котлы и одноблочные машины — это один куб, поэтому здесь они показаны плоскими значками из
-            мода.
+            исполнении. Одноблочные машины — это один куб: наведите на него, чтобы покрутить. Своих страниц у них нет —
+            разбирать в кубе нечего.
           </p>
 
           <Step

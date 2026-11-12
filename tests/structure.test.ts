@@ -78,6 +78,18 @@ describe("постройки паровой эры — числа блоков �
     expect(structureOf(machine("coke-oven")).hollow).toEqual([[0, 1.5, 0]]);
   });
 
+  test("водяной бак: полый куб из 26 стенок, без контроллера, внутри вода", () => {
+    const structure = structureOf(machine("water-tank"));
+    expect(counts("water-tank")).toEqual({ waterTankSiding: 26 });
+    expect(structure.hollow).toEqual([[0, 1.5, 0]]);
+    expect(structure.interior).toBe("water");
+  });
+
+  test("у остальных построек внутри огонь", () => {
+    expect(structureOf(machine("bricked-blast-furnace")).interior).toBe("fire");
+    expect(structureOf(machine("coke-oven")).interior).toBe("fire");
+  });
+
   test("паровая печь: 4 редуктора, 4 трубных корпуса, 3 топки", () => {
     expect(counts("steam-furnace")).toMatchObject({ bronzeGearbox: 4, bronzePipe: 4, bronzeFirebox: 3, furnaceController: 1 });
   });
@@ -113,7 +125,8 @@ describe("постройки паровой эры — числа блоков �
 describe.each(MACHINES.map((entry) => [entry.title, entry] as const))("любая постройка: %s", (_title, entry) => {
   const { blocks, size } = structureOf(entry);
 
-  test("у неё ровно один контроллер, и он смотрит на фасад", () => {
+  test("если у неё есть контроллер, он один и смотрит на фасад", () => {
+    if (!entry.def.kinds["~"]) return;
     const controllers = blocks.filter((block) => block.kind === entry.def.kinds["~"]);
     expect(controllers).toHaveLength(1);
     expect(controllers[0].face).toBe("pz");
@@ -173,7 +186,7 @@ describe.each(MACHINES.map((entry) => [entry.title, entry] as const))("люба�
   test("у неё есть рассказ, факты и ссылка на исходник", () => {
     expect(entry.story.length).toBeGreaterThanOrEqual(2);
     expect(entry.facts.length).toBeGreaterThanOrEqual(3);
-    expect(entry.source).toMatch(/\.java$/);
+    expect(entry.source).toMatch(/^https:\/\/(github\.com\/GTNewHorizons\/GT5-Unofficial\/blob\/.+\.java|wiki\.gtnewhorizons\.com\/wiki\/.+)$/);
   });
 });
 
@@ -189,8 +202,8 @@ describe("каталог", () => {
     }
   });
 
-  test("в нём восемь построек паровой эры и одна электрическая", () => {
-    expect(MACHINES.filter((entry) => entry.group !== "electric")).toHaveLength(8);
+  test("в нём девять построек до электричества и одна электрическая", () => {
+    expect(MACHINES.filter((entry) => entry.group !== "electric")).toHaveLength(9);
     expect(MACHINES.filter((entry) => entry.group === "electric")).toHaveLength(1);
   });
 
@@ -206,6 +219,10 @@ describe("каталог", () => {
       }
       for (const tier of ["bronze", "steel"]) {
         expect(existsSync(`public/textures/gregtech/single-${tier}-${single.id}.webp`), single.id).toBe(true);
+        for (const side of ["side", "top", "bottom"]) {
+          const hull = `public/textures/gregtech/hull-${tier}-${single.hull}-${side}.webp`;
+          expect(existsSync(hull), hull).toBe(true);
+        }
       }
       if (single.multiSlug) expect(findMachine(single.multiSlug)).toBeDefined();
     }

@@ -14,6 +14,7 @@ import {
   SRGBColorSpace,
   Vector2,
   Vector3,
+  type Group,
   type Material,
   type Mesh,
   type Ray,
@@ -25,7 +26,7 @@ import { FACES, approach, cursorWeight, explodedPosition, type Block, type Block
 import { useSceneStore, type Pointer } from "@/lib/store";
 
 const GT = "/textures/gregtech";
-const DETAIL_URLS = {
+export const DETAIL_URLS = {
   metalNormal: "/textures/pbr/metal-normal.webp",
   metalRoughness: "/textures/pbr/metal-roughness.webp",
 };
@@ -47,7 +48,7 @@ function textureUrls(kindIds: readonly string[]): Record<string, string> {
  * квадратами, как в игре), при уменьшении — обычные мип-уровни с анизотропией,
  * иначе дальние грани рябят.
  */
-function setupPixelTexture(texture: Texture): void {
+export function setupPixelTexture(texture: Texture): void {
   texture.magFilter = NearestFilter;
   texture.minFilter = LinearMipmapLinearFilter;
   texture.anisotropy = MATERIAL.anisotropy;
@@ -56,7 +57,7 @@ function setupPixelTexture(texture: Texture): void {
 }
 
 /** Настоящие PBR-карты металла: линейная фильтрация, повтор, анизотропия. */
-function setupDetailTexture(texture: Texture): void {
+export function setupDetailTexture(texture: Texture): void {
   texture.wrapS = RepeatWrapping;
   texture.wrapT = RepeatWrapping;
   texture.repeat.set(MATERIAL.detailRepeat, MATERIAL.detailRepeat);
@@ -64,13 +65,13 @@ function setupDetailTexture(texture: Texture): void {
   texture.needsUpdate = true;
 }
 
-interface Detail {
+export interface Detail {
   readonly metalNormal: Texture;
   readonly metalRoughness: Texture;
 }
 
 /** Материал блока. Цвет — пиксельная текстура мода, блик и рельеф — настоящие карты металла. */
-function blockMaterial(kind: BlockKind, map: Texture, detail: Detail, glow?: Texture): MeshPhysicalMaterial {
+export function blockMaterial(kind: BlockKind, map: Texture, detail: Detail, glow?: Texture): MeshPhysicalMaterial {
   const material = new MeshPhysicalMaterial({
     map,
     normalMap: detail.metalNormal,
@@ -142,9 +143,15 @@ interface Structure3DProps {
    * сцена, где блоки раздвигает курсор.
    */
   readonly isHovered?: boolean;
+  /**
+   * Свой точечный свет внутри постройки. По умолчанию есть. В цехе, где построек
+   * много, свет оставлен только у тех, в ком горит огонь: каждый источник света
+   * пересчитывается для каждого пикселя, и десяток источников заметно тормозит.
+   */
+  readonly hasLight?: boolean;
 }
 
-export function Structure3D({ machine, shadows, isHovered }: Structure3DProps) {
+export function Structure3D({ machine, shadows, isHovered, hasLight = true }: Structure3DProps) {
   const isIcon = isHovered !== undefined;
   const hovered = useRef(false);
   const structure = useMemo(() => structureOf(machine), [machine]);
@@ -157,6 +164,9 @@ export function Structure3D({ machine, shadows, isHovered }: Structure3DProps) {
   const weights = useRef<number[]>([]);
   const homes = useMemo(() => structure.blocks.map((block) => new Vector3(...block.home)), [structure]);
   const cursor = useMemo(() => new Vector2(), []);
+  const root = useRef<Group>(null);
+  /** Место блока в мире: постройка может стоять не в начале координат и быть повёрнута (цех). */
+  const worldHome = useMemo(() => new Vector3(), []);
   const gl = useThree((state) => state.gl);
   const invalidate = useThree((state) => state.invalidate);
 
@@ -188,6 +198,7 @@ export function Structure3D({ machine, shadows, isHovered }: Structure3DProps) {
     return new BoxGeometry(side, side, side);
   }, []);
   const coreColor = useMemo(() => new Color(CORE.color).multiplyScalar(CORE.intensity), []);
+  const isWater = structure.interior === "water";
 
   // Значку сообщают о наведении через свойство; запоминаем и заказываем кадр, чтобы анимация пошла.
   useEffect(() => {
@@ -198,7 +209,9 @@ export function Structure3D({ machine, shadows, isHovered }: Structure3DProps) {
   /** Насколько раздвинуть блок: в значке — все разом по наведению, в большой сцене — по близости к курсору. */
   const targetWeight = (home: Vector3, pointer: Pointer | null, ray: Ray): number => {
     if (isIcon) return hovered.current ? ICON.explode : 0;
-    return pointer ? cursorWeight(Math.sqrt(ray.distanceSqToPoint(home))) : 0;
+    if (!pointer || !root.current) return 0;
+    worldHome.copy(home).applyMatrix4(root.current.matrixWorld);
+    return cursorWeight(Math.sqrt(ray.distanceSqToPoint(worldHome)));
   };
 
   // Блоки раздвигаются только рядом с курсором: чем ближе центр блока к лучу
@@ -225,7 +238,7 @@ export function Structure3D({ machine, shadows, isHovered }: Structure3DProps) {
   });
 
   return (
-    <group>
+    <group ref={root}>
       {structure.blocks.map((block, index) => (
         <mesh
           key={block.id}
@@ -240,14 +253,22 @@ export function Structure3D({ machine, shadows, isHovered }: Structure3DProps) {
         />
       ))}
 
-      {/* Самосветящееся нутро: ничего не освещает, но видно в щели и даёт ореол. */}
-      {structure.hollow.map((position) => (
-        <mesh key={position.join(":")} position={[...position]}>
-          <boxGeometry args={[CORE.width, EBF.blockSize, CORE.width]} />
-          <meshBasicMaterial color={coreColor} toneMapped={false} />
-        </mesh>
-      ))}
+      {/* Самосветящееся нутро: ничего не освещает, но видно в щели и даёт ореол. У бака внутри вода — она не светится. */}
+      {structure.hollow.map((position) =>
+        isWater ? (
+          <mesh key={position.join(":")} position={[...position]}>
+            <boxGeometry args={[EBF.blockSize * EBF.blockScale, EBF.blockSize * EBF.blockScale, EBF.blockSize * EBF.blockScale]} />
+            <meshStandardMaterial color={CORE.waterColor} transparent opacity={CORE.waterOpacity} roughness={0} />
+          </mesh>
+        ) : (
+          <mesh key={position.join(":")} position={[...position]}>
+            <boxGeometry args={[CORE.width, EBF.blockSize, CORE.width]} />
+            <meshBasicMaterial color={coreColor} toneMapped={false} />
+          </mesh>
+        ),
+      )}
 
+      {hasLight && !isWater && (
       <pointLight
         position={[...structure.lightPosition]}
         color={LIGHT.color}
@@ -261,6 +282,7 @@ export function Structure3D({ machine, shadows, isHovered }: Structure3DProps) {
         shadow-camera-near={LIGHT.shadowNear}
         shadow-camera-far={LIGHT.distance}
       />
+      )}
     </group>
   );
 }

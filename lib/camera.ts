@@ -24,7 +24,9 @@ export interface CameraSetup {
  * сцена, и чуть ближе — значок квадратный и маленький.
  */
 export function iconCameraSetup(size: Vec3): CameraSetup {
-  const reach = sizeScale(size) * pullback(ICON.aspect) * ICON.distance;
+  // Без нижнего предела, как у большой сцены: одиночный куб в значке должен быть крупным.
+  const scale = Math.max(ICON.minScale, Math.max(...size) / CAMERA.referenceSize);
+  const reach = scale * pullback(ICON.aspect) * ICON.distance;
   const target: Vec3 = [0, (size[1] * EBF.blockSize) / 2, 0];
   const position = CAMERA.position.map((value, axis) => target[axis] + (value - CAMERA.target[axis]) * reach);
   return { position: [position[0], position[1], position[2]], target };

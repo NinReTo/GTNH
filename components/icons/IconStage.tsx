@@ -17,9 +17,13 @@ function RedrawOnScroll() {
     // capture: true — ловим прокрутку не только окна, но и любого блока внутри страницы.
     window.addEventListener("scroll", redraw, { passive: true, capture: true });
     window.addEventListener("resize", redraw);
+    // Страница может сдвинуться и без прокрутки — догрузился шрифт или картинка. Тогда тоже перерисовываем.
+    const layout = new ResizeObserver(redraw);
+    layout.observe(document.body);
     return () => {
       window.removeEventListener("scroll", redraw, { capture: true });
       window.removeEventListener("resize", redraw);
+      layout.disconnect();
     };
   }, [invalidate]);
   return null;

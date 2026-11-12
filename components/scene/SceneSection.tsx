@@ -6,6 +6,7 @@ import { sectionProgress } from "@/lib/scroll";
 import { useSceneStore } from "@/lib/store";
 
 const Scene = dynamic(() => import("./Scene"), { ssr: false });
+const Workshop = dynamic(() => import("./Workshop"), { ssr: false });
 
 /** Кнопка замера: видна только на странице с ?bench в адресе. */
 function BenchButton() {
@@ -38,8 +39,8 @@ function BenchButton() {
 }
 
 type SceneSectionProps = {
-  /** Какую постройку показать: её адресное имя из lib/machines.ts. */
-  slug: string;
+  /** Какую постройку показать: её адресное имя из lib/machines.ts. Без него показывается весь паровой цех. */
+  slug?: string;
   /** Подписи поверх сцены: заголовок и пояснение. */
   children: ReactNode;
 };
@@ -71,7 +72,7 @@ export function SceneSection({ slug, children }: SceneSectionProps) {
   return (
     <section ref={section} className="scene-section relative" aria-label="Трёхмерная модель постройки">
       <div className="sticky top-0 h-svh w-full overflow-hidden">
-        <Scene slug={slug} />
+        {slug ? <Scene slug={slug} /> : <Workshop />}
         <BenchButton />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 p-6 sm:p-12">{children}</div>
       </div>

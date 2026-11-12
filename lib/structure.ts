@@ -34,10 +34,15 @@ export interface BlockKind {
  * слои сверху вниз, строки от фасада назад, символы слева направо.
  * Пробел — пусто, символы из hollow — полость внутри (там светится нутро).
  */
+/** Что внутри полости: раскалённое нутро (светится) или вода (не светится). */
+export type Interior = "fire" | "water";
+
 export interface StructureDef {
   readonly layers: readonly (readonly string[])[];
   readonly kinds: Readonly<Record<string, string>>;
   readonly hollow?: string;
+  /** По умолчанию в полости огонь. */
+  readonly interior?: Interior;
 }
 
 export interface Block {
@@ -62,6 +67,7 @@ export interface Structure {
   readonly size: Vec3;
   /** Где стоит источник света: середина полости, а если её нет — середина постройки. */
   readonly lightPosition: Vec3;
+  readonly interior: Interior;
 }
 
 const EMPTY = " ";
@@ -189,7 +195,7 @@ export function buildStructure(def: StructureDef, kinds: Readonly<Record<string,
     ? [0, 1, 2].map((axis) => hollow.reduce((sum, point) => sum + point[axis], 0) / hollow.length) as unknown as Vec3
     : middle;
 
-  return { blocks, hollow, size, lightPosition };
+  return { blocks, hollow, size, lightPosition, interior: def.interior ?? "fire" };
 }
 
 /** Сколько блоков каждого вида в постройке. */
