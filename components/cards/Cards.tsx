@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { specKey, useCardStore, type CardSpec } from "@/lib/cards";
+import { isCardLit, specKey, useCardStore, type CardSpec } from "@/lib/cards";
 import { STEAM_TIER_TITLES, findMachine, structureOf, type Hull, type SteamTier } from "@/lib/machines";
 
 /** Трёхмерное для карточек грузится только в браузере. */
@@ -12,15 +12,25 @@ export const CardStageLoader = dynamic(() => import("./CardStage"), { ssr: false
 /** Квадрат с моделью: в покое — снимок, под мышкой поверх него ложится живая модель. */
 function CardPicture({ spec, href, label }: { spec: CardSpec; href?: string; label: string }) {
   const element = useRef<HTMLDivElement>(null);
+  const [node, setNode] = useState<HTMLDivElement | null>(null);
   const image = useCardStore((state) => state.images[specKey(spec)]);
   const request = useCardStore((state) => state.request);
   const activateCard = useCardStore((state) => state.activate);
+  const isLit = useCardStore((state) => isCardLit(state.slots, state.current, node));
   const key = specKey(spec);
 
-  // Снимок заказываем ровно в размер карточки на странице: растянутый снимок мылится,
-  // и при наведении казалось бы, что качество вдруг улучшилось.
+  // Снимок заказываем ровно в размер карточки на странице и переснимаем, если окно
+  // поменяло размер: растянутый снимок мылится, и при наведении казалось бы, что
+  // качество вдруг улучшилось.
   useEffect(() => {
-    if (element.current) request(spec, Math.round(element.current.getBoundingClientRect().width));
+    const box = element.current;
+    if (!box) return;
+    setNode(box);
+    const measure = () => request(spec, Math.round(box.getBoundingClientRect().width));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    return () => observer.disconnect();
     // spec пересоздаётся при каждой отрисовке, а смысл в нём один — имя карточки.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request, key]);
@@ -30,10 +40,10 @@ function CardPicture({ spec, href, label }: { spec: CardSpec; href?: string; lab
   };
 
   return (
-    <div ref={element} className="relative aspect-square w-full" onPointerEnter={activate}>
+    <div ref={element} data-lit={isLit} className="relative aspect-square w-full" onPointerEnter={activate}>
       {image && (
         // eslint-disable-next-line @next/next/no-img-element -- снимок модели, сделанный в браузере; оптимизатору картинок он недоступен
-        <img src={image} alt={label} className="absolute inset-0 h-full w-full" />
+        <img src={image.src} alt={label} className="absolute inset-0 h-full w-full" />
       )}
     </div>
   );
@@ -42,7 +52,7 @@ function CardPicture({ spec, href, label }: { spec: CardSpec; href?: string; lab
 function Caption({ title, note }: { title: string; note: ReactNode }) {
   return (
     <span className="block border-t border-line px-3 py-2">
-      <span className="block font-mono text-xs uppercase tracking-[0.15em] text-text1 transition-colors group-hover:text-accent">
+      <span className="block font-mono text-xs uppercase tracking-[0.15em] text-text1 transition-colors group-hover:text-accent group-has-[[data-lit=true]]:text-accent">
         {title}
       </span>
       <span className="block font-mono text-[11px] text-text3">{note}</span>
@@ -50,7 +60,10 @@ function Caption({ title, note }: { title: string; note: ReactNode }) {
   );
 }
 
-const frame = "group block border border-line transition-colors hover:border-accent focus-visible:border-accent";
+// Подсветка держится, пока над карточкой её живая модель (data-lit), — иначе она мигает,
+// когда живой холст ложится поверх карточки и браузер решает, что мышь с неё ушла.
+const frame =
+  "group block border border-line transition-colors hover:border-accent focus-visible:border-accent has-[[data-lit=true]]:border-accent";
 
 /** Карточка постройки: модель и подпись; щелчок открывает страницу постройки. */
 export function MachineCard({ slug }: { slug: string }) {

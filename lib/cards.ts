@@ -55,16 +55,32 @@ export function otherSlot(index: number): number {
   return 1 - index;
 }
 
+/** Готовый снимок и размер карточки (точки), под который он сделан. */
+export interface Snapshot {
+  readonly src: string;
+  readonly size: number;
+}
+
+/**
+ * Карточка «горит» (рамка и подпись), пока под мышкой её живая модель. Обычное
+ * :hover тут не годится: живой холст ложится поверх карточки, браузер считает,
+ * что мышь ушла с карточки, и подсветка мигает.
+ */
+export function isCardLit(slots: Slots, current: number, element: HTMLElement | null): boolean {
+  const slot = slots[current];
+  return Boolean(element) && slot !== null && slot.card.element === element && !slot.isLeaving;
+}
+
 interface CardState {
   /** Готовые снимки: имя карточки → картинка. */
-  readonly images: Readonly<Record<string, string>>;
+  readonly images: Readonly<Record<string, Snapshot>>;
   /** Очередь на съёмку. Снимки делаются по одному. */
   readonly queue: readonly ShotRequest[];
   readonly slots: Slots;
   /** Номер холста карточки под мышкой. */
   readonly current: number;
   readonly request: (spec: CardSpec, size: number) => void;
-  readonly done: (key: string, image: string) => void;
+  readonly done: (shot: ShotRequest, src: string) => void;
   /** Мышка зашла на карточку. */
   readonly activate: (card: ActiveCard) => void;
   /** Мышка ушла с живой модели: начинается возврат домой. */
@@ -90,13 +106,18 @@ export const useCardStore = create<CardState>((set) => ({
   request: (spec, size) =>
     set((state) => {
       const key = specKey(spec);
-      if (state.images[key] || state.queue.some((queued) => specKey(queued.spec) === key)) return state;
-      return { queue: [...state.queue, { spec, size }] };
+      // Снимок уже есть ровно такого размера — переснимать незачем.
+      if (state.images[key]?.size === size) return state;
+      const queued = state.queue.find((shot) => specKey(shot.spec) === key);
+      if (!queued) return { queue: [...state.queue, { spec, size }] };
+      // Карточка поменяла размер, пока ждала очереди: снимем сразу в новом.
+      if (queued.size === size) return state;
+      return { queue: state.queue.map((shot) => (shot === queued ? { spec, size } : shot)) };
     }),
-  done: (key, image) =>
+  done: (shot, src) =>
     set((state) => ({
-      images: { ...state.images, [key]: image },
-      queue: state.queue.filter((queued) => specKey(queued.spec) !== key),
+      images: { ...state.images, [specKey(shot.spec)]: { src, size: shot.size } },
+      queue: state.queue.filter((queued) => !(specKey(queued.spec) === specKey(shot.spec) && queued.size === shot.size)),
     })),
   activate: (card) =>
     set((state) => {

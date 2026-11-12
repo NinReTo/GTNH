@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import { iconCameraSetup } from "@/lib/camera";
 import { HOVER, ICON } from "@/lib/config";
-import { otherSlot, returnStep, specCamera, specKey, useCardStore, type CardSpec } from "@/lib/cards";
+import { isCardLit, otherSlot, returnStep, specCamera, specKey, useCardStore, type CardSpec } from "@/lib/cards";
 import { findMachine, structureOf } from "@/lib/machines";
 
 const furnace: CardSpec = { kind: "machine", slug: "electric-blast-furnace" };
@@ -42,14 +42,57 @@ describe("карточки", () => {
     expect(useCardStore.getState().queue[0]).toEqual({ spec: furnace, size: 263 });
   });
 
-  test("готовый снимок уходит из очереди и больше в неё не встаёт", () => {
+  test("готовый снимок уходит из очереди и в том же размере больше не переснимается", () => {
     const { request, done } = useCardStore.getState();
     request(furnace, 250);
-    done(specKey(furnace), "снимок");
+    done({ spec: furnace, size: 250 }, "снимок");
     expect(useCardStore.getState().queue).toEqual([]);
-    expect(useCardStore.getState().images[specKey(furnace)]).toBe("снимок");
+    expect(useCardStore.getState().images[specKey(furnace)]).toEqual({ src: "снимок", size: 250 });
     request(furnace, 250);
     expect(useCardStore.getState().queue).toEqual([]);
+  });
+
+  test("окно поменяло размер — карточку переснимают в новом размере, чтобы снимок не мылился", () => {
+    const { request, done } = useCardStore.getState();
+    request(furnace, 250);
+    done({ spec: furnace, size: 250 }, "снимок");
+    request(furnace, 273);
+    expect(useCardStore.getState().queue).toEqual([{ spec: furnace, size: 273 }]);
+  });
+
+  test("карточка сменила размер, пока ждала очереди, — в очереди одна запись с новым размером", () => {
+    const { request } = useCardStore.getState();
+    request(furnace, 250);
+    request(furnace, 273);
+    expect(useCardStore.getState().queue).toEqual([{ spec: furnace, size: 273 }]);
+  });
+
+  test("устаревший снимок не убирает из очереди заказ нового размера", () => {
+    const { request, done } = useCardStore.getState();
+    request(furnace, 250);
+    request(furnace, 273);
+    done({ spec: furnace, size: 250 }, "старый");
+    expect(useCardStore.getState().queue).toEqual([{ spec: furnace, size: 273 }]);
+  });
+});
+
+describe("подсветка карточки", () => {
+  const element = { id: "a" } as unknown as HTMLElement;
+  const other = { id: "b" } as unknown as HTMLElement;
+  const card = { spec: bronze, element };
+
+  test("горит, пока над карточкой её живая модель, — даже когда холст закрыл карточку", () => {
+    expect(isCardLit([{ card, isReady: true, isLeaving: false }, null], 0, element)).toBe(true);
+  });
+
+  test("гаснет, когда мышь ушла и модель возвращается домой", () => {
+    expect(isCardLit([{ card, isReady: true, isLeaving: true }, null], 0, element)).toBe(false);
+  });
+
+  test("не горит у соседних карточек и у холста, который уже не главный", () => {
+    expect(isCardLit([{ card, isReady: true, isLeaving: false }, null], 0, other)).toBe(false);
+    expect(isCardLit([{ card, isReady: true, isLeaving: false }, null], 1, element)).toBe(false);
+    expect(isCardLit([null, null], 0, null)).toBe(false);
   });
 });
 

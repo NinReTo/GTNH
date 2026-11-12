@@ -63,7 +63,7 @@ function Shot({ shot }: { shot: ShotRequest }) {
     }
     isTaken.current = true;
     state.gl.render(state.scene, state.camera);
-    done(specKey(shot.spec), state.gl.domElement.toDataURL("image/webp", 1));
+    done(shot, state.gl.domElement.toDataURL("image/webp", 1));
   }, 1);
 
   return <CardContent spec={shot.spec} />;
@@ -90,7 +90,7 @@ function SnapshotCanvas() {
     >
       <Suspense fallback={null}>
         <CardLight />
-        <Suspense fallback={null}>{next && <Shot key={specKey(next.spec)} shot={next} />}</Suspense>
+        <Suspense fallback={null}>{next && <Shot key={[specKey(next.spec), next.size].join("@")} shot={next} />}</Suspense>
       </Suspense>
     </Canvas>
   );
