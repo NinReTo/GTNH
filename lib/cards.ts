@@ -22,10 +22,28 @@ export function specCamera(spec: CardSpec): CameraSetup {
   return iconCameraSetup(structureOf(machine).size);
 }
 
+/** Где лежит карточка на странице (а не в окне): живой холст прокручивается вместе со страницей. */
+export interface Box {
+  readonly top: number;
+  readonly left: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+export function boxOf(element: HTMLElement): Box {
+  const rect = element.getBoundingClientRect();
+  return { top: rect.top + window.scrollY, left: rect.left + window.scrollX, width: rect.width, height: rect.height };
+}
+
 /** Карточка под мышкой: над ней лежит живая модель. */
 export interface ActiveCard {
   readonly spec: CardSpec;
   readonly element: HTMLElement;
+  /**
+   * Место карточки, замеренное в момент наведения. Живой холст сразу встаёт
+   * ровно сюда и ровно этого размера — без кадра «не того размера».
+   */
+  readonly box: Box;
   /** Куда ведёт щелчок; у одноблочной машины своей страницы нет. */
   readonly href?: string;
 }
@@ -151,7 +169,10 @@ export const useCardStore = create<CardState>((set) => ({
       const slot = state.slots[index];
       return slot ? { slots: withSlot(state.slots, index, { ...slot, isReady: true }) } : state;
     }),
-  release: (index) => set((state) => ({ slots: withSlot(state.slots, index, null) })),
+  // Убираем, только если модель всё ещё возвращается: мышка могла вернуться на неё
+  // в тот же кадр, когда она дошла домой, — тогда холст должен остаться.
+  release: (index) =>
+    set((state) => (state.slots[index]?.isLeaving ? { slots: withSlot(state.slots, index, null) } : state)),
   clear: () => set({ slots: [null, null] }),
 }));
 

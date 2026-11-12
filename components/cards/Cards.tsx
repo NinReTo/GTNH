@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { isCardLit, specKey, useCardStore, type CardSpec } from "@/lib/cards";
+import { boxOf, isCardLit, specKey, useCardStore, type CardSpec } from "@/lib/cards";
 import { STEAM_TIER_TITLES, findMachine, structureOf, type Hull, type SteamTier } from "@/lib/machines";
 
 /** Трёхмерное для карточек грузится только в браузере. */
@@ -36,7 +36,7 @@ function CardPicture({ spec, href, label }: { spec: CardSpec; href?: string; lab
   }, [request, key]);
 
   const activate = () => {
-    if (element.current) activateCard({ spec, element: element.current, href });
+    if (element.current) activateCard({ spec, element: element.current, box: boxOf(element.current), href });
   };
 
   return (

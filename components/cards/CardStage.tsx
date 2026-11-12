@@ -6,7 +6,16 @@ import { useRouter } from "next/navigation";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, OrbitControls } from "@react-three/drei";
 import { CAMERA, ICON, LIGHT, THEME } from "@/lib/config";
-import { returnStep, specCamera, specKey, useCardStore, type CardSpec, type LiveSlot, type ShotRequest } from "@/lib/cards";
+import {
+  returnStep,
+  specCamera,
+  specKey,
+  useCardStore,
+  type Box,
+  type CardSpec,
+  type LiveSlot,
+  type ShotRequest,
+} from "@/lib/cards";
 import { PointerContext, toPointer, type Pointer } from "@/lib/store";
 import { CardContent } from "./CardContent";
 
@@ -96,12 +105,20 @@ function SnapshotCanvas() {
   );
 }
 
-/** Сообщает, что живая модель нарисовала первый кадр: только теперь её можно показать поверх снимка. */
-function ReadySignal({ index }: { index: number }) {
+/**
+ * Сообщает, что живая модель нарисовала первый кадр нужного размера: только
+ * теперь её можно показать поверх снимка. Пока холст не принял размер
+ * карточки, кадр выходит сжатым и сдвинутым — его не показываем.
+ */
+function ReadySignal({ index, width }: { index: number; width: number }) {
   const setReady = useCardStore((state) => state.setReady);
   const isSent = useRef(false);
-  useFrame(() => {
+  useFrame((state) => {
     if (isSent.current) return;
+    if (Math.round(state.size.width) !== Math.round(width)) {
+      state.invalidate();
+      return;
+    }
     isSent.current = true;
     setReady(index);
   });
@@ -128,7 +145,9 @@ function ReturnHome({ index, spec, isLeaving }: { index: number; spec: CardSpec;
   }, [controls, isLeaving, invalidate]);
 
   useFrame((state, delta) => {
-    if (!isLeaving || !controls) return;
+    // Читаем свежее состояние, а не то, что было при последней отрисовке: мышка
+    // могла вернуться на модель только что, в этот самый кадр.
+    if (!controls || !useCardStore.getState().slots[index]?.isLeaving) return;
     const home = specCamera(spec);
     const [cx, cy, cz] = state.camera.position.toArray();
     const [tx, ty, tz] = controls.target.toArray();
@@ -148,7 +167,7 @@ function ReturnHome({ index, spec, isLeaving }: { index: number; spec: CardSpec;
 }
 
 /** Живая модель: её вертят мышкой, блоки у курсора раздвигаются. */
-function Live({ index, spec, isLeaving }: { index: number; spec: CardSpec; isLeaving: boolean }) {
+function Live({ index, spec, width, isLeaving }: { index: number; spec: CardSpec; width: number; isLeaving: boolean }) {
   useCardCamera(spec);
   const target = specCamera(spec).target;
   return (
@@ -167,24 +186,11 @@ function Live({ index, spec, isLeaving }: { index: number; spec: CardSpec; isLea
       <Suspense fallback={null}>
         <CardLight />
         <CardContent spec={spec} />
-        <ReadySignal index={index} />
+        <ReadySignal index={index} width={width} />
       </Suspense>
       <ReturnHome index={index} spec={spec} isLeaving={isLeaving} />
     </>
   );
-}
-
-interface Box {
-  readonly top: number;
-  readonly left: number;
-  readonly width: number;
-  readonly height: number;
-}
-
-/** Где лежит карточка на странице (а не в окне): живой холст прокручивается вместе со страницей. */
-function boxOf(element: HTMLElement): Box {
-  const rect = element.getBoundingClientRect();
-  return { top: rect.top + window.scrollY, left: rect.left + window.scrollX, width: rect.width, height: rect.height };
 }
 
 /**
@@ -199,16 +205,16 @@ function LiveCanvas({ index }: { index: number }) {
   const leave = useCardStore((state) => state.leave);
   const stay = useCardStore((state) => state.stay);
   const dpr = useScreenDpr();
-  const [box, setBox] = useState<Box | null>(null);
   const pointer = useRef<Pointer | null>(null);
   const press = useRef<readonly [number, number] | null>(null);
   const [getPointer] = useState(() => () => pointer.current);
-  const element = slot?.card.element;
   const isInteractive = Boolean(slot) && isCurrent;
-
-  useLayoutEffect(() => {
-    setBox(element ? boxOf(element) : null);
-  }, [element]);
+  // Свободный холст сохраняет последний размер: следующей карточке не придётся
+  // ждать, пока он перестроится из запасного размера.
+  const [lastBox, setLastBox] = useState<Box | null>(null);
+  const currentBox = slot?.card.box ?? null;
+  if (currentBox && currentBox !== lastBox) setLastBox(currentBox);
+  const box = currentBox ?? lastBox;
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
     pointer.current = toPointer(event.clientX, event.clientY, event.currentTarget.getBoundingClientRect());
@@ -267,7 +273,15 @@ function LiveCanvas({ index }: { index: number }) {
         */}
         <div className="h-full w-full" style={{ opacity: isShown ? 1 : 0 }}>
           <Canvas frameloop="demand" dpr={dpr} gl={{ alpha: true, antialias: true }} camera={{ fov: CAMERA.fov, near: CAMERA.near, far: CAMERA.far }}>
-            {slot && <Live key={specKey(slot.card.spec)} index={index} spec={slot.card.spec} isLeaving={slot.isLeaving} />}
+            {slot && (
+              <Live
+                key={specKey(slot.card.spec)}
+                index={index}
+                spec={slot.card.spec}
+                width={slot.card.box.width}
+                isLeaving={slot.isLeaving}
+              />
+            )}
           </Canvas>
         </div>
       </PointerContext.Provider>

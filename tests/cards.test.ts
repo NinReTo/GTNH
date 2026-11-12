@@ -79,7 +79,7 @@ describe("карточки", () => {
 describe("подсветка карточки", () => {
   const element = { id: "a" } as unknown as HTMLElement;
   const other = { id: "b" } as unknown as HTMLElement;
-  const card = { spec: bronze, element };
+  const card = { spec: bronze, element, box: { top: 0, left: 0, width: 250, height: 250 } };
 
   test("горит, пока над карточкой её живая модель, — даже когда холст закрыл карточку", () => {
     expect(isCardLit([{ card, isReady: true, isLeaving: false }, null], 0, element)).toBe(true);
@@ -145,8 +145,9 @@ describe("плавный возврат домой", () => {
 });
 
 describe("два живых холста", () => {
-  const first = { spec: bronze, element: { id: "a" } as unknown as HTMLElement };
-  const second = { spec: steel, element: { id: "b" } as unknown as HTMLElement };
+  const box = { top: 0, left: 0, width: 250, height: 250 };
+  const first = { spec: bronze, element: { id: "a" } as unknown as HTMLElement, box };
+  const second = { spec: steel, element: { id: "b" } as unknown as HTMLElement, box };
   const state = () => useCardStore.getState();
 
   beforeEach(() => {
@@ -209,7 +210,18 @@ describe("два живых холста", () => {
 
   test("модель дошла домой — холст освобождается", () => {
     state().activate(first);
+    state().leave();
     state().release(state().current);
     expect(state().slots).toEqual([null, null]);
+  });
+
+  test("мышка вернулась в тот же кадр, когда модель дошла домой, — холст не убирается из-под мышки", () => {
+    state().activate(first);
+    const slot = state().current;
+    state().setReady(slot);
+    state().leave();
+    state().stay();
+    state().release(slot);
+    expect(state().slots[slot]).toMatchObject({ card: first, isReady: true, isLeaving: false });
   });
 });
