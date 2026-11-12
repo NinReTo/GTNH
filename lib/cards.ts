@@ -1,5 +1,7 @@
 import { create } from "zustand";
+import { HOVER, ICON } from "./config";
 import { iconCameraSetup, type CameraSetup } from "./camera";
+import type { Vec3 } from "./structure";
 import { findMachine, structureOf, type Hull, type SteamTier } from "./machines";
 
 /** Что изображает карточка: постройку или одноблочную машину в одной из версий. */
@@ -36,10 +38,13 @@ interface CardState {
   readonly active: ActiveCard | null;
   /** Живая модель уже нарисовала кадр: теперь она закрывает снимок под собой целиком. */
   readonly isLiveReady: boolean;
+  /** Мышка ушла: модель плавно возвращается в исходное положение, потом сменяется снимком. */
+  readonly isLeaving: boolean;
   readonly request: (spec: CardSpec) => void;
   readonly done: (key: string, image: string) => void;
   readonly setActive: (active: ActiveCard | null) => void;
   readonly setLiveReady: (isLiveReady: boolean) => void;
+  readonly setLeaving: (isLeaving: boolean) => void;
 }
 
 export const useCardStore = create<CardState>((set) => ({
@@ -47,6 +52,7 @@ export const useCardStore = create<CardState>((set) => ({
   queue: [],
   active: null,
   isLiveReady: false,
+  isLeaving: false,
   request: (spec) =>
     set((state) => {
       const key = specKey(spec);
@@ -59,6 +65,27 @@ export const useCardStore = create<CardState>((set) => ({
       queue: state.queue.filter((queued) => specKey(queued) !== key),
     })),
   // Новая карточка — живая модель ещё не готова, пока что виден снимок.
-  setActive: (active) => set({ active, isLiveReady: false }),
+  setActive: (active) => set({ active, isLiveReady: false, isLeaving: false }),
   setLiveReady: (isLiveReady) => set({ isLiveReady }),
+  setLeaving: (isLeaving) => set({ isLeaving }),
 }));
+
+export interface ReturnStep {
+  readonly position: Vec3;
+  /** Дошла ли точка до дома: тогда возврат закончен. */
+  readonly isHome: boolean;
+}
+
+/**
+ * Один шаг плавного возврата точки (камеры или её цели) домой. За каждый кадр
+ * точка проходит долю оставшегося пути, поэтому возврат одинаково плавный при
+ * любой частоте кадров. Почти дошла — встаёт ровно на место.
+ */
+export function returnStep(current: Vec3, home: Vec3, deltaSeconds: number): ReturnStep {
+  const step = Math.min(Math.max(0, deltaSeconds), HOVER.maxStep);
+  const share = 1 - Math.exp(-step / ICON.returnTime);
+  const next = current.map((value, axis) => value + (home[axis] - value) * share);
+  const distance = Math.hypot(...next.map((value, axis) => value - home[axis]));
+  if (distance < ICON.returnEpsilon) return { position: home, isHome: true };
+  return { position: [next[0], next[1], next[2]], isHome: false };
+}

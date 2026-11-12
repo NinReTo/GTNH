@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, OrbitControls } from "@react-three/drei";
 import { CAMERA, ICON, LIGHT, THEME } from "@/lib/config";
-import { specCamera, specKey, useCardStore, type CardSpec } from "@/lib/cards";
+import { returnStep, specCamera, specKey, useCardStore, type CardSpec } from "@/lib/cards";
 import { pickDpr } from "@/lib/perf";
 import { PointerContext, toPointer, type Pointer } from "@/lib/store";
 import { CardContent } from "./CardContent";
@@ -93,6 +93,50 @@ function ReadySignal() {
   return null;
 }
 
+/**
+ * Плавный возврат домой. Пока мышка над карточкой — ничего не делает. Мышка
+ * ушла — вращение мышкой выключается, камера и её цель плавно едут в исходное
+ * положение (блоки тем временем сами съезжаются: курсора больше нет). Дошли —
+ * живая модель уступает место снимку, и подмена незаметна: они совпадают.
+ */
+function ReturnHome({ spec }: { spec: CardSpec }) {
+  const isLeaving = useCardStore((state) => state.isLeaving);
+  const setActive = useCardStore((state) => state.setActive);
+  const controls = useThree((state) => state.controls) as unknown as {
+    enabled: boolean;
+    target: { set: (x: number, y: number, z: number) => void; toArray: () => number[] };
+  } | null;
+
+  useEffect(() => {
+    if (controls) controls.enabled = !isLeaving;
+  }, [controls, isLeaving]);
+
+  useFrame((state, delta) => {
+    if (!isLeaving || !controls) return;
+    const home = specCamera(spec);
+    const [cx, cy, cz] = state.camera.position.toArray();
+    const [tx, ty, tz] = controls.target.toArray();
+    const camera = returnStep([cx, cy, cz], home.position, delta);
+    const target = returnStep([tx, ty, tz], home.target, delta);
+    state.camera.position.set(...camera.position);
+    controls.target.set(...target.position);
+    state.camera.lookAt(...target.position);
+    if (camera.isHome && target.isHome) {
+      setActive(null);
+      return;
+    }
+    state.invalidate();
+  });
+
+  // Начало возврата — заказываем первый кадр, дальше возврат заказывает кадры сам.
+  const invalidate = useThree((state) => state.invalidate);
+  useEffect(() => {
+    if (isLeaving) invalidate();
+  }, [isLeaving, invalidate]);
+
+  return null;
+}
+
 /** Живая модель активной карточки: её вертят мышкой, блоки у курсора раздвигаются. */
 function Live({ spec }: { spec: CardSpec }) {
   useCardCamera(spec);
@@ -115,6 +159,7 @@ function Live({ spec }: { spec: CardSpec }) {
         <CardContent spec={spec} />
         <ReadySignal />
       </Suspense>
+      <ReturnHome spec={spec} />
     </>
   );
 }
@@ -142,6 +187,7 @@ function LiveLayer() {
   const active = useCardStore((state) => state.active);
   const isLiveReady = useCardStore((state) => state.isLiveReady);
   const setActive = useCardStore((state) => state.setActive);
+  const setLeaving = useCardStore((state) => state.setLeaving);
   const [box, setBox] = useState<Box | null>(null);
   const [dpr] = useState(() => pickDpr(window.innerWidth, window.innerHeight, window.devicePixelRatio));
   const pointer = useRef<Pointer | null>(null);
@@ -162,9 +208,14 @@ function LiveLayer() {
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
     pointer.current = toPointer(event.clientX, event.clientY, event.currentTarget.getBoundingClientRect());
   };
+  // Мышка ушла — не убираем модель сразу, а даём ей плавно вернуться домой.
   const handlePointerLeave = () => {
     pointer.current = null;
-    setActive(null);
+    if (active) setLeaving(true);
+  };
+  // Мышка вернулась на ту же карточку посреди возврата — возврат прерывается.
+  const handlePointerEnter = () => {
+    if (active) setLeaving(false);
   };
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     press.current = [event.clientX, event.clientY];
@@ -194,13 +245,21 @@ function LiveLayer() {
       className="z-20 cursor-grab active:cursor-grabbing"
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
+      onPointerEnter={handlePointerEnter}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
     >
       <PointerContext.Provider value={getPointer}>
-        <Canvas frameloop="demand" dpr={dpr} gl={{ alpha: true, antialias: true }} camera={{ fov: CAMERA.fov, near: CAMERA.near, far: CAMERA.far }}>
-          {active && <Live key={specKey(active.spec)} spec={active.spec} />}
-        </Canvas>
+        {/*
+          Холст показывается, только когда новая модель нарисовала свой первый кадр.
+          До этого на холсте может оставаться последний кадр прошлой карточки — если
+          его показать, две разные машины наложатся друг на друга.
+        */}
+        <div className="h-full w-full" style={{ opacity: isLiveReady ? 1 : 0 }}>
+          <Canvas frameloop="demand" dpr={dpr} gl={{ alpha: true, antialias: true }} camera={{ fov: CAMERA.fov, near: CAMERA.near, far: CAMERA.far }}>
+            {active && <Live key={specKey(active.spec)} spec={active.spec} />}
+          </Canvas>
+        </div>
       </PointerContext.Provider>
     </div>,
     document.body,
