@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
-import { sectionProgress } from "@/lib/scroll";
-import { useSceneStore } from "@/lib/store";
 
 const Scene = dynamic(() => import("./Scene"), { ssr: false });
 const Workshop = dynamic(() => import("./Workshop"), { ssr: false });
@@ -46,35 +44,16 @@ type SceneSectionProps = {
 };
 
 /**
- * Блок со сценой: высотой в несколько экранов, холст внутри прилипает к верху.
- * Положение прокрутки превращается в одно число от 0 до 1 — оно ведёт переход
- * к странице. Постройку вертят перетаскиванием, блоки раздвигает курсор.
+ * Шапка страницы: неподвижный блок со сценой, ниже — сразу текст. Сцену
+ * вертят перетаскиванием, блоки у курсора раздвигаются.
  */
 export function SceneSection({ slug, children }: SceneSectionProps) {
-  const section = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    const update = () => {
-      const element = section.current;
-      if (!element) return;
-      const rect = element.getBoundingClientRect();
-      useSceneStore.getState().setProgress(sectionProgress(rect.top, rect.height, window.innerHeight));
-    };
-    update();
-    window.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-    };
-  }, []);
-
   return (
-    <section ref={section} className="scene-section relative" aria-label="Трёхмерная модель постройки">
-      <div className="sticky top-0 h-svh w-full overflow-hidden">
-        {slug ? <Scene slug={slug} /> : <Workshop />}
-        <BenchButton />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 p-6 sm:p-12">{children}</div>
+    <section className="hero relative w-full overflow-hidden" aria-label="Трёхмерная модель">
+      {slug ? <Scene slug={slug} /> : <Workshop />}
+      <BenchButton />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-bg via-bg/70 to-transparent p-6 pt-24 sm:p-12 sm:pt-32">
+        {children}
       </div>
     </section>
   );

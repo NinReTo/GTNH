@@ -1,14 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, type ReactElement } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useThree } from "@react-three/fiber";
 import { Bloom, ChromaticAberration, EffectComposer, Noise, ToneMapping } from "@react-three/postprocessing";
 import { ToneMappingMode, type EffectComposer as ComposerImpl } from "postprocessing";
 import { Vector2 } from "three";
 import { PERF, POST } from "@/lib/config";
-import { transitionProgress } from "@/lib/scroll";
-import { useSceneStore, type EffectName } from "@/lib/store";
-import { TransitionEffect } from "./TransitionEffect";
+import type { EffectName } from "@/lib/store";
 
 declare global {
   interface Window {
@@ -23,20 +21,11 @@ interface EffectsProps {
   readonly multisampling: number;
 }
 
-/**
- * Вся постобработка — готовые эффекты; свой здесь один (переход).
- * Порядок важен: тональная компрессия идёт ДО перехода, иначе заливка
- * исказится и перестанет совпадать с цветом страницы.
- */
+/** Вся постобработка — готовые эффекты из @react-three/postprocessing, своих шейдеров нет. */
 export function Effects({ disabled, bench, multisampling }: EffectsProps) {
   const composer = useRef<ComposerImpl>(null);
   const gl = useThree((state) => state.gl);
-  const transition = useMemo(() => new TransitionEffect(), []);
   const chromaticOffset = useMemo(() => new Vector2(POST.chromaticOffset, POST.chromaticOffset), []);
-
-  useFrame(() => {
-    transition.setProgress(transitionProgress(useSceneStore.getState().progress));
-  });
 
   // Честный замер: рисуем кадры подряд и после каждого читаем один пиксель —
   // это заставляет видеокарту закончить работу, а не просто принять команды.
@@ -85,9 +74,6 @@ export function Effects({ disabled, bench, multisampling }: EffectsProps) {
     );
   }
   passes.push(<ToneMapping key="tone" mode={ToneMappingMode.ACES_FILMIC} />);
-  if (!disabled.has("transition")) {
-    passes.push(<primitive key="transition" object={transition} />);
-  }
 
   return (
     <EffectComposer ref={composer} multisampling={multisampling}>

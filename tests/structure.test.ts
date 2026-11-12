@@ -1,7 +1,8 @@
 import { existsSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { EBF, EXPLODE, HOVER } from "@/lib/config";
-import { KINDS, MACHINES, SINGLE_BLOCKS, findMachine, structureOf, type KindId } from "@/lib/machines";
+import { KINDS, MACHINES, SINGLE_BLOCKS, STEAM_TIERS, findMachine, structureOf, type KindId } from "@/lib/machines";
+import { TIERS, findTier } from "@/lib/tiers";
 import { approach, countByKind, cursorWeight, explodedPosition, type BlockKind, type Vec3 } from "@/lib/structure";
 
 const machine = (slug: string) => {
@@ -195,16 +196,25 @@ describe("каталог", () => {
     expect(new Set(MACHINES.map((entry) => entry.slug)).size).toBe(MACHINES.length);
   });
 
-  test("каждая постройка паровой эры стоит на лестнице главной страницы", () => {
-    const onLadder = new Set(SINGLE_BLOCKS.map((single) => single.multiSlug));
-    for (const entry of MACHINES.filter((candidate) => candidate.group === "steam")) {
-      expect(onLadder.has(entry.slug), entry.slug).toBe(true);
+  test("каждая машина стоит на существующем ярусе напряжения", () => {
+    for (const entry of MACHINES) expect(findTier(entry.tier), entry.slug).toBeDefined();
+  });
+
+  test("на паре — девять построек, на LV — электрическая доменная печь", () => {
+    expect(MACHINES.filter((entry) => entry.tier === "steam")).toHaveLength(9);
+    expect(MACHINES.filter((entry) => entry.tier === "lv").map((entry) => entry.slug)).toEqual(["electric-blast-furnace"]);
+  });
+
+  test("мини-шапка каждого яруса показывает то, что на нём есть", () => {
+    for (const tier of TIERS) {
+      if (tier.scene.kind !== "machine") continue;
+      expect(findMachine(tier.scene.slug)?.tier).toBe(tier.id);
     }
   });
 
-  test("в нём девять построек до электричества и одна электрическая", () => {
-    expect(MACHINES.filter((entry) => entry.group !== "electric")).toHaveLength(9);
-    expect(MACHINES.filter((entry) => entry.group === "electric")).toHaveLength(1);
+  test("у ярусов разные цвета, записанные как #rrggbb", () => {
+    expect(new Set(TIERS.map((tier) => tier.color)).size).toBe(TIERS.length);
+    for (const tier of TIERS) expect(tier.color).toMatch(/^#[0-9a-f]{6}$/);
   });
 
   test("неизвестной машины нет", () => {
@@ -213,11 +223,7 @@ describe("каталог", () => {
 
   test("у каждой одноблочной машины есть значки обоих ярусов, а ссылка на постройку ведёт на существующую", () => {
     for (const single of SINGLE_BLOCKS) {
-      if (single.isMultiOnly) {
-        expect(single.multiSlug, single.id).toBeDefined();
-        continue;
-      }
-      for (const tier of ["bronze", "steel"]) {
+      for (const tier of STEAM_TIERS) {
         expect(existsSync(`public/textures/gregtech/single-${tier}-${single.id}.webp`), single.id).toBe(true);
         for (const side of ["side", "top", "bottom"]) {
           const hull = `public/textures/gregtech/hull-${tier}-${single.hull}-${side}.webp`;

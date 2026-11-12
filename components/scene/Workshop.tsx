@@ -2,25 +2,32 @@
 
 import { useState } from "react";
 import { ContactShadows } from "@react-three/drei";
-import { WORKSHOP } from "@/lib/config";
+import { HERO, WORKSHOP } from "@/lib/config";
 import { workshopCamera, workshopPlacements } from "@/lib/workshop";
 import { SceneCanvas, readSettings } from "./SceneCanvas";
 import { Structure3D } from "./Structure3D";
 
+type WorkshopProps = {
+  /** Соотношение сторон блока со сценой; по умолчанию — шапки во всю ширину окна. */
+  aspect?: number;
+  /** Мини-шапка: цех с другой стороны, чтобы не повторять большую шапку. */
+  isBanner?: boolean;
+};
+
 /**
- * Шапка главной: паровой цех — все постройки паровой эры на одном полу.
- * Камера медленно облетает цех сама; мышкой его можно повернуть, а блоки
- * у курсора раздвигаются, как на страницах машин.
+ * Паровой цех — все постройки паровой эры на одном полу. Мышкой его можно
+ * повернуть, блоки у курсора раздвигаются, как на страницах машин.
  */
-export default function Workshop() {
+export default function Workshop({ aspect, isBanner = false }: WorkshopProps) {
   const [settings] = useState(readSettings);
+  // Шапка во всю ширину окна и высотой HERO.screens экрана.
+  const [windowAspect] = useState(() => window.innerWidth / (window.innerHeight * HERO.screens));
   const placements = workshopPlacements();
 
   return (
     <SceneCanvas
       settings={settings}
-      camera={workshopCamera(settings.aspect)}
-      autoRotateSpeed={WORKSHOP.autoRotateSpeed}
+      camera={workshopCamera(aspect ?? windowAspect, isBanner ? WORKSHOP.bannerCameraPosition : WORKSHOP.cameraPosition)}
       fogNear={WORKSHOP.fogNear}
       fogFar={WORKSHOP.fogFar}
     >

@@ -1,4 +1,5 @@
 import { ASSETS } from "./config";
+import type { TierId } from "./tiers";
 import { buildStructure, type BlockKind, type Structure, type StructureDef } from "./structure";
 
 /**
@@ -43,7 +44,6 @@ export const KINDS = {
 
 export type KindId = keyof typeof KINDS;
 
-export type MachineGroup = "primitive" | "steam" | "electric";
 
 export interface Fact {
   readonly label: string;
@@ -56,7 +56,8 @@ export interface Machine {
   readonly name: string;
   /** Короткое русское название. */
   readonly title: string;
-  readonly group: MachineGroup;
+  /** Ярус напряжения: на какой странице стоит машина. */
+  readonly tier: TierId;
   /** Одна строка для каталога. */
   readonly summary: string;
   /** Абзацы для страницы машины, простым языком. */
@@ -83,7 +84,7 @@ export const MACHINES: readonly Machine[] = [
     slug: "bricked-blast-furnace",
     name: "Bricked Blast Furnace",
     title: "Кирпичная домна",
-    group: "primitive",
+    tier: "steam",
     summary: "Первая сталь в игре. Ни пара, ни электричества — только кирпич, уголь и терпение.",
     story: [
       "С этой печи начинается сталь. Она сложена из огнеупорных кирпичей, а внутри, пока идёт плавка, стоит столб лавы высотой в два блока.",
@@ -112,7 +113,7 @@ export const MACHINES: readonly Machine[] = [
     slug: "coke-oven",
     name: "Coke Oven",
     title: "Коксовая печь",
-    group: "primitive",
+    tier: "steam",
     summary: "Пережигает уголь в кокс, а дерево — в древесный уголь. Заодно даёт креозот.",
     story: [
       "Самая простая постройка в игре: куб три на три на три из кирпичей коксовой печи с одним пустым блоком внутри.",
@@ -140,12 +141,12 @@ export const MACHINES: readonly Machine[] = [
     slug: "water-tank",
     name: "Water Tank",
     title: "Водяной бак",
-    group: "primitive",
+    tier: "steam",
     summary: "Собирает воду прямо из воздуха. Медленно, зато бесплатно — до парового насоса другого способа нет.",
     story: [
       "Паровым котлам нужна вода, и первая вода в игре берётся из воздуха. Водяной бак — это полый куб три на три на три из двадцати шести стенок, а внутри копится вода.",
       "У бака нет ни контроллера, ни люков: его просто ставят и ждут. Чем влажнее место, тем быстрее он наполняется; дождь ускоряет втрое, а крыша над баком — замедляет вдвое.",
-      "Бак — из соседнего мода Railcraft. Его текстуры распространять нельзя, поэтому стенка здесь нарисована заново, в том же духе. Позже бак сменяет паровой насос: он даёт воды в десятки раз больше.",
+      "Бак — из соседнего мода Railcraft, который входит в сборку GT New Horizons. Позже бак сменяет паровой насос: он даёт воды в десятки раз больше.",
     ],
     facts: [
       { label: "Размер", value: "3 × 3 × 3" },
@@ -169,7 +170,7 @@ export const MACHINES: readonly Machine[] = [
     slug: "steam-furnace",
     name: "Steam Furnace",
     title: "Паровая печь",
-    group: "steam",
+    tier: "steam",
     summary: "Большая печь на пару: плавит по восемь предметов сразу.",
     story: [
       "Многоблочная версия обычной печи. Внизу — трубные корпуса, по которым идёт пар, в середине — три топки, сверху — кольцо из четырёх редукторов.",
@@ -191,7 +192,7 @@ export const MACHINES: readonly Machine[] = [
     slug: "steam-alloy-smelter",
     name: "Steam Alloy Smelter",
     title: "Паровая плавильня сплавов",
-    group: "steam",
+    tier: "steam",
     summary: "Сплавляет два металла в один — например, медь и олово в бронзу.",
     story: [
       "Плавильня соединяет два металла в сплав. Именно в ней делают бронзу, из которой собрана вся паровая эра.",
@@ -213,7 +214,7 @@ export const MACHINES: readonly Machine[] = [
     slug: "steam-macerator",
     name: "Steam Macerator",
     title: "Паровая дробилка",
-    group: "steam",
+    tier: "steam",
     summary: "Дробит руду в пыль: из одного куска руды выходит больше металла.",
     story: [
       "Дробилка перемалывает руду в пыль. Из пыли при плавке получается больше металла, чем из руды напрямую, — поэтому дробилку строят одной из первых.",
@@ -237,7 +238,7 @@ export const MACHINES: readonly Machine[] = [
     slug: "steam-compressor",
     name: "Steam Compressor",
     title: "Паровой компрессор",
-    group: "steam",
+    tier: "steam",
     summary: "Сжимает: девять слитков в блок, пыль в пластины.",
     story: [
       "Компрессор сжимает предметы — например, превращает девять слитков в один блок.",
@@ -260,7 +261,7 @@ export const MACHINES: readonly Machine[] = [
     slug: "steam-forge-hammer",
     name: "Steam Forge Hammer",
     title: "Паровой молот",
-    group: "steam",
+    tier: "steam",
     summary: "Расплющивает слитки в пластины. Самая высокая постройка паровой эры.",
     story: [
       "Молот бьёт по слиткам и превращает их в пластины — а из пластин делается почти всё остальное.",
@@ -286,12 +287,12 @@ export const MACHINES: readonly Machine[] = [
     slug: "steam-water-pump",
     name: "Steam Water Pump",
     title: "Паровой насос",
-    group: "steam",
+    tier: "steam",
     summary: "Качает воду для котлов. Чем влажнее место, тем больше воды.",
     story: [
       "Паровым котлам постоянно нужна вода, и носить её вёдрами быстро надоедает. Насос качает воду сам.",
       "Основание — деревянные корпуса, над ними — вышка из десяти бронзовых рам. Сколько воды насос даёт, зависит от влажности места, где он стоит: в болоте больше, в пустыне почти ничего.",
-      "Насос сменяет водяной бак: тот собирает воду из воздуха бесплатно, но в десятки раз медленнее. У насоса тоже два яруса — с бронзовыми рамами и со стальными. Паровой люк ставится на место любого деревянного корпуса.",
+      "Насос сменяет водяной бак: тот собирает воду из воздуха бесплатно, но в десятки раз медленнее. У насоса два яруса — с бронзовыми рамами и со стальными. Паровой люк ставится на место любого деревянного корпуса.",
     ],
     facts: [
       { label: "Размер", value: "3 × 3 × 4" },
@@ -313,7 +314,7 @@ export const MACHINES: readonly Machine[] = [
     slug: "electric-blast-furnace",
     name: "Electric Blast Furnace",
     title: "Электрическая доменная печь",
-    group: "electric",
+    tier: "lv",
     summary: "Что идёт после пара: первая большая печь на электричестве.",
     story: [
       "Этой печью паровая эра заканчивается. Она плавит то, что кирпичной домне не по силам: алюминий, а позже — нержавеющую сталь и титан.",
@@ -352,12 +353,6 @@ export const MACHINES: readonly Machine[] = [
   },
 ];
 
-export const GROUP_TITLES: Record<MachineGroup, string> = {
-  primitive: "Без энергии",
-  steam: "На пару",
-  electric: "Что дальше",
-};
-
 export function findMachine(slug: string): Machine | undefined {
   return MACHINES.find((machine) => machine.slug === slug);
 }
@@ -376,6 +371,11 @@ export function structureOf(machine: Machine): Structure {
 /** Корпус одноблочной машины: гладкий металл или металл с кирпичом (у печей). */
 export type Hull = "plain" | "bricked";
 
+/** Две версии одноблочной паровой машины. */
+export type SteamTier = "bronze" | "steel";
+export const STEAM_TIERS: readonly SteamTier[] = ["bronze", "steel"];
+export const STEAM_TIER_TITLES: Record<SteamTier, string> = { bronze: "Бронзовая", steel: "Стальная" };
+
 /** Одноблочная паровая машина для иерархии на главной: что делает и какой у неё фасад. */
 export interface SingleBlock {
   readonly id: string;
@@ -384,8 +384,6 @@ export interface SingleBlock {
   readonly does: string;
   /** Многоблочная версия, если она есть. */
   readonly multiSlug?: string;
-  /** Бывает только постройкой: одноблочной версии в моде нет. */
-  readonly isMultiOnly?: boolean;
 }
 
 export const SINGLE_BLOCKS: readonly SingleBlock[] = [
@@ -395,12 +393,4 @@ export const SINGLE_BLOCKS: readonly SingleBlock[] = [
   { id: "hammer", hull: "plain", title: "Молот", does: "слитки в пластины", multiSlug: "steam-forge-hammer" },
   { id: "compressor", hull: "plain", title: "Компрессор", does: "сжимает в блоки", multiSlug: "steam-compressor" },
   { id: "extractor", hull: "plain", title: "Экстрактор", does: "вытягивает резину и краски" },
-  {
-    id: "water-pump",
-    hull: "plain",
-    title: "Насос",
-    does: "качает воду для котлов; до него воду даёт водяной бак",
-    multiSlug: "steam-water-pump",
-    isMultiOnly: true,
-  },
 ];

@@ -21,7 +21,7 @@ export function VoltageLadder() {
   const timesBase = GAME.voltageStep ** selected;
 
   return (
-    <Figure caption="Данные — массив V из GTValues.java. Наведите на ярус: каждый следующий ровно вчетверо выше предыдущего. Шкала логарифмическая.">
+    <Figure caption="Наведите на ярус: каждый следующий ровно вчетверо мощнее предыдущего.">
       <svg viewBox={`0 0 ${width} ${HEIGHT}`} role="img" aria-label="Ярусы напряжения GregTech" className="w-full">
         {TIERS.map((candidate, index) => {
           const y = index * bars.rowHeight;

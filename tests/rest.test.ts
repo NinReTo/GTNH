@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
-import { CAMERA, FLOOR, FOG, GAME, HOVER, ICON, LIGHT, PERF, SCROLL, THEME, WORKSHOP } from "@/lib/config";
+import { CAMERA, FLOOR, FOG, GAME, HERO, HOVER, ICON, LIGHT, PERF, THEME, WORKSHOP } from "@/lib/config";
 import { cameraSetup, iconCameraSetup, pullback, sizeScale } from "@/lib/camera";
 import { coilHeat, heatBonuses, heatCapacity, voltageHeatBonus } from "@/lib/heat";
 import { clamp, clamp01, inverseLerp, smooth01 } from "@/lib/math";
-import { perfRows, pickDpr } from "@/lib/perf";
+import { pickDpr } from "@/lib/perf";
 import { parseDisabledEffects, toPointer } from "@/lib/store";
 import { footprint, workshopCamera, workshopPlacements } from "@/lib/workshop";
 
@@ -120,6 +120,13 @@ describe("паровой цех в шапке", () => {
     expect(turned?.rotationY).toBeCloseTo(Math.PI / 2);
   });
 
+  test("мини-шапка смотрит на цех с другой стороны, но на ту же середину", () => {
+    const hero = workshopCamera();
+    const banner = workshopCamera(CAMERA.referenceAspect, WORKSHOP.bannerCameraPosition);
+    expect(banner.target).toEqual(hero.target);
+    expect(banner.position).not.toEqual(hero.position);
+  });
+
   test("камера цеха смотрит на цех сверху и отъезжает на узком экране", () => {
     const wide = workshopCamera();
     const narrow = workshopCamera(CAMERA.referenceAspect / 2);
@@ -218,37 +225,13 @@ describe("плотность пикселей", () => {
   });
 });
 
-describe("замеры", () => {
-  const full = {
-    conditions: "тест",
-    all: 10,
-    withoutBloom: 7,
-    withoutChromaticNoise: 8,
-    withoutTransition: 9.5,
-    withoutShadows: 9,
-    bare: 3,
-  };
-
-  test("показывает время кадра каждой конфигурации как измерено, без вычитаний", () => {
-    const rows = perfRows(full);
-    expect(rows).toHaveLength(6);
-    expect(rows?.[0]).toEqual({ label: "Всё включено", ms: 10, isTotal: true });
-    expect(rows?.find((row) => row.label === "Без свечения")?.ms).toBe(7);
-    expect(rows?.[5]).toEqual({ label: "Без эффектов и теней", ms: 3, isTotal: true });
-  });
-
-  test("пока не внесён хоть один замер, строк нет — выдумывать столбики нельзя", () => {
-    expect(perfRows({ ...full, withoutShadows: null })).toBeNull();
-  });
-});
-
 describe("выключение эффектов через адрес", () => {
   test("разбирает список из ?off=", () => {
     expect([...parseDisabledEffects("?off=bloom,shadows")]).toEqual(["bloom", "shadows"]);
   });
 
   test("слово all выключает всё", () => {
-    expect(parseDisabledEffects("?off=all").size).toBe(4);
+    expect(parseDisabledEffects("?off=all").size).toBe(3);
   });
 
   test("незнакомые слова и пустой адрес ничего не выключают", () => {
@@ -288,8 +271,14 @@ describe("согласованность настроек", () => {
     expect(FOG.far).toBeLessThan(FLOOR.size);
   });
 
-  test("нахлёст меньше прокрутки сцены", () => {
-    expect(SCROLL.overlapScreens).toBeLessThan(SCROLL.sceneScreens - 1);
+  test("шапка ниже экрана: под ней сразу видно продолжение", () => {
+    expect(HERO.screens).toBeGreaterThan(0);
+    expect(HERO.screens).toBeLessThan(1);
+    expect(HERO.bannerAspect).toBeGreaterThan(1);
+  });
+
+  test("щелчок по карточке отличается от поворота", () => {
+    expect(ICON.clickSlop).toBeGreaterThan(0);
   });
 
   test("шаг времени за кадр короче времени сглаживания: движение не дёргается", () => {
@@ -311,16 +300,18 @@ describe("правило «все числа в lib/config.ts»", () => {
     "components/scene/Scene.tsx",
     "lib/store.ts",
     "components/scene/Structure3D.tsx",
-    "components/icons/IconStage.tsx",
-    "components/icons/MachineIcon.tsx",
+    "components/cards/CardStage.tsx",
+    "components/cards/CardContent.tsx",
+    "components/cards/Cards.tsx",
+    "components/landing/TierBanner.tsx",
+    "lib/cards.ts",
+    "lib/tiers.ts",
     "components/scene/SceneCanvas.tsx",
     "components/scene/Workshop.tsx",
     "lib/workshop.ts",
     "components/scene/Floor.tsx",
     "components/scene/Effects.tsx",
-    "components/scene/TransitionEffect.ts",
     "lib/structure.ts",
-    "lib/scroll.ts",
     "lib/camera.ts",
     "lib/heat.ts",
     "lib/perf.ts",

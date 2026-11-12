@@ -54,11 +54,17 @@ export function footprint(placement: Placement): Footprint {
   return { minX: x - extentX, maxX: x + extentX, minZ: z - extentZ, maxZ: z + extentZ };
 }
 
-/** Камера цеха: общий план из настроек; на узком экране отъезжает, как и в сцене машины. */
-export function workshopCamera(aspect: number = CAMERA.referenceAspect): CameraSetup {
+/**
+ * Камера цеха: общий план из настроек; на узком экране отъезжает, как и в
+ * сцене машины. from — откуда смотреть: из большой шапки или из мини-шапки.
+ */
+export function workshopCamera(
+  aspect: number = CAMERA.referenceAspect,
+  from: readonly number[] = WORKSHOP.cameraPosition,
+): CameraSetup {
   const reach = pullback(aspect);
   const target = WORKSHOP.cameraTarget;
-  const position = WORKSHOP.cameraPosition.map((value, axis) => target[axis] + (value - target[axis]) * reach);
+  const position = from.map((value, axis) => target[axis] + (value - target[axis]) * reach);
   return {
     position: [position[0], position[1], position[2]],
     target: [target[0], target[1], target[2]],

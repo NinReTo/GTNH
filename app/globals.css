@@ -22,14 +22,9 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Блок сцены: высотой в несколько экранов, холст внутри прилипает к верху. */
-.scene-section {
-  height: calc(var(--scene-screens) * 100svh);
-}
-
-/* Лендинг подтянут вверх и наезжает на хвост сцены. */
-.landing {
-  margin-top: calc(var(--overlap-screens) * -100svh);
+/* Шапка: неподвижный блок со сценой, высота — доля экрана из lib/config.ts. */
+.hero {
+  height: calc(var(--hero-screens) * 100svh);
 }
 
 /* Текстуры мода 16×16 показываем без сглаживания — пиксели остаются квадратами. */

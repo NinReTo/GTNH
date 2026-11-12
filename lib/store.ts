@@ -1,27 +1,18 @@
-import { create } from "zustand";
+import { createContext } from "react";
 
-/** Какие части картинки можно выключить для замеров: ?off=bloom,chromatic,transition,shadows */
-export type EffectName = "bloom" | "chromatic" | "transition" | "shadows";
-export const EFFECT_NAMES: readonly EffectName[] = ["bloom", "chromatic", "transition", "shadows"];
+/** Какие части картинки можно выключить для замеров: ?off=bloom,chromatic,shadows */
+export type EffectName = "bloom" | "chromatic" | "shadows";
+export const EFFECT_NAMES: readonly EffectName[] = ["bloom", "chromatic", "shadows"];
 
 /** Курсор в координатах холста: x и y от −1 до 1, начало в центре, y вверх. */
 export type Pointer = readonly [number, number];
 
-interface SceneState {
-  /** Положение прокрутки внутри блока сцены, от 0 до 1: ведёт переход к странице. */
-  readonly progress: number;
-  /** Где курсор над холстом; null — курсор ушёл со сцены, блоки возвращаются на место. */
-  readonly pointer: Pointer | null;
-  readonly setProgress: (progress: number) => void;
-  readonly setPointer: (pointer: Pointer | null) => void;
-}
-
-export const useSceneStore = create<SceneState>((set) => ({
-  progress: 0,
-  pointer: null,
-  setProgress: (progress) => set({ progress }),
-  setPointer: (pointer) => set({ pointer }),
-}));
+/**
+ * Откуда сцена узнаёт, где курсор. У каждой сцены на странице свой источник:
+ * наведение на одну сцену не должно раздвигать блоки в другой. По умолчанию
+ * курсора нет — так рисуются снимки карточек.
+ */
+export const PointerContext = createContext<() => Pointer | null>(() => null);
 
 /** Положение курсора внутри прямоугольника холста → координаты от −1 до 1. */
 export function toPointer(clientX: number, clientY: number, rect: Pick<DOMRect, "left" | "top" | "width" | "height">): Pointer | null {

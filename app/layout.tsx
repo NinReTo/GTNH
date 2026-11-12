@@ -1,20 +1,20 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { SCROLL, THEME } from "@/lib/config";
+import { HERO, THEME } from "@/lib/config";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin", "cyrillic"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin", "cyrillic"] });
 
 export const metadata: Metadata = {
-  title: "Паровая эра GregTech New Horizons — Minecraft 1.7.10",
+  title: "Машины GregTech New Horizons — Minecraft 1.7.10",
   description:
-    "Первые машины мода GregTech в сборке GT New Horizons: трёхмерные постройки из настоящих блоков, разобранные по блокам.",
+    "Машины мода GregTech в сборке GT New Horizons по ярусам напряжения: трёхмерные постройки из настоящих блоков, разобранные по блокам.",
 };
 
 /**
- * Цвета темы и размеры блока сцены уходят в CSS одной пачкой переменных —
+ * Цвета темы и высота шапки уходят в CSS одной пачкой переменных —
  * прямо из lib/config.ts. Так у страницы и у шейдера перехода один источник цвета.
  */
 const themeVariables = {
@@ -24,8 +24,7 @@ const themeVariables = {
   "--text3": THEME.text3,
   "--accent": THEME.accent,
   "--line": THEME.line,
-  "--scene-screens": SCROLL.sceneScreens,
-  "--overlap-screens": SCROLL.overlapScreens,
+  "--hero-screens": HERO.screens,
 } as CSSProperties;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

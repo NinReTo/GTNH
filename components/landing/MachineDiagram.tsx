@@ -72,7 +72,7 @@ export function MachineDiagram({ slug }: MachineDiagramProps) {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-      <Figure caption="Схема вызывает explodedPosition() из lib/structure.ts — ту же функцию, что двигает блоки в сцене наверху. Там блоки раздвигает курсор, здесь — ползунок, сразу все.">
+      <Figure caption="Двигайте ползунок — блоки раздвинутся. Наведите на строку справа, чтобы найти такие блоки в постройке.">
         <svg viewBox={`0 0 ${width} ${iso.height}`} role="img" aria-label={`Разбор по блокам: ${machine.title}`} className="w-full">
           {placed.map(({ block, position }) => {
             const kind: BlockKind = KINDS[block.kind as KindId];

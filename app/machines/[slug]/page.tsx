@@ -7,13 +7,14 @@ import { SectionHeading, formatNumber } from "@/components/landing/ui";
 import { SceneSection } from "@/components/scene/SceneSection";
 import { DIAGRAM, GAME } from "@/lib/config";
 import { coilHeat } from "@/lib/heat";
-import { GROUP_TITLES, MACHINES, findMachine, structureOf } from "@/lib/machines";
+import { MACHINES, findMachine, structureOf } from "@/lib/machines";
+import { findTier } from "@/lib/tiers";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-/** Страницы всех машин собираются заранее: список известен из lib/machines.ts. */
+/** Страницы всех машин собираются заранее: список известен заранее. */
 export function generateStaticParams(): { slug: string }[] {
   return MACHINES.map((machine) => ({ slug: machine.slug }));
 }
@@ -32,15 +33,16 @@ export default async function MachinePage({ params }: PageProps) {
   if (!machine) notFound();
 
   const structure = structureOf(machine);
-  const index = MACHINES.indexOf(machine);
-  const next = MACHINES[(index + 1) % MACHINES.length];
-  const isElectric = machine.group === "electric";
+  const tier = findTier(machine.tier);
+  const siblings = MACHINES.filter((candidate) => candidate.tier === machine.tier);
+  const next = siblings[(siblings.indexOf(machine) + 1) % siblings.length];
+  const hasCoils = structure.blocks.some((block) => block.kind === "coil");
 
   return (
     <>
       <SceneSection slug={machine.slug}>
-        <p className="font-mono text-xs uppercase tracking-[0.3em] text-accent">
-          {GROUP_TITLES[machine.group]} · {machine.title}
+        <p className="font-mono text-xs uppercase tracking-[0.3em]" style={{ color: tier?.color }}>
+          {tier?.title} · {machine.title}
         </p>
         <h1 className="mt-4 max-w-3xl font-mono text-4xl font-bold uppercase leading-none tracking-tight text-text1 sm:text-6xl">
           {machine.name}
@@ -50,8 +52,8 @@ export default async function MachinePage({ params }: PageProps) {
         </p>
       </SceneSection>
 
-      <main className="landing relative z-10 bg-bg">
-        <section className="mx-auto grid max-w-6xl gap-12 px-6 py-24 sm:px-12 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:py-36">
+      <main className="relative bg-bg">
+        <section className="mx-auto grid max-w-6xl gap-12 px-6 py-24 sm:px-12 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:py-32">
           <div>
             <SectionHeading index="01" kicker="Зачем" title={machine.title} />
             {machine.story.map((paragraph) => (
@@ -68,34 +70,24 @@ export default async function MachinePage({ params }: PageProps) {
               </div>
             ))}
             <div className="flex items-baseline justify-between gap-6 px-5 py-4">
-              <dt className="font-mono text-xs uppercase tracking-[0.2em] text-text3">Блоков на схеме</dt>
+              <dt className="font-mono text-xs uppercase tracking-[0.2em] text-text3">Всего блоков</dt>
               <dd className="font-mono text-lg text-accent">{structure.blocks.length}</dd>
             </div>
           </dl>
         </section>
 
         <section className="border-t border-line">
-          <div className="mx-auto max-w-6xl px-6 py-24 sm:px-12 lg:py-36">
+          <div className="mx-auto max-w-6xl px-6 py-24 sm:px-12 lg:py-32">
             <SectionHeading index="02" kicker="Структура" title="Из чего сложена" />
-            <p className={prose}>
-              Схема взята из первоисточника дословно — теми же строками, какими её описали авторы мода. Наведите на
-              строку справа, чтобы найти такие блоки в постройке.
-            </p>
             <div className="mt-12">
               <MachineDiagram slug={machine.slug} />
             </div>
-            <p className="mt-8 font-mono text-xs text-text3">
-              Источник:{" "}
-              <a className={link} href={machine.source} target="_blank" rel="noopener noreferrer">
-                {decodeURIComponent(machine.source.split("/").pop() ?? machine.source)}
-              </a>
-            </p>
           </div>
         </section>
 
-        {isElectric && (
+        {hasCoils && (
           <section className="border-t border-line">
-            <div className="mx-auto max-w-6xl px-6 py-24 sm:px-12 lg:py-36">
+            <div className="mx-auto max-w-6xl px-6 py-24 sm:px-12 lg:py-32">
               <SectionHeading index="03" kicker="Нагрев" title="Катушки решают, что можно плавить" />
               <p className={prose}>
                 У каждого рецепта есть минимальная температура. Катушки из купроникеля дают{" "}
@@ -118,15 +110,17 @@ export default async function MachinePage({ params }: PageProps) {
 
         <nav className="border-t border-line" aria-label="Другие машины">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6 px-6 py-16 sm:px-12">
-            <Link href="/" className={`${link} font-mono text-sm uppercase tracking-[0.2em]`}>
-              ← Все машины
+            <Link href={tier ? `/tiers/${tier.id}` : "/"} className={`${link} font-mono text-sm uppercase tracking-[0.2em]`}>
+              ← {tier ? `Все машины: ${tier.title}` : "На главную"}
             </Link>
-            <Link href={`/machines/${next.slug}`} className="group text-right">
-              <span className="block font-mono text-xs uppercase tracking-[0.2em] text-text3">Дальше</span>
-              <span className="font-mono text-2xl uppercase text-text1 transition-colors group-hover:text-accent">
-                {next.title} →
-              </span>
-            </Link>
+            {next !== machine && (
+              <Link href={`/machines/${next.slug}`} className="group text-right">
+                <span className="block font-mono text-xs uppercase tracking-[0.2em] text-text3">Дальше</span>
+                <span className="font-mono text-2xl uppercase text-text1 transition-colors group-hover:text-accent">
+                  {next.title} →
+                </span>
+              </Link>
+            )}
           </div>
         </nav>
       </main>

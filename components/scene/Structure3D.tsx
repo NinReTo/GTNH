@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useContext, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
 import {
@@ -20,10 +20,10 @@ import {
   type Ray,
   type Texture,
 } from "three";
-import { CORE, EBF, ICON, LIGHT, MATERIAL } from "@/lib/config";
+import { CORE, EBF, LIGHT, MATERIAL } from "@/lib/config";
 import { KINDS, structureOf, type KindId, type Machine } from "@/lib/machines";
 import { FACES, approach, cursorWeight, explodedPosition, type Block, type BlockKind } from "@/lib/structure";
-import { useSceneStore, type Pointer } from "@/lib/store";
+import { PointerContext, type Pointer } from "@/lib/store";
 
 const GT = "/textures/gregtech";
 export const DETAIL_URLS = {
@@ -138,12 +138,6 @@ interface Structure3DProps {
   readonly machine: Machine;
   readonly shadows: boolean;
   /**
-   * Режим значка: если задано, блоки раздвигаются все разом, пока мышка на
-   * значке (true), а курсор над холстом не учитывается. Без него — большая
-   * сцена, где блоки раздвигает курсор.
-   */
-  readonly isHovered?: boolean;
-  /**
    * Свой точечный свет внутри постройки. По умолчанию есть. В цехе, где построек
    * много, свет оставлен только у тех, в ком горит огонь: каждый источник света
    * пересчитывается для каждого пикселя, и десяток источников заметно тормозит.
@@ -151,9 +145,9 @@ interface Structure3DProps {
   readonly hasLight?: boolean;
 }
 
-export function Structure3D({ machine, shadows, isHovered, hasLight = true }: Structure3DProps) {
-  const isIcon = isHovered !== undefined;
-  const hovered = useRef(false);
+export function Structure3D({ machine, shadows, hasLight = true }: Structure3DProps) {
+  /** Где курсор над этой сценой; у каждой сцены свой источник. */
+  const getPointer = useContext(PointerContext);
   const structure = useMemo(() => structureOf(machine), [machine]);
   const kindIds = useMemo(() => [...new Set(structure.blocks.map((block) => block.kind))], [structure]);
   const textures = useTexture(useMemo(() => textureUrls(kindIds), [kindIds])) as Record<string, Texture>;
@@ -183,14 +177,14 @@ export function Structure3D({ machine, shadows, isHovered, hasLight = true }: St
   // дорогая часть кадра.
   useEffect(() => {
     weights.current = structure.blocks.map(() => 0);
-    if (isIcon) return;
+    if (!shadows) return;
     gl.shadowMap.autoUpdate = false;
     gl.shadowMap.needsUpdate = true;
     invalidate();
     return () => {
       gl.shadowMap.autoUpdate = true;
     };
-  }, [gl, structure, invalidate, isIcon]);
+  }, [gl, structure, invalidate, shadows]);
 
   const materials = useMemo(() => buildMaterials(kindIds, textures, detail), [kindIds, textures, detail]);
   const geometry = useMemo(() => {
@@ -200,15 +194,8 @@ export function Structure3D({ machine, shadows, isHovered, hasLight = true }: St
   const coreColor = useMemo(() => new Color(CORE.color).multiplyScalar(CORE.intensity), []);
   const isWater = structure.interior === "water";
 
-  // Значку сообщают о наведении через свойство; запоминаем и заказываем кадр, чтобы анимация пошла.
-  useEffect(() => {
-    hovered.current = isHovered === true;
-    invalidate();
-  }, [isHovered, invalidate]);
-
-  /** Насколько раздвинуть блок: в значке — все разом по наведению, в большой сцене — по близости к курсору. */
+  /** Насколько раздвинуть блок: по близости его места к лучу из камеры через курсор. */
   const targetWeight = (home: Vector3, pointer: Pointer | null, ray: Ray): number => {
-    if (isIcon) return hovered.current ? ICON.explode : 0;
     if (!pointer || !root.current) return 0;
     worldHome.copy(home).applyMatrix4(root.current.matrixWorld);
     return cursorWeight(Math.sqrt(ray.distanceSqToPoint(worldHome)));
@@ -217,7 +204,7 @@ export function Structure3D({ machine, shadows, isHovered, hasLight = true }: St
   // Блоки раздвигаются только рядом с курсором: чем ближе центр блока к лучу
   // из камеры через курсор, тем дальше он отходит.
   useFrame((state, delta) => {
-    const pointer = isIcon ? null : useSceneStore.getState().pointer;
+    const pointer = getPointer();
     if (pointer) state.raycaster.setFromCamera(cursor.set(...pointer), state.camera);
 
     let hasMoved = false;
@@ -232,7 +219,7 @@ export function Structure3D({ machine, shadows, isHovered, hasLight = true }: St
     });
 
     if (!hasMoved) return;
-    if (!isIcon) gl.shadowMap.needsUpdate = true;
+    if (shadows) gl.shadowMap.needsUpdate = true;
     // Блоки ещё не доехали — заказываем следующий кадр; доедут — рисование остановится само.
     state.invalidate();
   });
