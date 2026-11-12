@@ -182,6 +182,13 @@ describe("каталог", () => {
     expect(new Set(MACHINES.map((entry) => entry.slug)).size).toBe(MACHINES.length);
   });
 
+  test("каждая постройка паровой эры стоит на лестнице главной страницы", () => {
+    const onLadder = new Set(SINGLE_BLOCKS.map((single) => single.multiSlug));
+    for (const entry of MACHINES.filter((candidate) => candidate.group === "steam")) {
+      expect(onLadder.has(entry.slug), entry.slug).toBe(true);
+    }
+  });
+
   test("в нём восемь построек паровой эры и одна электрическая", () => {
     expect(MACHINES.filter((entry) => entry.group !== "electric")).toHaveLength(8);
     expect(MACHINES.filter((entry) => entry.group === "electric")).toHaveLength(1);
@@ -193,6 +200,10 @@ describe("каталог", () => {
 
   test("у каждой одноблочной машины есть значки обоих ярусов, а ссылка на постройку ведёт на существующую", () => {
     for (const single of SINGLE_BLOCKS) {
+      if (single.isMultiOnly) {
+        expect(single.multiSlug, single.id).toBeDefined();
+        continue;
+      }
       for (const tier of ["bronze", "steel"]) {
         expect(existsSync(`public/textures/gregtech/single-${tier}-${single.id}.webp`), single.id).toBe(true);
       }

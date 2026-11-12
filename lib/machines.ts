@@ -349,6 +349,8 @@ export interface SingleBlock {
   readonly does: string;
   /** Многоблочная версия, если она есть. */
   readonly multiSlug?: string;
+  /** Бывает только постройкой: одноблочной версии в моде нет. */
+  readonly isMultiOnly?: boolean;
 }
 
 export const SINGLE_BLOCKS: readonly SingleBlock[] = [
@@ -358,4 +360,5 @@ export const SINGLE_BLOCKS: readonly SingleBlock[] = [
   { id: "hammer", title: "Молот", does: "слитки в пластины", multiSlug: "steam-forge-hammer" },
   { id: "compressor", title: "Компрессор", does: "сжимает в блоки", multiSlug: "steam-compressor" },
   { id: "extractor", title: "Экстрактор", does: "вытягивает резину и краски" },
+  { id: "water-pump", title: "Насос", does: "качает воду для котлов", multiSlug: "steam-water-pump", isMultiOnly: true },
 ];

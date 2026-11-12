@@ -16,12 +16,13 @@ import {
   Vector3,
   type Material,
   type Mesh,
+  type Ray,
   type Texture,
 } from "three";
-import { CORE, EBF, LIGHT, MATERIAL } from "@/lib/config";
+import { CORE, EBF, ICON, LIGHT, MATERIAL } from "@/lib/config";
 import { KINDS, structureOf, type KindId, type Machine } from "@/lib/machines";
 import { FACES, approach, cursorWeight, explodedPosition, type Block, type BlockKind } from "@/lib/structure";
-import { useSceneStore } from "@/lib/store";
+import { useSceneStore, type Pointer } from "@/lib/store";
 
 const GT = "/textures/gregtech";
 const DETAIL_URLS = {
@@ -135,9 +136,17 @@ function materialsFor(block: Block, materials: Record<string, KindMaterials>): M
 interface Structure3DProps {
   readonly machine: Machine;
   readonly shadows: boolean;
+  /**
+   * Режим значка: если задано, блоки раздвигаются все разом, пока мышка на
+   * значке (true), а курсор над холстом не учитывается. Без него — большая
+   * сцена, где блоки раздвигает курсор.
+   */
+  readonly isHovered?: boolean;
 }
 
-export function Structure3D({ machine, shadows }: Structure3DProps) {
+export function Structure3D({ machine, shadows, isHovered }: Structure3DProps) {
+  const isIcon = isHovered !== undefined;
+  const hovered = useRef(false);
   const structure = useMemo(() => structureOf(machine), [machine]);
   const kindIds = useMemo(() => [...new Set(structure.blocks.map((block) => block.kind))], [structure]);
   const textures = useTexture(useMemo(() => textureUrls(kindIds), [kindIds])) as Record<string, Texture>;
@@ -164,13 +173,14 @@ export function Structure3D({ machine, shadows }: Structure3DProps) {
   // дорогая часть кадра.
   useEffect(() => {
     weights.current = structure.blocks.map(() => 0);
+    if (isIcon) return;
     gl.shadowMap.autoUpdate = false;
     gl.shadowMap.needsUpdate = true;
     invalidate();
     return () => {
       gl.shadowMap.autoUpdate = true;
     };
-  }, [gl, structure, invalidate]);
+  }, [gl, structure, invalidate, isIcon]);
 
   const materials = useMemo(() => buildMaterials(kindIds, textures, detail), [kindIds, textures, detail]);
   const geometry = useMemo(() => {
@@ -179,15 +189,27 @@ export function Structure3D({ machine, shadows }: Structure3DProps) {
   }, []);
   const coreColor = useMemo(() => new Color(CORE.color).multiplyScalar(CORE.intensity), []);
 
+  // Значку сообщают о наведении через свойство; запоминаем и заказываем кадр, чтобы анимация пошла.
+  useEffect(() => {
+    hovered.current = isHovered === true;
+    invalidate();
+  }, [isHovered, invalidate]);
+
+  /** Насколько раздвинуть блок: в значке — все разом по наведению, в большой сцене — по близости к курсору. */
+  const targetWeight = (home: Vector3, pointer: Pointer | null, ray: Ray): number => {
+    if (isIcon) return hovered.current ? ICON.explode : 0;
+    return pointer ? cursorWeight(Math.sqrt(ray.distanceSqToPoint(home))) : 0;
+  };
+
   // Блоки раздвигаются только рядом с курсором: чем ближе центр блока к лучу
   // из камеры через курсор, тем дальше он отходит.
   useFrame((state, delta) => {
-    const pointer = useSceneStore.getState().pointer;
+    const pointer = isIcon ? null : useSceneStore.getState().pointer;
     if (pointer) state.raycaster.setFromCamera(cursor.set(...pointer), state.camera);
 
     let hasMoved = false;
     structure.blocks.forEach((block, index) => {
-      const target = pointer ? cursorWeight(Math.sqrt(state.raycaster.ray.distanceSqToPoint(homes[index]))) : 0;
+      const target = targetWeight(homes[index], pointer, state.raycaster.ray);
       const current = weights.current[index] ?? 0;
       const weight = approach(current, target, delta);
       if (weight === current) return;
@@ -197,7 +219,7 @@ export function Structure3D({ machine, shadows }: Structure3DProps) {
     });
 
     if (!hasMoved) return;
-    gl.shadowMap.needsUpdate = true;
+    if (!isIcon) gl.shadowMap.needsUpdate = true;
     // Блоки ещё не доехали — заказываем следующий кадр; доедут — рисование остановится само.
     state.invalidate();
   });

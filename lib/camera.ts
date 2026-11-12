@@ -1,4 +1,4 @@
-import { CAMERA } from "./config";
+import { CAMERA, EBF, ICON } from "./config";
 import { clamp } from "./math";
 import type { Vec3 } from "./structure";
 
@@ -16,6 +16,18 @@ export function sizeScale(size: Vec3): number {
 export interface CameraSetup {
   readonly position: Vec3;
   readonly target: Vec3;
+}
+
+/**
+ * Камера трёхмерного значка: смотрит в середину постройки по высоте (над
+ * значком нет текста, который надо обходить) с того же угла, что и большая
+ * сцена, и чуть ближе — значок квадратный и маленький.
+ */
+export function iconCameraSetup(size: Vec3): CameraSetup {
+  const reach = sizeScale(size) * pullback(ICON.aspect) * ICON.distance;
+  const target: Vec3 = [0, (size[1] * EBF.blockSize) / 2, 0];
+  const position = CAMERA.position.map((value, axis) => target[axis] + (value - CAMERA.target[axis]) * reach);
+  return { position: [position[0], position[1], position[2]], target };
 }
 
 /**

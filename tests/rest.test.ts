@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { CAMERA, FLOOR, FOG, GAME, HOVER, LIGHT, PERF, SCROLL, THEME } from "@/lib/config";
-import { cameraSetup, pullback, sizeScale } from "@/lib/camera";
+import { cameraSetup, iconCameraSetup, pullback, sizeScale } from "@/lib/camera";
 import { coilHeat, heatBonuses, heatCapacity, voltageHeatBonus } from "@/lib/heat";
 import { clamp, clamp01, inverseLerp, smooth01 } from "@/lib/math";
 import { perfRows, pickDpr } from "@/lib/perf";
@@ -38,6 +38,23 @@ describe("камера", () => {
     expect(sizeScale([3, 3, 7])).toBeCloseTo(7 / CAMERA.referenceSize);
     const big = cameraSetup([5, 7, 5]);
     big.position.forEach((value, axis) => expect(value).toBeCloseTo(CAMERA.position[axis] * (7 / CAMERA.referenceSize)));
+  });
+
+  test("камера значка смотрит в середину постройки по высоте с того же угла, что и большая сцена", () => {
+    const icon = iconCameraSetup([3, 4, 3]);
+    expect(icon.target).toEqual([0, 2, 0]);
+    const iconDirection = icon.position.map((value, axis) => value - icon.target[axis]);
+    const sceneDirection = CAMERA.position.map((value, axis) => value - CAMERA.target[axis]);
+    const ratio = iconDirection[0] / sceneDirection[0];
+    iconDirection.forEach((value, axis) => expect(value).toBeCloseTo(sceneDirection[axis] * ratio));
+    expect(ratio).toBeGreaterThan(0);
+  });
+
+  test("камера значка отодвигается от крупной постройки", () => {
+    const small = iconCameraSetup([3, 4, 3]);
+    const big = iconCameraSetup([5, 7, 5]);
+    const distance = (setup: typeof small) => Math.hypot(...setup.position.map((value, axis) => value - setup.target[axis]));
+    expect(distance(big)).toBeGreaterThan(distance(small));
   });
 
   test("к постройке мельче расчётной не подъезжает", () => {
@@ -240,6 +257,8 @@ describe("правило «все числа в lib/config.ts»", () => {
     "components/scene/Scene.tsx",
     "lib/store.ts",
     "components/scene/Structure3D.tsx",
+    "components/icons/IconStage.tsx",
+    "components/icons/MachineIcon.tsx",
     "components/scene/Floor.tsx",
     "components/scene/Effects.tsx",
     "components/scene/TransitionEffect.ts",
