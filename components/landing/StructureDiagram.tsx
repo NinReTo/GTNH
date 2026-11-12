@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { DIAGRAM, EBF, THEME } from "@/lib/config";
 import { BLOCKS, BLOCK_LABELS, countByType, explodedPosition, type BlockType, type Vec3 } from "@/lib/ebf";
-import { phaseThresholds } from "@/lib/scroll";
 import { Figure, Slider, formatNumber } from "./ui";
 
 const { width, iso } = DIAGRAM;
@@ -52,7 +51,7 @@ const COUNTS = countByType();
 const LEGEND = (Object.keys(BLOCK_LABELS) as BlockType[]).filter((type) => COUNTS[type] > 0);
 
 export function StructureDiagram() {
-  const [explode, setExplode] = useState<number>(phaseThresholds().explodeEnd);
+  const [explode, setExplode] = useState<number>(iso.initialExplode);
   const [highlighted, setHighlighted] = useState<BlockType | null>(null);
 
   // Те же блоки и та же функция раскладки, что в трёхмерной сцене.
@@ -62,7 +61,7 @@ export function StructureDiagram() {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-      <Figure caption="Схема вызывает explodedPosition() из lib/ebf.ts — ту же функцию, что двигает блоки в сцене наверху.">
+      <Figure caption="Схема вызывает explodedPosition() из lib/ebf.ts — ту же функцию, что двигает блоки в сцене наверху. Там блоки раздвигает курсор, здесь — ползунок, сразу все.">
         <svg viewBox={`0 0 ${width} ${iso.height}`} role="img" aria-label="Разбор печи по блокам" className="w-full">
           {placed.map(({ block, position }) => (
             <g
@@ -86,7 +85,7 @@ export function StructureDiagram() {
             </g>
           ))}
         </svg>
-        <Slider label="Разбор" value={explode} display={`${formatNumber(explode * iso.percent)} %`} onChange={setExplode} />
+        <Slider label="Раздвинуть" value={explode} display={`${formatNumber(explode * iso.percent)} %`} onChange={setExplode} />
       </Figure>
 
       <ul className="self-center">

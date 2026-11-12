@@ -1,7 +1,7 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
 import {
   BoxGeometry,
@@ -12,14 +12,13 @@ import {
   RepeatWrapping,
   SRGBColorSpace,
   Vector2,
+  Vector3,
   type Material,
   type Mesh,
-  type PointLight,
   type Texture,
 } from "three";
 import { CORE, EBF, LIGHT, MATERIAL } from "@/lib/config";
-import { BLOCKS, FACES, explodedPosition, type Block, type BlockType } from "@/lib/ebf";
-import { explodeProgress } from "@/lib/scroll";
+import { BLOCKS, FACES, approach, cursorWeight, explodedPosition, type Block, type BlockType } from "@/lib/ebf";
 import { useSceneStore } from "@/lib/store";
 
 const GT = "/textures/gregtech";
@@ -41,6 +40,9 @@ const TEXTURE_URLS = {
 };
 
 type TextureSet = Record<keyof typeof TEXTURE_URLS, Texture>;
+
+/** Места блоков в собранной печи: от них меряется расстояние до курсора (не от сдвинутых — иначе блок убегал бы сам от себя). */
+const HOME_POSITIONS = BLOCKS.map((block) => new Vector3(...explodedPosition(block.grid, 0)));
 
 /**
  * Текстуры мода 16×16: при увеличении — «ближайший сосед» (пиксели остаются
@@ -120,12 +122,6 @@ function materialsFor(block: Block, materials: FurnaceMaterials): Material | Mat
   return FACES.map((face) => (face === block.face ? special : materials.casing));
 }
 
-/** Середина между двумя слоями катушек: там живут свет и сердечник, и поднимаются вместе с разбором. */
-function coreHeight(explode: number): number {
-  const [lowerCoil, upperCoil] = [explodedPosition([0, 1, 0], explode), explodedPosition([0, 1 + 1, 0], explode)];
-  return (lowerCoil[1] + upperCoil[1]) / 2;
-}
-
 interface FurnaceProps {
   readonly shadows: boolean;
 }
@@ -133,14 +129,27 @@ interface FurnaceProps {
 export function Furnace({ shadows }: FurnaceProps) {
   const textures = useTexture(TEXTURE_URLS) as TextureSet;
   const meshes = useRef<(Mesh | null)[]>([]);
-  const core = useRef<Mesh>(null);
-  const light = useRef<PointLight>(null);
+  /** Текущее раздвижение каждого блока, от 0 до 1. Плавно идёт за курсором. */
+  const weights = useRef<number[]>(BLOCKS.map(() => 0));
+  const cursor = useMemo(() => new Vector2(), []);
+  const gl = useThree((state) => state.gl);
 
   useLayoutEffect(() => {
     const { metalNormal, metalRoughness, ...pixel } = textures;
     Object.values(pixel).forEach(setupPixelTexture);
     [metalNormal, metalRoughness].forEach(setupDetailTexture);
   }, [textures]);
+
+  // Тени зависят только от положения блоков. Пока блоки стоят (а при вращении
+  // движется одна камера), карту теней перерисовывать незачем — это была самая
+  // дорогая часть кадра.
+  useEffect(() => {
+    gl.shadowMap.autoUpdate = false;
+    gl.shadowMap.needsUpdate = true;
+    return () => {
+      gl.shadowMap.autoUpdate = true;
+    };
+  }, [gl]);
 
   const materials = useMemo(() => buildMaterials(textures), [textures]);
   const geometry = useMemo(() => {
@@ -149,16 +158,26 @@ export function Furnace({ shadows }: FurnaceProps) {
   }, []);
   const coreColor = useMemo(() => new Color(CORE.color).multiplyScalar(CORE.intensity), []);
 
-  // Сцена зависит только от прокрутки: каждый кадр позиции считаются заново из одного числа.
-  useFrame(() => {
-    const explode = explodeProgress(useSceneStore.getState().progress);
+  // Блоки раздвигаются только рядом с курсором: чем ближе центр блока к лучу
+  // из камеры через курсор, тем дальше он отходит от оси печи.
+  useFrame((state, delta) => {
+    const pointer = useSceneStore.getState().pointer;
+    if (pointer) state.raycaster.setFromCamera(cursor.set(...pointer), state.camera);
+
+    let hasMoved = false;
     BLOCKS.forEach((block, index) => {
-      const [x, y, z] = explodedPosition(block.grid, explode);
-      meshes.current[index]?.position.set(x, y, z);
+      const target = pointer ? cursorWeight(Math.sqrt(state.raycaster.ray.distanceSqToPoint(HOME_POSITIONS[index]))) : 0;
+      const weight = approach(weights.current[index], target, delta);
+      if (weight === weights.current[index]) return;
+      weights.current[index] = weight;
+      meshes.current[index]?.position.set(...explodedPosition(block.grid, weight));
+      hasMoved = true;
     });
-    const height = coreHeight(explode);
-    core.current?.position.set(LIGHT.position[0], height, LIGHT.position[2]);
-    light.current?.position.set(LIGHT.position[0], height, LIGHT.position[2]);
+
+    if (!hasMoved) return;
+    gl.shadowMap.needsUpdate = true;
+    // Блоки ещё не доехали — заказываем следующий кадр; доедут — рисование остановится само.
+    state.invalidate();
   });
 
   return (
@@ -169,6 +188,7 @@ export function Furnace({ shadows }: FurnaceProps) {
           ref={(mesh) => {
             meshes.current[index] = mesh;
           }}
+          position={HOME_POSITIONS[index]}
           geometry={geometry}
           material={materialsFor(block, materials)}
           castShadow
@@ -177,13 +197,13 @@ export function Furnace({ shadows }: FurnaceProps) {
       ))}
 
       {/* Самосветящийся сердечник: ничего не освещает, но виден в щели и даёт ореол. */}
-      <mesh ref={core}>
+      <mesh position={[...LIGHT.position]}>
         <boxGeometry args={[...CORE.size]} />
         <meshBasicMaterial color={coreColor} toneMapped={false} />
       </mesh>
 
       <pointLight
-        ref={light}
+        position={[...LIGHT.position]}
         color={LIGHT.color}
         intensity={LIGHT.intensity}
         distance={LIGHT.distance}

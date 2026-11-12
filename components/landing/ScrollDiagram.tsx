@@ -27,9 +27,7 @@ export function ScrollDiagram() {
   const phases = phaseThresholds(overlap);
 
   const segments: Segment[] = [
-    { label: "собрана", from: 0, to: phases.explodeStart, fill: THEME.text3, opacity: timeline.opacityIdle },
-    { label: "разбор", from: phases.explodeStart, to: phases.explodeEnd, fill: THEME.accent, opacity: 1 },
-    { label: "пауза", from: phases.explodeEnd, to: phases.transitionStart, fill: THEME.text3, opacity: timeline.opacityIdle },
+    { label: "облёт камеры", from: 0, to: phases.transitionStart, fill: THEME.accent, opacity: 1 },
     { label: "заливка", from: phases.transitionStart, to: phases.transitionEnd, fill: THEME.text1, opacity: 1 },
     { label: "под страницей", from: phases.coverStart, to: 1, fill: THEME.line, opacity: 1 },
   ];

@@ -1,38 +1,15 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
-import { CAMERA, EXPLODE, FLOOR, FOG, GAME, LIGHT, PERF, SCROLL, THEME } from "@/lib/config";
-import { cameraPose, pullback } from "@/lib/camera";
-import { LAYER_COUNT } from "@/lib/ebf";
+import { CAMERA, FLOOR, FOG, GAME, HOVER, LIGHT, PERF, SCROLL, THEME } from "@/lib/config";
+import { initialCameraPosition, pullback } from "@/lib/camera";
 import { coilHeat, heatBonuses, heatCapacity, voltageHeatBonus } from "@/lib/heat";
 import { clamp, clamp01, inverseLerp, smooth01 } from "@/lib/math";
 import { perfRows, pickDpr } from "@/lib/perf";
-import { parseDisabledEffects } from "@/lib/store";
+import { parseDisabledEffects, toPointer } from "@/lib/store";
 
 describe("камера", () => {
-  test("кривая проходит через первую и последнюю заданные точки", () => {
-    const expectClose = (actual: readonly number[], expected: readonly number[]) =>
-      actual.forEach((value, axis) => expect(value).toBeCloseTo(expected[axis]));
-    expectClose(cameraPose(0).position, CAMERA.positionPoints[0]);
-    expectClose(cameraPose(1).position, CAMERA.positionPoints[CAMERA.positionPoints.length - 1]);
-    expectClose(cameraPose(0).target, CAMERA.targetPoints[0]);
-  });
-
-  test("кривая проходит через промежуточные точки на третях пути", () => {
-    const pose = cameraPose(1 / 3);
-    pose.position.forEach((value, axis) => expect(value).toBeCloseTo(CAMERA.positionPoints[1][axis]));
-  });
-
-  test("за пределами отрезка 0…1 камера стоит на концах пути", () => {
-    expect(cameraPose(-1)).toEqual(cameraPose(0));
-    expect(cameraPose(2)).toEqual(cameraPose(1));
-  });
-
-  test("никогда не опускается под пол и не заходит внутрь печи", () => {
-    for (let step = 0; step <= 50; step += 1) {
-      const [x, y, z] = cameraPose(step / 50).position;
-      expect(y).toBeGreaterThan(0);
-      expect(Math.hypot(x, z)).toBeGreaterThan(5);
-    }
+  test("на расчётном экране стоит в заданной точке", () => {
+    initialCameraPosition().forEach((value, axis) => expect(value).toBeCloseTo(CAMERA.position[axis]));
   });
 
   test("на узком экране отъезжает от цели, но не дальше потолка", () => {
@@ -43,8 +20,40 @@ describe("камера", () => {
     expect(pullback(0)).toBe(1);
   });
 
-  test("отъезд не сдвигает цель взгляда", () => {
-    expect(cameraPose(0.5, 0.5).target).toEqual(cameraPose(0.5).target);
+  test("отъезжает вдоль луча от цели: направление взгляда не меняется", () => {
+    const near = initialCameraPosition(CAMERA.referenceAspect);
+    const far = initialCameraPosition(CAMERA.referenceAspect / 1.5);
+    const offset = (position: readonly number[]) => position.map((value, axis) => value - CAMERA.target[axis]);
+    offset(far).forEach((value, axis) => expect(value).toBeCloseTo(offset(near)[axis] * 1.5));
+  });
+
+  test("стоит над полом и снаружи печи", () => {
+    const [x, y, z] = CAMERA.position;
+    expect(y).toBeGreaterThan(0);
+    expect(Math.hypot(x, z)).toBeGreaterThan(5);
+  });
+
+  test("пределы наклона не дают заглянуть под пол", () => {
+    expect(CAMERA.minPolarAngle).toBeGreaterThan(0);
+    expect(CAMERA.maxPolarAngle).toBeLessThan(Math.PI / 2);
+    expect(CAMERA.minPolarAngle).toBeLessThan(CAMERA.maxPolarAngle);
+  });
+});
+
+describe("курсор над холстом", () => {
+  const rect = { left: 100, top: 50, width: 800, height: 600 };
+
+  test("центр холста — начало координат", () => {
+    expect(toPointer(500, 350, rect)).toEqual([0, 0]);
+  });
+
+  test("левый верхний угол — (−1, 1), правый нижний — (1, −1)", () => {
+    expect(toPointer(100, 50, rect)).toEqual([-1, 1]);
+    expect(toPointer(900, 650, rect)).toEqual([1, -1]);
+  });
+
+  test("у холста без размеров курсора нет", () => {
+    expect(toPointer(10, 10, { left: 0, top: 0, width: 0, height: 0 })).toBeNull();
   });
 });
 
@@ -181,10 +190,6 @@ describe("математика", () => {
 });
 
 describe("согласованность настроек", () => {
-  test("задержки слоёв оставляют время на сам разбор", () => {
-    expect((LAYER_COUNT - 1) * EXPLODE.layerStagger).toBeLessThan(1);
-  });
-
   test("у точечного света ограничена дальность, и она не дальше тумана", () => {
     expect(LIGHT.distance).toBeGreaterThan(0);
     expect(LIGHT.distance).toBeLessThanOrEqual(FOG.far);
@@ -198,9 +203,13 @@ describe("согласованность настроек", () => {
     expect(SCROLL.overlapScreens).toBeLessThan(SCROLL.sceneScreens - 1);
   });
 
-  test("путь камеры и путь цели заданы четырьмя точками каждый", () => {
-    expect(CAMERA.positionPoints).toHaveLength(4);
-    expect(CAMERA.targetPoints).toHaveLength(4);
+  test("шаг времени за кадр короче времени сглаживания: движение не дёргается", () => {
+    expect(HOVER.maxStep).toBeLessThan(HOVER.smoothTime);
+  });
+
+  test("радиус курсора меньше самой печи — раздвигается часть, а не всё", () => {
+    expect(HOVER.radius).toBeGreaterThan(0);
+    expect(HOVER.radius).toBeLessThan(3);
   });
 
   test("цвета темы записаны как #rrggbb", () => {
@@ -211,6 +220,7 @@ describe("согласованность настроек", () => {
 describe("правило «все числа в lib/config.ts»", () => {
   const files = [
     "components/scene/Scene.tsx",
+    "lib/store.ts",
     "components/scene/Furnace.tsx",
     "components/scene/Floor.tsx",
     "components/scene/Effects.tsx",

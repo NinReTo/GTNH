@@ -2,10 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { SCROLL } from "@/lib/config";
 import { BLOCKS } from "@/lib/ebf";
-import { inverseLerp } from "@/lib/math";
-import { explodeProgress, sectionProgress } from "@/lib/scroll";
+import { sectionProgress } from "@/lib/scroll";
 import { useSceneStore } from "@/lib/store";
 
 const Scene = dynamic(() => import("./Scene"), { ssr: false });
@@ -42,26 +40,18 @@ function BenchButton() {
 
 /**
  * Блок со сценой: высотой в несколько экранов, холст внутри прилипает к верху.
- * Положение прокрутки превращается в одно число от 0 до 1 — и больше сцена
- * ни от чего не зависит.
+ * Положение прокрутки превращается в одно число от 0 до 1 — оно ведёт переход
+ * к странице. Печь вертят перетаскиванием, блоки раздвигает курсор.
  */
 export function SceneSection() {
   const section = useRef<HTMLElement>(null);
-  const hero = useRef<HTMLDivElement>(null);
-  const caption = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     const update = () => {
       const element = section.current;
       if (!element) return;
       const rect = element.getBoundingClientRect();
-      const progress = sectionProgress(rect.top, rect.height, window.innerHeight);
-      useSceneStore.getState().setProgress(progress);
-
-      // Заголовок уходит с началом разбора, подпись слоёв появляется к его концу.
-      const explode = explodeProgress(progress);
-      if (hero.current) hero.current.style.opacity = String(1 - inverseLerp(0, SCROLL.heroFadeEnd, explode));
-      if (caption.current) caption.current.style.opacity = String(inverseLerp(SCROLL.captionFadeStart, 1, explode));
+      useSceneStore.getState().setProgress(sectionProgress(rect.top, rect.height, window.innerHeight));
     };
     update();
     window.addEventListener("scroll", update, { passive: true });
@@ -78,29 +68,18 @@ export function SceneSection() {
         <Scene />
         <BenchButton />
 
-        <div ref={hero} className="pointer-events-none absolute inset-x-0 bottom-0 p-6 sm:p-12">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 p-6 sm:p-12">
           <p className="font-mono text-xs uppercase tracking-[0.3em] text-accent">GregTech · Minecraft 1.7.10</p>
-          <h1 className="mt-4 max-w-3xl font-mono text-4xl font-bold uppercase leading-none tracking-tight text-text1 sm:text-7xl">
+          <h1 className="mt-4 max-w-3xl font-mono text-4xl font-bold uppercase leading-none tracking-tight text-text1 sm:text-6xl">
             Electric
             <br />
             Blast Furnace
           </h1>
           <p className="mt-6 max-w-md text-base text-text2">
-            Первая большая печь мода: {BLOCKS.length} блока, которые вместе плавят сталь. Крутите вниз — она разберётся по
-            блокам.
+            Первая большая печь мода: {BLOCKS.length} блока, которые вместе плавят сталь. Тяните мышкой — печь
+            повернётся. Наведите на блоки — они раздвинутся.
           </p>
         </div>
-
-        <p
-          ref={caption}
-          className="pointer-events-none absolute inset-x-0 bottom-0 p-6 font-mono text-xs uppercase leading-relaxed tracking-[0.2em] text-text2 opacity-0 sm:p-12"
-        >
-          Сверху вниз: глушитель и корпус
-          <br />
-          два слоя нагревательных катушек
-          <br />
-          контроллер, люки и шины
-        </p>
       </div>
     </section>
   );

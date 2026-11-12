@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { EBF, EXPLODE } from "@/lib/config";
-import { BLOCKS, LAYER_COUNT, countByType, explodedPosition, layerProgress } from "@/lib/ebf";
+import { EBF, EXPLODE, HOVER } from "@/lib/config";
+import { BLOCKS, LAYER_COUNT, approach, countByType, cursorWeight, explodedPosition } from "@/lib/ebf";
 
 describe("структура печи", () => {
   test("состоит из 34 блоков: 3×3×4 без двух блоков воздуха внутри", () => {
@@ -53,15 +53,73 @@ describe("структура печи", () => {
   });
 });
 
+describe("раздвижение у курсора", () => {
+  test("блок прямо под курсором раздвигается полностью", () => {
+    expect(cursorWeight(0)).toBe(1);
+  });
+
+  test("блок на краю радиуса и дальше стоит на месте", () => {
+    expect(cursorWeight(HOVER.radius)).toBe(0);
+    expect(cursorWeight(HOVER.radius * 3)).toBe(0);
+  });
+
+  test("чем ближе курсор, тем сильнее раздвижение", () => {
+    expect(cursorWeight(HOVER.radius / 4)).toBeGreaterThan(cursorWeight(HOVER.radius / 2));
+    expect(cursorWeight(HOVER.radius / 2)).toBeCloseTo(0.5);
+  });
+
+  test("бессмысленное расстояние ничего не двигает", () => {
+    expect(cursorWeight(Number.NaN)).toBe(0);
+    expect(cursorWeight(-1)).toBe(0);
+  });
+});
+
+describe("плавное движение блока", () => {
+  test("идёт к цели и не перелетает её", () => {
+    const next = approach(0, 1, 0.016);
+    expect(next).toBeGreaterThan(0);
+    expect(next).toBeLessThan(1);
+  });
+
+  test("возвращается назад, когда курсор ушёл", () => {
+    expect(approach(0.8, 0, 0.016)).toBeLessThan(0.8);
+  });
+
+  test("в конце концов доезжает ровно до цели — анимация заканчивается", () => {
+    let weight = 0;
+    let frames = 0;
+    while (weight !== 1 && frames < 1000) {
+      weight = approach(weight, 1, 0.016);
+      frames += 1;
+    }
+    expect(weight).toBe(1);
+    expect(frames).toBeLessThan(120);
+  });
+
+  test("на месте стоит неподвижно", () => {
+    expect(approach(0, 0, 0.016)).toBe(0);
+    expect(approach(1, 1, 0.016)).toBe(1);
+  });
+
+  test("после долгого простоя кадр не перебрасывает блок одним скачком", () => {
+    expect(approach(0, 1, 30)).toBe(approach(0, 1, HOVER.maxStep));
+    expect(approach(0, 1, 30)).toBeLessThan(0.5);
+  });
+
+  test("отрицательное время ничего не двигает", () => {
+    expect(approach(0.4, 1, -1)).toBe(0.4);
+  });
+});
+
 describe("раскладка по блокам", () => {
-  test("при нулевом разборе блоки стоят вплотную по сетке в один метр", () => {
+  test("без раздвижения блоки стоят вплотную по сетке в один метр", () => {
     for (const block of BLOCKS) {
       const [x, y, z] = block.grid;
       expect(explodedPosition(block.grid, 0)).toEqual([x * EBF.blockSize, (y + 0.5) * EBF.blockSize, z * EBF.blockSize]);
     }
   });
 
-  test("при полном разборе никакие два блока не пересекаются", () => {
+  test("при полном раздвижении всех блоков никакие два не пересекаются", () => {
     const positions = BLOCKS.map((block) => explodedPosition(block.grid, 1));
     for (let first = 0; first < positions.length; first += 1) {
       for (let second = first + 1; second < positions.length; second += 1) {
@@ -71,28 +129,28 @@ describe("раскладка по блокам", () => {
     }
   });
 
-  test("при полном разборе между слоями появляется просвет заданной высоты", () => {
-    const lower = explodedPosition([0, 1, 1], 1);
-    const upper = explodedPosition([0, 2, 1], 1);
-    expect(upper[1] - lower[1]).toBeCloseTo(EBF.blockSize + EXPLODE.layerGap);
-  });
-
-  test("нижний слой не отрывается от пола", () => {
-    for (const explode of [0, 0.3, 0.7, 1]) {
-      expect(explodedPosition([1, 0, 1], explode)[1]).toBeCloseTo(EBF.blockSize / 2);
+  test("раздвинутый блок не влезает в соседа, который остался на месте", () => {
+    for (const moved of BLOCKS) {
+      const position = explodedPosition(moved.grid, 1);
+      for (const still of BLOCKS) {
+        if (still.id === moved.id) continue;
+        const home = explodedPosition(still.grid, 0);
+        const gap = Math.max(...position.map((value, axis) => Math.abs(value - home[axis])));
+        expect(gap, moved.id + " → " + still.id).toBeGreaterThanOrEqual(EBF.blockSize * EBF.blockScale);
+      }
     }
   });
 
-  test("верхний слой трогается раньше нижнего", () => {
-    const early = EXPLODE.layerStagger / 2;
-    expect(layerProgress(LAYER_COUNT - 1, early)).toBeGreaterThan(0);
-    expect(layerProgress(0, early)).toBe(0);
+  test("под крышкой появляется просвет заданной высоты, остальные слои не поднимаются", () => {
+    const coil = explodedPosition([0, 2, 1], 1);
+    const lid = explodedPosition([0, 3, 1], 1);
+    expect(lid[1] - coil[1]).toBeCloseTo(EBF.blockSize + EXPLODE.lidLift);
+    expect(coil[1]).toBeCloseTo(explodedPosition([0, 2, 1], 0)[1]);
   });
 
-  test("к концу разбора все слои доезжают до места", () => {
-    for (let layer = 0; layer < LAYER_COUNT; layer += 1) {
-      expect(layerProgress(layer, 1)).toBe(1);
-      expect(layerProgress(layer, 0)).toBe(0);
+  test("нижний слой не отрывается от пола", () => {
+    for (const weight of [0, 0.3, 0.7, 1]) {
+      expect(explodedPosition([1, 0, 1], weight)[1]).toBeCloseTo(EBF.blockSize / 2);
     }
   });
 
@@ -103,5 +161,10 @@ describe("раскладка по блокам", () => {
       current.forEach((value, axis) => expect(value).toBeGreaterThanOrEqual(previous[axis]));
       previous = current;
     }
+  });
+
+  test("за пределами отрезка 0…1 раздвижение не растёт", () => {
+    expect(explodedPosition([1, 2, 1], 5)).toEqual(explodedPosition([1, 2, 1], 1));
+    expect(explodedPosition([1, 2, 1], -5)).toEqual(explodedPosition([1, 2, 1], 0));
   });
 });

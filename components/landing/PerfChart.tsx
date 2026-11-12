@@ -38,7 +38,7 @@ export function PerfChart() {
             </g>
           );
         })}
-        <line x1={budgetX} y1={0} x2={budgetX} y2={height} stroke={THEME.text2} strokeWidth={DIAGRAM.stroke} strokeDasharray={DIAGRAM.plan.dash} />
+        <line x1={budgetX} y1={0} x2={budgetX} y2={height} stroke={THEME.text2} strokeWidth={DIAGRAM.stroke} strokeDasharray={DIAGRAM.dash} />
       </svg>
     </Figure>
   );

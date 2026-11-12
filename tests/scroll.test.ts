@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { SCROLL } from "@/lib/config";
-import { coverStart, explodeProgress, phaseThresholds, sectionProgress, transitionProgress } from "@/lib/scroll";
+import { coverStart, phaseThresholds, sectionProgress, transitionProgress } from "@/lib/scroll";
 
 describe("положение прокрутки", () => {
   test("равно нулю, пока блок сцены не начал уходить вверх", () => {
@@ -42,10 +42,9 @@ describe("нахлёст лендинга", () => {
 });
 
 describe("пороги фаз", () => {
-  test("идут по порядку: разбор, пауза, заливка", () => {
+  test("заливка начинается раньше, чем заканчивается", () => {
     const phases = phaseThresholds();
-    expect(phases.explodeStart).toBeLessThan(phases.explodeEnd);
-    expect(phases.explodeEnd).toBeLessThanOrEqual(phases.transitionStart);
+    expect(phases.transitionStart).toBeGreaterThan(0);
     expect(phases.transitionStart).toBeLessThan(phases.transitionEnd);
   });
 
@@ -60,9 +59,8 @@ describe("пороги фаз", () => {
     const base = phaseThresholds(0);
     const shifted = phaseThresholds(1);
     const ratio = shifted.coverStart / base.coverStart;
-    expect(shifted.explodeStart).toBeCloseTo(base.explodeStart * ratio);
-    expect(shifted.explodeEnd).toBeCloseTo(base.explodeEnd * ratio);
     expect(shifted.transitionStart).toBeCloseTo(base.transitionStart * ratio);
+    expect(shifted.transitionEnd).toBeCloseTo(base.transitionEnd * ratio);
   });
 
   test("по умолчанию берут нахлёст из настроек", () => {
@@ -70,16 +68,10 @@ describe("пороги фаз", () => {
   });
 });
 
-describe("продвижение фаз", () => {
-  test("в начале прокрутки печь собрана и заливки нет", () => {
-    expect(explodeProgress(0)).toBe(0);
+describe("продвижение заливки", () => {
+  test("в начале прокрутки заливки нет", () => {
     expect(transitionProgress(0)).toBe(0);
-  });
-
-  test("печь полностью разобрана до начала заливки", () => {
-    const phases = phaseThresholds();
-    expect(explodeProgress(phases.transitionStart)).toBe(1);
-    expect(transitionProgress(phases.transitionStart)).toBe(0);
+    expect(transitionProgress(phaseThresholds().transitionStart)).toBe(0);
   });
 
   test("кадр залит целиком к моменту, когда приходит страница", () => {
@@ -88,8 +80,8 @@ describe("продвижение фаз", () => {
     expect(transitionProgress(1)).toBe(1);
   });
 
-  test("на середине разбора продвижение равно половине", () => {
+  test("на середине фазы продвижение равно половине", () => {
     const phases = phaseThresholds();
-    expect(explodeProgress((phases.explodeStart + phases.explodeEnd) / 2)).toBeCloseTo(0.5);
+    expect(transitionProgress((phases.transitionStart + phases.transitionEnd) / 2)).toBeCloseTo(0.5);
   });
 });

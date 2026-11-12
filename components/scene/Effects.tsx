@@ -20,6 +20,7 @@ declare global {
 interface EffectsProps {
   readonly disabled: ReadonlySet<EffectName>;
   readonly bench: boolean;
+  readonly multisampling: number;
 }
 
 /**
@@ -27,7 +28,7 @@ interface EffectsProps {
  * Порядок важен: тональная компрессия идёт ДО перехода, иначе заливка
  * исказится и перестанет совпадать с цветом страницы.
  */
-export function Effects({ disabled, bench }: EffectsProps) {
+export function Effects({ disabled, bench, multisampling }: EffectsProps) {
   const composer = useRef<ComposerImpl>(null);
   const gl = useThree((state) => state.gl);
   const transition = useMemo(() => new TransitionEffect(), []);
@@ -39,6 +40,7 @@ export function Effects({ disabled, bench }: EffectsProps) {
 
   // Честный замер: рисуем кадры подряд и после каждого читаем один пиксель —
   // это заставляет видеокарту закончить работу, а не просто принять команды.
+  // Тени перерисовываются на каждом кадре, как при движении блоков: меряем худший случай.
   useEffect(() => {
     if (!bench) return;
     const run = (frames: number): number => {
@@ -47,6 +49,7 @@ export function Effects({ disabled, bench }: EffectsProps) {
       const pixel = new Uint8Array(Uint32Array.BYTES_PER_ELEMENT);
       const start = performance.now();
       for (let frame = 0; frame < frames; frame += 1) {
+        gl.shadowMap.needsUpdate = true;
         composer.current?.render();
         context.readPixels(0, 0, 1, 1, context.RGBA, context.UNSIGNED_BYTE, pixel);
       }
@@ -87,7 +90,7 @@ export function Effects({ disabled, bench }: EffectsProps) {
   }
 
   return (
-    <EffectComposer ref={composer} multisampling={POST.multisampling}>
+    <EffectComposer ref={composer} multisampling={multisampling}>
       {passes}
     </EffectComposer>
   );

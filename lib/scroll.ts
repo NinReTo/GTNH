@@ -26,8 +26,6 @@ export function coverStart(
 
 export interface PhaseThresholds {
   readonly coverStart: number;
-  readonly explodeStart: number;
-  readonly explodeEnd: number;
   readonly transitionStart: number;
   readonly transitionEnd: number;
 }
@@ -37,17 +35,9 @@ export function phaseThresholds(overlapScreens: number = SCROLL.overlapScreens):
   const usable = coverStart(overlapScreens);
   return {
     coverStart: usable,
-    explodeStart: SCROLL.phases.explodeStart * usable,
-    explodeEnd: SCROLL.phases.explodeEnd * usable,
     transitionStart: SCROLL.phases.transitionStart * usable,
     transitionEnd: SCROLL.phases.transitionEnd * usable,
   };
-}
-
-/** Продвижение разбора печи (0…1) при положении прокрутки progress. */
-export function explodeProgress(progress: number, overlapScreens?: number): number {
-  const phases = phaseThresholds(overlapScreens);
-  return inverseLerp(phases.explodeStart, phases.explodeEnd, progress);
 }
 
 /** Продвижение заливки перехода (0…1) при положении прокрутки progress. */

@@ -1,4 +1,4 @@
-import { EBF, EXPLODE } from "./config";
+import { EBF, EXPLODE, HOVER } from "./config";
 import { clamp01, smooth01 } from "./math";
 
 /**
@@ -127,29 +127,42 @@ export function countByType(blocks: readonly Block[] = BLOCKS): Record<BlockType
 }
 
 /**
- * Продвижение одного слоя при общем продвижении разбора explode (0…1).
- * Верхний слой стартует первым, каждый следующий — с задержкой.
+ * ЕДИНСТВЕННАЯ функция раскладки: где центр блока при раздвижении weight
+ * (0 — блок на своём месте в печи, 1 — отодвинут полностью).
+ * Её вызывают и трёхмерная сцена (там weight задаёт близость курсора),
+ * и схема на лендинге (там weight — ползунок) — разойтись они не могут.
+ * Блок уходит от оси печи; вверх поднимается только верхний слой, как крышка.
+ * Так раздвинутый блок никогда не въезжает в соседа, который остался на месте:
+ * в сторону, куда он движется, других блоков нет.
  */
-export function layerProgress(layer: number, explode: number): number {
-  const fromTop = LAYER_COUNT - 1 - layer;
-  const delay = fromTop * EXPLODE.layerStagger;
-  const window = 1 - (LAYER_COUNT - 1) * EXPLODE.layerStagger;
-  return smooth01(clamp01((explode - delay) / window));
-}
-
-/**
- * ЕДИНСТВЕННАЯ функция раскладки: где центр блока при продвижении разбора explode.
- * Её вызывают и трёхмерная сцена, и схема на лендинге — разойтись они не могут.
- * При explode = 0 печь собрана, при 1 — слои разнесены по высоте, а блоки
- * отодвинуты от оси.
- */
-export function explodedPosition(grid: Vec3, explode: number): Vec3 {
+export function explodedPosition(grid: Vec3, weight: number): Vec3 {
   const [x, y, z] = grid;
-  const local = layerProgress(y, explode);
+  const local = smooth01(weight);
   const spread = 1 + EXPLODE.radialSpread * local;
   return [
     x * EBF.blockSize * spread,
-    (y + 1 / 2) * EBF.blockSize + y * EXPLODE.layerGap * local,
+    (y + 1 / 2) * EBF.blockSize + (y === LAYER_COUNT - 1 ? EXPLODE.lidLift * local : 0),
     z * EBF.blockSize * spread,
   ];
+}
+
+/**
+ * Насколько курсор раздвигает блок: distance — расстояние в метрах от центра
+ * блока до луча из камеры через курсор. Прямо под курсором — 1, на краю
+ * радиуса и дальше — 0, между ними плавно.
+ */
+export function cursorWeight(distance: number): number {
+  if (!(distance >= 0)) return 0;
+  return smooth01(1 - distance / HOVER.radius);
+}
+
+/**
+ * Плавное приближение к цели: за каждый кадр блок проходит долю оставшегося
+ * пути, поэтому движение не зависит от частоты кадров. Когда остаётся меньше
+ * HOVER.settleEpsilon, возвращает саму цель — чтобы анимация заканчивалась.
+ */
+export function approach(current: number, target: number, deltaSeconds: number): number {
+  const step = Math.min(Math.max(0, deltaSeconds), HOVER.maxStep);
+  const next = current + (target - current) * (1 - Math.exp(-step / HOVER.smoothTime));
+  return Math.abs(target - next) < HOVER.settleEpsilon ? target : clamp01(next);
 }
