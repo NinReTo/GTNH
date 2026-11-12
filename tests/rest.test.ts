@@ -1,15 +1,19 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { CAMERA, FLOOR, FOG, GAME, HOVER, LIGHT, PERF, SCROLL, THEME } from "@/lib/config";
-import { initialCameraPosition, pullback } from "@/lib/camera";
+import { cameraSetup, pullback, sizeScale } from "@/lib/camera";
 import { coilHeat, heatBonuses, heatCapacity, voltageHeatBonus } from "@/lib/heat";
 import { clamp, clamp01, inverseLerp, smooth01 } from "@/lib/math";
 import { perfRows, pickDpr } from "@/lib/perf";
 import { parseDisabledEffects, toPointer } from "@/lib/store";
 
 describe("камера", () => {
-  test("на расчётном экране стоит в заданной точке", () => {
-    initialCameraPosition().forEach((value, axis) => expect(value).toBeCloseTo(CAMERA.position[axis]));
+  const reference = [3, CAMERA.referenceSize, 3] as const;
+
+  test("для расчётной постройки на расчётном экране стоит в заданной точке", () => {
+    const setup = cameraSetup(reference);
+    setup.position.forEach((value, axis) => expect(value).toBeCloseTo(CAMERA.position[axis]));
+    setup.target.forEach((value, axis) => expect(value).toBeCloseTo(CAMERA.target[axis]));
   });
 
   test("на узком экране отъезжает от цели, но не дальше потолка", () => {
@@ -21,13 +25,27 @@ describe("камера", () => {
   });
 
   test("отъезжает вдоль луча от цели: направление взгляда не меняется", () => {
-    const near = initialCameraPosition(CAMERA.referenceAspect);
-    const far = initialCameraPosition(CAMERA.referenceAspect / 1.5);
-    const offset = (position: readonly number[]) => position.map((value, axis) => value - CAMERA.target[axis]);
+    const near = cameraSetup(reference, CAMERA.referenceAspect);
+    const far = cameraSetup(reference, CAMERA.referenceAspect / 1.5);
+    const offset = (setup: typeof near) => setup.position.map((value, axis) => value - setup.target[axis]);
     offset(far).forEach((value, axis) => expect(value).toBeCloseTo(offset(near)[axis] * 1.5));
+    expect(far.target).toEqual(near.target);
   });
 
-  test("стоит над полом и снаружи печи", () => {
+  test("для постройки крупнее отодвигается пропорционально её наибольшей стороне", () => {
+    expect(sizeScale(reference)).toBe(1);
+    expect(sizeScale([5, 7, 5])).toBeCloseTo(7 / CAMERA.referenceSize);
+    expect(sizeScale([3, 3, 7])).toBeCloseTo(7 / CAMERA.referenceSize);
+    const big = cameraSetup([5, 7, 5]);
+    big.position.forEach((value, axis) => expect(value).toBeCloseTo(CAMERA.position[axis] * (7 / CAMERA.referenceSize)));
+  });
+
+  test("к постройке мельче расчётной не подъезжает", () => {
+    expect(sizeScale([3, 3, 3])).toBe(1);
+    expect(cameraSetup([3, 3, 3])).toEqual(cameraSetup(reference));
+  });
+
+  test("стоит над полом и снаружи постройки", () => {
     const [x, y, z] = CAMERA.position;
     expect(y).toBeGreaterThan(0);
     expect(Math.hypot(x, z)).toBeGreaterThan(5);
@@ -221,11 +239,11 @@ describe("правило «все числа в lib/config.ts»", () => {
   const files = [
     "components/scene/Scene.tsx",
     "lib/store.ts",
-    "components/scene/Furnace.tsx",
+    "components/scene/Structure3D.tsx",
     "components/scene/Floor.tsx",
     "components/scene/Effects.tsx",
     "components/scene/TransitionEffect.ts",
-    "lib/ebf.ts",
+    "lib/structure.ts",
     "lib/scroll.ts",
     "lib/camera.ts",
     "lib/heat.ts",

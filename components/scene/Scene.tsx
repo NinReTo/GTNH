@@ -5,17 +5,18 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { Environment, OrbitControls } from "@react-three/drei";
 import { NoToneMapping } from "three";
 import { CAMERA, FOG, LIGHT, POST, THEME } from "@/lib/config";
-import { initialCameraPosition } from "@/lib/camera";
+import { cameraSetup, type CameraSetup } from "@/lib/camera";
+import { findMachine, structureOf } from "@/lib/machines";
 import { pickDpr } from "@/lib/perf";
 import { parseDisabledEffects, toPointer, useSceneStore, type EffectName } from "@/lib/store";
 import { Effects } from "./Effects";
 import { Floor } from "./Floor";
-import { Furnace } from "./Furnace";
+import { Structure3D } from "./Structure3D";
 
 /**
  * Кадр рисуется только когда что-то изменилось: прокрутка или положение
  * курсора. Вращение мышкой заказывает кадры само (OrbitControls), движение
- * блоков — тоже (Furnace). В покое видеокарта не работает вовсе.
+ * блоков — тоже (Structure3D). В покое видеокарта не работает вовсе.
  */
 function RenderOnChange() {
   const invalidate = useThree((state) => state.invalidate);
@@ -40,7 +41,7 @@ interface SceneSettings {
   /** Ручки для замеров из адреса: ?msaa=0 и ?dpr=0.7. Без них берутся значения из настроек. */
   readonly multisampling: number;
   readonly dprScale: number;
-  readonly cameraPosition: readonly [number, number, number];
+  readonly aspect: number;
 }
 
 function numberParam(params: URLSearchParams, name: string, fallback: number): number {
@@ -56,7 +57,7 @@ function readSettings(): SceneSettings {
     bench: params.has("bench"),
     multisampling: numberParam(params, "msaa", POST.multisampling),
     dprScale: numberParam(params, "dpr", 1),
-    cameraPosition: initialCameraPosition(window.innerWidth / window.innerHeight),
+    aspect: window.innerWidth / window.innerHeight,
   };
 }
 
@@ -69,11 +70,19 @@ function handlePointerLeave(): void {
   useSceneStore.getState().setPointer(null);
 }
 
-export default function Scene() {
+interface SceneProps {
+  readonly slug: string;
+}
+
+export default function Scene({ slug }: SceneProps) {
   const dpr = useCanvasDpr();
   // Компонент грузится только в браузере (ssr: false), поэтому окно и адрес читать можно сразу.
   const [settings] = useState(readSettings);
+  const machine = findMachine(slug);
+  if (!machine) return null;
+
   const shadows = !settings.disabled.has("shadows");
+  const camera: CameraSetup = cameraSetup(structureOf(machine).size, settings.aspect);
 
   return (
     <div
@@ -86,20 +95,20 @@ export default function Scene() {
         dpr={dpr * settings.dprScale}
         shadows={shadows}
         gl={{ antialias: false, toneMapping: NoToneMapping, powerPreference: "high-performance" }}
-        camera={{ fov: CAMERA.fov, near: CAMERA.near, far: CAMERA.far, position: [...settings.cameraPosition] }}
+        camera={{ fov: CAMERA.fov, near: CAMERA.near, far: CAMERA.far, position: [...camera.position] }}
       >
         <color attach="background" args={[THEME.bg]} />
         <fog attach="fog" args={[THEME.bg, FOG.near, FOG.far]} />
         <ambientLight intensity={LIGHT.ambientIntensity} />
         <Suspense fallback={null}>
           <Environment files="/hdri/workshop_1k.hdr" environmentIntensity={LIGHT.environmentIntensity} />
-          <Furnace shadows={shadows} />
+          <Structure3D machine={machine} shadows={shadows} />
           <Floor />
         </Suspense>
-        {/* Готовое управление из drei: печь вертят перетаскиванием. Приближение и сдвиг выключены — колесо мышки остаётся прокрутке страницы. */}
+        {/* Готовое управление из drei: постройку вертят перетаскиванием. Приближение и сдвиг выключены — колесо мышки остаётся прокрутке страницы. */}
         <OrbitControls
           makeDefault
-          target={[...CAMERA.target]}
+          target={[...camera.target]}
           enableZoom={false}
           enablePan={false}
           enableDamping

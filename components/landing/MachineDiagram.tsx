@@ -1,0 +1,139 @@
+"use client";
+
+import { useState } from "react";
+import { DIAGRAM, EBF, THEME } from "@/lib/config";
+import { KINDS, findMachine, structureOf, type KindId } from "@/lib/machines";
+import { countByKind, explodedPosition, type BlockKind, type Vec3 } from "@/lib/structure";
+import { Figure, Slider, formatNumber } from "./ui";
+
+const { width, iso } = DIAGRAM;
+const ANGLE = (iso.angle * Math.PI) / iso.halfTurnDegrees;
+const HALF = (EBF.blockSize * EBF.blockScale) / 2;
+
+/** Изометрия в метрах: фасад (+z) смотрит влево-вниз, правая стена (+x) — вправо-вниз, высота — вверх. */
+function flatten([x, y, z]: Vec3): readonly [number, number] {
+  return [(x - z) * Math.cos(ANGLE), (x + z) * Math.sin(ANGLE) - y];
+}
+
+/** Три видимые грани куба: верх, фасад, правая стена. Углы заданы знаками смещения от центра. */
+const CUBE_FACES: readonly { shade: number; corners: readonly Vec3[] }[] = [
+  { shade: iso.shadeTop, corners: [[-1, 1, -1], [1, 1, -1], [1, 1, 1], [-1, 1, 1]] },
+  { shade: iso.shadeFront, corners: [[-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]] },
+  { shade: iso.shadeSide, corners: [[1, -1, -1], [1, 1, -1], [1, 1, 1], [1, -1, 1]] },
+];
+
+function colorOf(kind: BlockKind): string {
+  if (kind.isHot) return THEME.accent;
+  if (kind.face) return THEME.text1;
+  return THEME.text3;
+}
+
+type MachineDiagramProps = {
+  slug: string;
+};
+
+export function MachineDiagram({ slug }: MachineDiagramProps) {
+  const [weight, setWeight] = useState<number>(iso.initialExplode);
+  const [highlighted, setHighlighted] = useState<string | null>(null);
+  const machine = findMachine(slug);
+  if (!machine) return null;
+
+  const { blocks } = structureOf(machine);
+  const counts = countByKind(blocks);
+  const legend = Object.keys(counts);
+
+  // Те же блоки и та же функция раскладки, что в трёхмерной сцене.
+  const placed = blocks
+    .map((block) => ({ block, position: explodedPosition(block, weight) }))
+    .sort((a, b) => a.position[0] + a.position[1] + a.position[2] - (b.position[0] + b.position[1] + b.position[2]));
+
+  // Масштаб подбирается под полностью раздвинутую постройку, чтобы она не прыгала при движении ползунка.
+  const corners = blocks.flatMap((block) => {
+    const center = explodedPosition(block, 1);
+    return CUBE_FACES.flatMap((face) =>
+      face.corners.map(([dx, dy, dz]) => flatten([center[0] + dx * HALF, center[1] + dy * HALF, center[2] + dz * HALF])),
+    );
+  });
+  const xs = corners.map(([x]) => x);
+  const ys = corners.map(([, y]) => y);
+  const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const room = { x: width - iso.padding * 2, y: iso.height - iso.padding * 2 };
+  const scale = Math.min(iso.scale, room.x / (maxX - minX), room.y / (maxY - minY));
+  const offsetX = (width - (maxX + minX) * scale) / 2;
+  const offsetY = (iso.height - (maxY + minY) * scale) / 2;
+
+  const points = (center: Vec3, faceCorners: readonly Vec3[]) =>
+    faceCorners
+      .map(([dx, dy, dz]) => {
+        const [x, y] = flatten([center[0] + dx * HALF, center[1] + dy * HALF, center[2] + dz * HALF]);
+        return `${(offsetX + x * scale).toFixed(1)},${(offsetY + y * scale).toFixed(1)}`;
+      })
+      .join(" ");
+
+  return (
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <Figure caption="Схема вызывает explodedPosition() из lib/structure.ts — ту же функцию, что двигает блоки в сцене наверху. Там блоки раздвигает курсор, здесь — ползунок, сразу все.">
+        <svg viewBox={`0 0 ${width} ${iso.height}`} role="img" aria-label={`Разбор по блокам: ${machine.title}`} className="w-full">
+          {placed.map(({ block, position }) => {
+            const kind: BlockKind = KINDS[block.kind as KindId];
+            return (
+              <g
+                key={block.id}
+                opacity={highlighted && highlighted !== block.kind ? iso.dimOpacity : 1}
+                onMouseEnter={() => setHighlighted(block.kind)}
+                onMouseLeave={() => setHighlighted(null)}
+              >
+                <title>{kind.label}</title>
+                {CUBE_FACES.map((face) => (
+                  <polygon
+                    key={face.shade}
+                    points={points(position, face.corners)}
+                    fill={colorOf(kind)}
+                    fillOpacity={kind.isGlass || kind.isCutout ? face.shade * iso.seeThrough : face.shade}
+                    stroke={THEME.bg}
+                    strokeWidth={DIAGRAM.stroke}
+                    strokeLinejoin="round"
+                  />
+                ))}
+              </g>
+            );
+          })}
+        </svg>
+        <Slider label="Раздвинуть" value={weight} display={`${formatNumber(weight * iso.percent)} %`} onChange={setWeight} />
+      </Figure>
+
+      <ul className="self-center">
+        {legend.map((id) => {
+          const kind: BlockKind = KINDS[id as KindId];
+          return (
+            <li key={id}>
+              <button
+                type="button"
+                className="flex w-full items-center gap-4 border-b border-line py-3 text-left transition-colors hover:bg-line/40"
+                onMouseEnter={() => setHighlighted(id)}
+                onMouseLeave={() => setHighlighted(null)}
+                onFocus={() => setHighlighted(id)}
+                onBlur={() => setHighlighted(null)}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- текстуру 16×16 нельзя сглаживать, оптимизатор картинок её размоет */}
+                <img
+                  src={`/textures/gregtech/${kind.texture}.webp`}
+                  alt=""
+                  width={iso.swatch}
+                  height={iso.swatch}
+                  className="pixelated shrink-0"
+                />
+                <span className="flex-1 text-text1">{kind.label}</span>
+                <span className="font-mono text-2xl text-accent">{counts[id]}</span>
+              </button>
+            </li>
+          );
+        })}
+        <li className="flex items-baseline justify-between pt-4 font-mono text-xs uppercase tracking-[0.2em] text-text3">
+          <span>Всего блоков</span>
+          <span className="text-2xl text-text1">{blocks.length}</span>
+        </li>
+      </ul>
+    </div>
+  );
+}

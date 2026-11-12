@@ -8,9 +8,9 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin", "cyr
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin", "cyrillic"] });
 
 export const metadata: Metadata = {
-  title: "Electric Blast Furnace — GregTech для Minecraft 1.7.10",
+  title: "Паровая эра GregTech New Horizons — Minecraft 1.7.10",
   description:
-    "Электрическая доменная печь из мода GregTech, разобранная по блокам: из чего сложена, как греется и зачем нужна.",
+    "Первые машины мода GregTech в сборке GT New Horizons: трёхмерные постройки из настоящих блоков, разобранные по блокам.",
 };
 
 /**

@@ -1,10 +1,11 @@
 /**
  * Скачивает все текстуры проекта и переводит их в WebP.
  *
- *   node scripts/fetch-textures.mjs
+ *   node scripts/fetch-textures.mjs            — всё
+ *   node scripts/fetch-textures.mjs gregtech   — только текстуры мода
  *
  * Источники:
- *  - блоки печи — оригинальные текстуры GT5-Unofficial (LGPL-3.0), с GitHub;
+ *  - блоки машин — оригинальные текстуры GT5-Unofficial (LGPL-3.0), с GitHub;
  *  - металл (нормали и шероховатость) — ambientCG (CC0);
  *  - бетонный пол и карта окружения — Poly Haven (CC0).
  *
@@ -25,7 +26,9 @@ const OUT_GT = path.join(ROOT, "public", "textures", "gregtech");
 const OUT_PBR = path.join(ROOT, "public", "textures", "pbr");
 const OUT_HDRI = path.join(ROOT, "public", "hdri");
 
-const GT_BASE = `https://raw.githubusercontent.com/GTNewHorizons/GT5-Unofficial/${ASSETS.gregtechCommit}/src/main/resources/assets/gregtech/textures/blocks/iconsets`;
+const ASSETS_BASE = `https://raw.githubusercontent.com/GTNewHorizons/GT5-Unofficial/${ASSETS.gregtechCommit}/src/main/resources/assets`;
+const ICONSETS = "gregtech/textures/blocks/iconsets";
+const MATERIAL_ICONS = "gregtech/textures/blocks/materialicons/NONE";
 const HEADERS = { "User-Agent": "texture-fetch-script" };
 
 async function download(url) {
@@ -35,8 +38,8 @@ async function download(url) {
 }
 
 /** Текстура блока мода: верхний квадрат (у анимированных это первый кадр), строго 16×16. */
-async function gtTexture(name) {
-  const source = await download(`${GT_BASE}/${name}.png`);
+async function gtTexture(name, folder = ICONSETS) {
+  const source = await download(`${ASSETS_BASE}/${folder}/${name}.png`);
   const meta = await sharp(source).metadata();
   const side = meta.width;
   return sharp(source)
@@ -53,16 +56,38 @@ async function savePixel(buffer, file) {
   console.log("  ✓", file);
 }
 
-/** Грань люка = корпус + накладки поверх, как это делает сам мод. */
+/** Грань = основа + накладки поверх, как это делает сам мод при отрисовке. */
 async function composeFace(base, overlays, file) {
   const layers = [];
   for (const name of overlays) layers.push({ input: await gtTexture(name) });
   const composed = await sharp(base).composite(layers).png().toBuffer();
   await savePixel(composed, file);
+  return composed;
 }
 
-async function fetchGregtech() {
-  console.log("GregTech (LGPL-3.0):");
+/** Светящиеся пиксели — на чёрном фоне, как карта свечения. */
+async function saveGlow(name, file) {
+  const glow = await gtTexture(name);
+  await savePixel(await sharp(glow).flatten({ background: "#000000" }).png().toBuffer(), file);
+}
+
+/**
+ * Серая текстура материала, умноженная на его цвет: так мод красит рамы и
+ * блоки металлов. Прозрачность сохраняется — у рамы она и есть «дыры».
+ */
+async function tinted(name, [red, green, blue]) {
+  const { data, info } = await sharp(await gtTexture(name, MATERIAL_ICONS)).raw().toBuffer({ resolveWithObject: true });
+  const factors = [red, green, blue].map((channel) => channel / ASSETS.colorMax);
+  for (let offset = 0; offset < data.length; offset += info.channels) {
+    factors.forEach((factor, channel) => {
+      data[offset + channel] = Math.round(data[offset + channel] * factor);
+    });
+  }
+  return sharp(data, { raw: info }).png().toBuffer();
+}
+
+async function fetchEbf() {
+  console.log("GregTech (LGPL-3.0): электрическая доменная печь");
   const casing = await gtTexture("MACHINE_HEATPROOFCASING");
   await savePixel(casing, "casing.webp");
 
@@ -73,15 +98,68 @@ async function fetchGregtech() {
   await composeFace(casing, ["OVERLAY_PIPE_OUT", "ITEM_OUT_SIGN"], "output-bus.webp");
   await composeFace(casing, ["OVERLAY_PIPE_IN", "FLUID_IN_SIGN"], "input-hatch.webp");
   await composeFace(casing, ["OVERLAY_ENERGY_IN_MULTI_2A_LV"], "energy.webp");
-
-  // Светящиеся пиксели экрана контроллера — на чёрном фоне, как карта свечения.
-  const glow = await gtTexture("OVERLAY_FRONT_ELECTRIC_BLAST_FURNACE_ACTIVE_GLOW");
-  const glowOnBlack = await sharp(glow).flatten({ background: "#000000" }).png().toBuffer();
-  await savePixel(glowOnBlack, "controller-glow.webp");
+  await saveGlow("OVERLAY_FRONT_ELECTRIC_BLAST_FURNACE_ACTIVE_GLOW", "controller-glow.webp");
 
   for (const coil of GAME.coils) {
-    const texture = await gtTexture(`MACHINE_COIL_${coil.id.toUpperCase()}`);
-    await savePixel(texture, `coil-${coil.id}.webp`);
+    await savePixel(await gtTexture(`MACHINE_COIL_${coil.id.toUpperCase()}`), `coil-${coil.id}.webp`);
+  }
+}
+
+async function fetchSteamAge() {
+  console.log("GregTech (LGPL-3.0): паровая эра");
+  const plain = {
+    firebrick: "MACHINE_CASING_DENSEBRICKS",
+    "coke-brick": "COKE_OVEN_CASING",
+    "bronze-bricks": "MACHINE_BRONZEPLATEDBRICKS",
+    "bronze-gearbox": "MACHINE_CASING_GEARBOX_BRONZE",
+    "bronze-pipe": "MACHINE_CASING_PIPE_BRONZE",
+    "bronze-firebox": "MACHINE_CASING_FIREBOX_BRONZE",
+    wood: "PRIMITIVE_WOODEN_CASING_SIDE",
+  };
+  const bases = {};
+  for (const [file, name] of Object.entries(plain)) {
+    bases[file] = await gtTexture(name);
+    await savePixel(bases[file], `${file}.webp`);
+  }
+
+  await composeFace(bases.firebrick, ["MACHINE_CASING_BRICKEDBLASTFURNACE_ACTIVE"], "bbf-controller.webp");
+  await saveGlow("MACHINE_CASING_BRICKEDBLASTFURNACE_ACTIVE_GLOW", "bbf-controller-glow.webp");
+  await composeFace(bases["coke-brick"], ["COKE_OVEN_OVERLAY_ACTIVE"], "coke-controller.webp");
+  await saveGlow("COKE_OVEN_OVERLAY_ACTIVE_GLOW", "coke-controller-glow.webp");
+
+  const controllers = {
+    macerator: "OVERLAY_TOP_STEAM_MACERATOR_ACTIVE",
+    furnace: "OVERLAY_FRONT_STEAM_FURNACE_MULTI_ACTIVE",
+    compressor: "OVERLAY_FRONT_STEAM_COMPRESSOR_ACTIVE",
+    smelter: "OVERLAY_FRONT_STEAM_ALLOY_SMELTER_MULTI_ACTIVE",
+    hammer: "OVERLAY_FRONT_STEAM_FORGE_HAMMER_ACTIVE",
+  };
+  for (const [file, overlay] of Object.entries(controllers)) {
+    await composeFace(bases["bronze-bricks"], [overlay], `${file}-controller.webp`);
+  }
+  await composeFace(bases.wood, ["OVERLAY_FRONT_WATER_PUMP_ACTIVE"], "pump-controller.webp");
+
+  await savePixel(await tinted("frameGt", GAME.materialColors.bronze), "bronze-frame.webp");
+  await savePixel(await tinted("block1", GAME.materialColors.iron), "iron-block.webp");
+  await savePixel(await gtTexture("BoronSilicateGlassBlock", "bartworks/textures/blocks"), "glass.webp");
+
+  // Фасады одноблочных машин для иерархии на главной: корпус яруса + значок машины.
+  const hulls = {
+    bronze: { plain: await gtTexture("MACHINE_BRONZE_SIDE"), bricked: await gtTexture("MACHINE_BRONZEBRICKS_SIDE") },
+    steel: { plain: await gtTexture("MACHINE_STEEL_SIDE"), bricked: await gtTexture("MACHINE_STEELBRICKS_SIDE") },
+  };
+  const singles = {
+    macerator: { overlay: "OVERLAY_FRONT_STEAM_MACERATOR", hull: "plain" },
+    furnace: { overlay: "OVERLAY_FRONT_STEAM_FURNACE", hull: "bricked" },
+    "alloy-smelter": { overlay: "OVERLAY_FRONT_STEAM_ALLOY_SMELTER", hull: "bricked" },
+    hammer: { overlay: "OVERLAY_FRONT_STEAM_HAMMER", hull: "plain" },
+    compressor: { overlay: "OVERLAY_FRONT_STEAM_COMPRESSOR", hull: "plain" },
+    extractor: { overlay: "OVERLAY_FRONT_STEAM_EXTRACTOR", hull: "plain" },
+  };
+  for (const [tier, hull] of Object.entries(hulls)) {
+    for (const [id, single] of Object.entries(singles)) {
+      await composeFace(hull[single.hull], [single.overlay], `single-${tier}-${id}.webp`);
+    }
   }
 }
 
@@ -122,7 +200,10 @@ async function fetchPolyHaven() {
 await mkdir(OUT_GT, { recursive: true });
 await mkdir(OUT_PBR, { recursive: true });
 await mkdir(OUT_HDRI, { recursive: true });
-await fetchGregtech();
-await fetchAmbientCg();
-await fetchPolyHaven();
+await fetchEbf();
+await fetchSteamAge();
+if (process.argv[2] !== "gregtech") {
+  await fetchAmbientCg();
+  await fetchPolyHaven();
+}
 console.log("Готово.");

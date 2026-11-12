@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
-import { BLOCKS } from "@/lib/ebf";
 import { sectionProgress } from "@/lib/scroll";
 import { useSceneStore } from "@/lib/store";
 
@@ -21,7 +20,7 @@ function BenchButton() {
   };
 
   return (
-    <div className="absolute right-4 top-4 z-10 flex items-center gap-3 font-mono text-xs">
+    <div className="absolute right-4 top-16 z-10 flex items-center gap-3 font-mono text-xs">
       {result && (
         <output data-bench-result className="text-text1">
           {result}
@@ -38,12 +37,19 @@ function BenchButton() {
   );
 }
 
+type SceneSectionProps = {
+  /** Какую постройку показать: её адресное имя из lib/machines.ts. */
+  slug: string;
+  /** Подписи поверх сцены: заголовок и пояснение. */
+  children: ReactNode;
+};
+
 /**
  * Блок со сценой: высотой в несколько экранов, холст внутри прилипает к верху.
  * Положение прокрутки превращается в одно число от 0 до 1 — оно ведёт переход
- * к странице. Печь вертят перетаскиванием, блоки раздвигает курсор.
+ * к странице. Постройку вертят перетаскиванием, блоки раздвигает курсор.
  */
-export function SceneSection() {
+export function SceneSection({ slug, children }: SceneSectionProps) {
   const section = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -63,23 +69,11 @@ export function SceneSection() {
   }, []);
 
   return (
-    <section ref={section} className="scene-section relative" aria-label="Трёхмерная модель печи">
+    <section ref={section} className="scene-section relative" aria-label="Трёхмерная модель постройки">
       <div className="sticky top-0 h-svh w-full overflow-hidden">
-        <Scene />
+        <Scene slug={slug} />
         <BenchButton />
-
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 p-6 sm:p-12">
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-accent">GregTech · Minecraft 1.7.10</p>
-          <h1 className="mt-4 max-w-3xl font-mono text-4xl font-bold uppercase leading-none tracking-tight text-text1 sm:text-6xl">
-            Electric
-            <br />
-            Blast Furnace
-          </h1>
-          <p className="mt-6 max-w-md text-base text-text2">
-            Первая большая печь мода: {BLOCKS.length} блока, которые вместе плавят сталь. Тяните мышкой — печь
-            повернётся. Наведите на блоки — они раздвинутся.
-          </p>
-        </div>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 p-6 sm:p-12">{children}</div>
       </div>
     </section>
   );
