@@ -3,7 +3,20 @@ import { describe, expect, test } from "vitest";
 import { EBF, EXPLODE, HOVER } from "@/lib/config";
 import { KINDS, MACHINES, SINGLE_BLOCKS, STEAM_TIERS, findMachine, structureOf, type KindId } from "@/lib/machines";
 import { TIERS, findTier } from "@/lib/tiers";
-import { approach, countByKind, cursorWeight, explodedPosition, type BlockKind, type Vec3 } from "@/lib/structure";
+import {
+  approach,
+  countByKind,
+  cursorWeight,
+  explodedPosition,
+  hoverRadius,
+  domeLayout,
+  domePosition,
+  domeScale,
+  domeWeights,
+  createBlockPicker,
+  type BlockKind,
+  type Vec3,
+} from "@/lib/structure";
 
 const machine = (slug: string) => {
   const found = findMachine(slug);
@@ -16,6 +29,32 @@ const SIDE = EBF.blockSize * EBF.blockScale;
 /** Наибольшее расстояние между центрами по одной из осей: кубы не пересекаются, если оно не меньше стороны куба. */
 function gap(first: Vec3, second: Vec3): number {
   return Math.max(...first.map((value, axis) => Math.abs(value - second[axis])));
+}
+
+/**
+ * Первая пара кубов разных блоков, которые налезают друг на друга, или null.
+ * Кубы раскладываются по сетке с шагом в сторону куба: налезть могут только
+ * кубы из соседних ячеек — так не приходится сравнивать каждый с каждым
+ * (у плазменной кузницы больше пяти тысяч блоков).
+ */
+function findOverlap(points: readonly { readonly owner: string; readonly position: Vec3 }[]): string | null {
+  const cells = new Map<string, number[]>();
+  const cellOf = (position: Vec3) => position.map((value) => Math.floor(value / SIDE));
+  points.forEach((point, index) => {
+    const key = cellOf(point.position).join(":");
+    cells.set(key, [...(cells.get(key) ?? []), index]);
+  });
+  const shifts = [-1, 0, 1];
+  for (const [index, point] of points.entries()) {
+    const [cx, cy, cz] = cellOf(point.position);
+    for (const dx of shifts) for (const dy of shifts) for (const dz of shifts) {
+      for (const other of cells.get([cx + dx, cy + dy, cz + dz].join(":")) ?? []) {
+        if (other <= index || points[other].owner === point.owner) continue;
+        if (gap(point.position, points[other].position) < SIDE - 1e-9) return `${point.owner} и ${points[other].owner}`;
+      }
+    }
+  }
+  return null;
 }
 
 describe("электрическая доменная печь", () => {
@@ -91,6 +130,12 @@ describe("постройки паровой эры — числа блоков �
     expect(structureOf(machine("coke-oven")).interior).toBe("fire");
   });
 
+  test("без полости огня внутри нет — свет не просачивается на пол (реактор синтеза, наквадовый реактор)", () => {
+    for (const slug of ["fusion-reactor-1", "fusion-reactor-2", "large-naquadah-reactor"]) {
+      expect(structureOf(machine(slug)).interior, slug).toBe("none");
+    }
+  });
+
   test("паровая печь: 4 редуктора, 4 трубных корпуса, 3 топки", () => {
     expect(counts("steam-furnace")).toMatchObject({ bronzeGearbox: 4, bronzePipe: 4, bronzeFirebox: 3, furnaceController: 1 });
   });
@@ -131,6 +176,10 @@ describe.each(MACHINES.map((entry) => [entry.title, entry] as const))("люба�
     const controllers = blocks.filter((block) => block.kind === entry.def.kinds["~"]);
     expect(controllers).toHaveLength(1);
     expect(controllers[0].face).toBe("pz");
+    // У реактора синтеза контроллер во внутренней стенке кольца и смотрит в его центр (MTEFusionComputer),
+    // у плазменной кузницы и комплекса наночипов — в середине постройки (MTEPlasmaForge, MTENanochipAssemblyComplex),
+    // у Звёздных врат перед основой стоит наборное устройство.
+    if (entry.slug.startsWith("fusion-reactor-") || ["plasma-forge", "nanochip-assembly-complex", "bec-containment-field", "stargate"].includes(entry.slug)) return;
     expect(controllers[0].grid[2]).toBeGreaterThan(0);
   });
 
@@ -159,21 +208,18 @@ describe.each(MACHINES.map((entry) => [entry.title, entry] as const))("люба�
   });
 
   test("хотя бы часть блоков раздвигается — иначе наводить мышку незачем", () => {
-    expect(blocks.filter((block) => block.push.some((step) => step !== 0)).length).toBeGreaterThan(blocks.length / 2);
+    // Огромные постройки раздвигаются куполом (domeLayout), остальные — по своим свободным осям.
+    const moving = blocks.length >= HOVER.hugeBlocks
+      ? domeLayout(blocks, size).filter((dome) => dome.axis !== null).length
+      : blocks.filter((block) => block.push.some((step) => step !== 0)).length;
+    expect(moving).toBeGreaterThan(blocks.length / 2);
   });
 
   test("как бы ни раздвинулись любые два блока, они не въезжают друг в друга", () => {
+    // Каждый блок — в трёх положениях сразу: любые два блока могут быть раздвинуты по-разному.
     const steps = [0, 0.5, 1];
-    for (let first = 0; first < blocks.length; first += 1) {
-      for (let second = first + 1; second < blocks.length; second += 1) {
-        for (const firstWeight of steps) {
-          for (const secondWeight of steps) {
-            const distance = gap(explodedPosition(blocks[first], firstWeight), explodedPosition(blocks[second], secondWeight));
-            expect(distance, `${blocks[first].id} и ${blocks[second].id}`).toBeGreaterThanOrEqual(SIDE - 1e-9);
-          }
-        }
-      }
-    }
+    const points = blocks.flatMap((block) => steps.map((weight) => ({ owner: block.id, position: explodedPosition(block, weight) })));
+    expect(findOverlap(points)).toBeNull();
   });
 
   test("у каждого вида блока есть файл текстуры", () => {
@@ -187,7 +233,7 @@ describe.each(MACHINES.map((entry) => [entry.title, entry] as const))("люба�
   test("у неё есть рассказ, факты и ссылка на исходник", () => {
     expect(entry.story.length).toBeGreaterThanOrEqual(2);
     expect(entry.facts.length).toBeGreaterThanOrEqual(3);
-    expect(entry.source).toMatch(/^https:\/\/(github\.com\/GTNewHorizons\/GT5-Unofficial\/blob\/.+\.java|wiki\.gtnewhorizons\.com\/wiki\/.+)$/);
+    expect(entry.source).toMatch(/^https:\/\/(github\.com\/GTNewHorizons\/(GT5-Unofficial|SGCraft)\/blob\/.+\.java|wiki\.gtnewhorizons\.com\/wiki\/.+)$/);
   });
 });
 
@@ -200,9 +246,12 @@ describe("каталог", () => {
     for (const entry of MACHINES) expect(findTier(entry.tier), entry.slug).toBeDefined();
   });
 
-  test("на паре — девять построек, на LV — электрическая доменная печь", () => {
-    expect(MACHINES.filter((entry) => entry.tier === "steam")).toHaveLength(9);
-    expect(MACHINES.filter((entry) => entry.tier === "lv").map((entry) => entry.slug)).toEqual(["electric-blast-furnace"]);
+  test("на паре — тринадцать построек, на LV — доменная печь и воздушный фильтр", () => {
+    expect(MACHINES.filter((entry) => entry.tier === "steam")).toHaveLength(13);
+    expect(MACHINES.filter((entry) => entry.tier === "lv").map((entry) => entry.slug)).toEqual([
+      "electric-blast-furnace",
+      "electric-air-filter",
+    ]);
   });
 
   test("мини-шапка каждого яруса показывает то, что на нём есть", () => {
@@ -289,7 +338,99 @@ describe("раздвижение у курсора", () => {
 
   test("бессмысленное расстояние ничего не двигает", () => {
     expect(cursorWeight(Number.NaN)).toBe(0);
+  });
+
+  test("купол: блок выходит по ближайшей грани габарита — сбоку вбок, сверху вверх", () => {
+    const size: Vec3 = [11, 11, 11];
+    const [side, top, middle] = domeLayout([{ home: [5, 5.5, 1] }, { home: [1, 10.5, 2] }, { home: [0, 5.5, 0] }], size);
+    expect(side).toMatchObject({ axis: 0, sign: 1, reach: 5 });
+    expect(top).toMatchObject({ axis: 1, sign: 1, reach: 5 });
+    expect(middle.axis).toBeNull();
+    expect(domePosition([5, 5.5, 1], side, 1)).toEqual([5 + EXPLODE.domePush, 5.5, 1]);
+    expect(domePosition([1, 10.5, 2], top, 1)).toEqual([1, 10.5 + EXPLODE.domePush, 2]);
+    expect(domePosition([0, 5.5, 0], middle, 1)).toEqual([0, 5.5, 0]);
+  });
+
+  test("первый блок под курсором: настоящий блок, а не стенка габарита", () => {
+    // Посреди пустого поля 9 × 1 × 9 стоят два блока на одной линии.
+    const homes: Vec3[] = [[0, 0.5, 0], [0, 0.5, -2], [4, 0.5, 4], [-4, 0.5, -4]];
+    const pick = createBlockPicker(homes);
+    // Смотрим сверху-спереди прямо на блок в центре: попадаем в ближний из двух.
+    expect(pick([0, 0.5, 20], [0, 0, -1])).toEqual([0, 0.5, 0]);
+    // Сбоку от блоков, через пустоту, — мимо.
+    expect(pick([2, 0.5, 20], [0, 0, -1])).toBeNull();
+    // Сверху вниз на угловой блок.
+    expect(pick([4, 30, 4], [0, -1, 0])).toEqual([4, 0.5, 4]);
+    // Совсем мимо габарита.
+    expect(pick([100, 100, 100], [1, 0, 0])).toBeNull();
+  });
+
+  test("комплекс наночипов: под курсором на башне блоки башни двигаются", () => {
+    const { blocks, size } = structureOf(machine("nanochip-assembly-complex"));
+    const homes = blocks.map((block) => block.home);
+    const hit = createBlockPicker(homes)([0, size[1] / 2, 200], [0, 0, -1]);
+    expect(hit).not.toBeNull();
+    const weights = domeWeights(domeLayout(blocks, size), homes, hit ?? [0, 0, 0], hoverRadius(blocks.length));
+    expect(weights.filter((weight) => weight > 0.5).length).toBeGreaterThan(10);
+  });
+
+  test("комплекс наночипов: луч в середину башни находит блок башни, а не воздух", () => {
+    const { blocks, size } = structureOf(machine("nanochip-assembly-complex"));
+    const pick = createBlockPicker(blocks.map((block) => block.home));
+    const found = pick([0, size[1] / 2, 200], [0, 0, -1]);
+    expect(found).not.toBeNull();
+    // Найденный блок — ближайший к камере на этой линии.
+    const sameLine = blocks.filter((block) => block.home[0] === 0 && block.home[1] === found?.[1]);
+    expect(found?.[2]).toBe(Math.max(...sameLine.map((block) => block.home[2])));
+  });
+
+  test("купол: нижние блоки выходят вбок, а не под пол", () => {
+    const [bottom] = domeLayout([{ home: [1, 0.5, 2] }], [11, 11, 11]);
+    expect(bottom.axis).toBe(2);
+    expect(domePosition([1, 0.5, 2], bottom, 1)[1]).toBe(0.5);
+  });
+
+  test("купол: вся линия насквозь берёт силу наружного блока, а дальняя сторона не двигается", () => {
+    const size: Vec3 = [11, 11, 11];
+    const blocks = [{ home: [5, 5.5, 0] as Vec3 }, { home: [4, 5.5, 0] as Vec3 }, { home: [-5, 5.5, 0] as Vec3 }];
+    const layout = domeLayout(blocks, size);
+    expect(layout[1].line).toBe(layout[0].line);
+    const [outer, inner, far] = domeWeights(layout, blocks.map((block) => block.home), [5, 5.5, 0], 4.5);
+    expect(inner).toBe(outer);
+    expect(outer).toBe(1);
+    expect(far).toBe(0);
+  });
+
+  test.each(["mega-alloy-blast-smelter", "neutronium-compressor", "plasma-forge", "nanochip-assembly-complex", "black-hole-compressor", "forge-of-the-gods", "bec-observation-array"])("купол у «%s»: блоки никогда не налезают друг на друга", (slug) => {
+    const { blocks, size } = structureOf(machine(slug));
+    const layout = domeLayout(blocks, size);
+    const scale = domeScale(size);
+    const radius = hoverRadius(blocks.length) * scale;
+    const top = size[1];
+    const half = size[0] / 2;
+    // Курсор на середине фасада, на углу, у основания, на крыше и на краю крыши.
+    const hits: Vec3[] = [[0, top / 2, half], [half, top / 2, half], [half / 2, 1, half], [0, top, 0], [half, top, 1]];
+    for (const hit of hits) {
+      const weights = domeWeights(layout, blocks.map((block) => block.home), hit, radius);
+      const moved = blocks.map((block, index) => domePosition(block.home, layout[index], weights[index], scale));
+      // Ни один блок не уходит ниже своего места — значит, и под пол.
+      moved.forEach((position, index) => expect(position[1]).toBeGreaterThanOrEqual(blocks[index].home[1]));
+      expect(findOverlap(moved.map((position, index) => ({ owner: blocks[index].id, position })))).toBeNull();
+    }
+  });
+
+  test("у построек от 500 блоков радиус втрое шире, у остальных — обычный", () => {
+    expect(hoverRadius(982)).toBe(HOVER.radius * 3);
+    expect(hoverRadius(HOVER.hugeBlocks)).toBe(HOVER.radius * 3);
+    expect(hoverRadius(HOVER.hugeBlocks - 1)).toBe(HOVER.radius);
+    expect(cursorWeight(HOVER.radius * 2, hoverRadius(982))).toBeGreaterThan(0);
     expect(cursorWeight(-1)).toBe(0);
+  });
+
+  test("купол длинной постройки крупнее во столько раз, во сколько она длиннее", () => {
+    expect(domeScale([EXPLODE.domeReferenceSide, 1, 1])).toBe(1);
+    expect(domeScale([1, 1, 1])).toBe(1);
+    expect(domeScale([1, 1, EXPLODE.domeReferenceSide * 4])).toBe(4);
   });
 });
 

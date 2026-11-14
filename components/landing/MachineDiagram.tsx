@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { DIAGRAM, EBF, THEME } from "@/lib/config";
+import { DIAGRAM, EBF, HOVER, THEME } from "@/lib/config";
 import { KINDS, findMachine, structureOf, type KindId } from "@/lib/machines";
 import { countByKind, explodedPosition, type BlockKind, type Vec3 } from "@/lib/structure";
 import { Figure, Slider, formatNumber } from "./ui";
@@ -41,6 +41,55 @@ export function MachineDiagram({ slug }: MachineDiagramProps) {
   const { blocks } = structureOf(machine);
   const counts = countByKind(blocks);
   const legend = Object.keys(counts);
+
+  const list = (
+    <ul className="self-center">
+      {legend.map((id) => {
+        const kind: BlockKind = KINDS[id as KindId];
+        return (
+          <li key={id}>
+            <button
+              type="button"
+              className="flex w-full items-center gap-4 border-b border-line py-3 text-left transition-colors hover:bg-line/40"
+              onMouseEnter={() => setHighlighted(id)}
+              onMouseLeave={() => setHighlighted(null)}
+              onFocus={() => setHighlighted(id)}
+              onBlur={() => setHighlighted(null)}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- текстуру 16×16 нельзя сглаживать, оптимизатор картинок её размоет */}
+              <img
+                src={`/textures/gregtech/${kind.texture}.webp`}
+                alt=""
+                width={iso.swatch}
+                height={iso.swatch}
+                className="pixelated shrink-0"
+              />
+              <span className="flex-1 text-text1">{kind.label}</span>
+              <span className="font-mono text-2xl text-accent">{formatNumber(counts[id])}</span>
+            </button>
+          </li>
+        );
+      })}
+      <li className="flex items-baseline justify-between pt-4 font-mono text-xs uppercase tracking-[0.2em] text-text3">
+        <span>Всего блоков</span>
+        <span className="text-2xl text-text1">{formatNumber(blocks.length)}</span>
+      </li>
+    </ul>
+  );
+
+  // Огромную постройку рисунок из многоугольников раздул бы страницу до мегабайтов (по три на блок) —
+  // её разбирают в трёхмерной шапке, а здесь только состав.
+  if (blocks.length >= HOVER.hugeBlocks) {
+    return (
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        <p className="self-center text-base text-text2">
+          Постройка слишком большая для плоского рисунка. Разберите её в трёхмерной модели в начале страницы: наведите
+          курсор — блоки разойдутся куполом, а колёсиком с Ctrl или Cmd можно подъехать ближе.
+        </p>
+        {list}
+      </div>
+    );
+  }
 
   // Те же блоки и та же функция раскладки, что в трёхмерной сцене.
   const placed = blocks
@@ -102,38 +151,7 @@ export function MachineDiagram({ slug }: MachineDiagramProps) {
         <Slider label="Раздвинуть" value={weight} display={`${formatNumber(weight * iso.percent)} %`} onChange={setWeight} />
       </Figure>
 
-      <ul className="self-center">
-        {legend.map((id) => {
-          const kind: BlockKind = KINDS[id as KindId];
-          return (
-            <li key={id}>
-              <button
-                type="button"
-                className="flex w-full items-center gap-4 border-b border-line py-3 text-left transition-colors hover:bg-line/40"
-                onMouseEnter={() => setHighlighted(id)}
-                onMouseLeave={() => setHighlighted(null)}
-                onFocus={() => setHighlighted(id)}
-                onBlur={() => setHighlighted(null)}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element -- текстуру 16×16 нельзя сглаживать, оптимизатор картинок её размоет */}
-                <img
-                  src={`/textures/gregtech/${kind.texture}.webp`}
-                  alt=""
-                  width={iso.swatch}
-                  height={iso.swatch}
-                  className="pixelated shrink-0"
-                />
-                <span className="flex-1 text-text1">{kind.label}</span>
-                <span className="font-mono text-2xl text-accent">{counts[id]}</span>
-              </button>
-            </li>
-          );
-        })}
-        <li className="flex items-baseline justify-between pt-4 font-mono text-xs uppercase tracking-[0.2em] text-text3">
-          <span>Всего блоков</span>
-          <span className="text-2xl text-text1">{blocks.length}</span>
-        </li>
-      </ul>
+      {list}
     </div>
   );
 }

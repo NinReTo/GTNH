@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CardStageLoader } from "@/components/cards/Cards";
 import { HeatCalculator } from "@/components/landing/HeatCalculator";
+import { LineNav, LineSection } from "@/components/landing/LineSection";
 import { MachineDiagram } from "@/components/landing/MachineDiagram";
-import { SectionHeading, formatNumber } from "@/components/landing/ui";
+import { FactList, SectionHeading, formatNumber } from "@/components/landing/ui";
+import { GuideSection } from "@/components/landing/GuideSection";
+import { MACHINE_GUIDES } from "@/lib/guides";
+import { lineOf, type LineStep } from "@/lib/lines";
 import { SceneSection } from "@/components/scene/SceneSection";
 import { DIAGRAM, GAME } from "@/lib/config";
 import { coilHeat } from "@/lib/heat";
@@ -26,7 +30,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 const prose = "mt-6 max-w-xl text-base leading-relaxed text-text2";
-const link = "text-text1 underline decoration-accent underline-offset-4 hover:text-accent";
 
 export default async function MachinePage({ params }: PageProps) {
   const machine = findMachine((await params).slug);
@@ -34,12 +37,17 @@ export default async function MachinePage({ params }: PageProps) {
 
   const structure = structureOf(machine);
   const tier = findTier(machine.tier);
-  const siblings = MACHINES.filter((candidate) => candidate.tier === machine.tier);
-  const next = siblings[(siblings.indexOf(machine) + 1) % siblings.length];
   const hasCoils = structure.blocks.some((block) => block.kind === "coil");
+  const step: LineStep = { kind: "machine", slug: machine.slug };
+  const line = lineOf(step);
+  const guide = MACHINE_GUIDES[machine.slug];
+  // Номера разделов по порядку: гайд и прогрессия есть не у всех машин, нагрев — только у печей с катушками.
+  const order = ["story", guide && "guide", line && "line", "structure", hasCoils && "heat"].filter(Boolean);
+  const indexOf = (section: string) => String(order.indexOf(section) + 1).padStart(2, "0");
 
   return (
     <>
+      {line && <CardStageLoader />}
       <SceneSection slug={machine.slug}>
         <p className="font-mono text-xs uppercase tracking-[0.3em]" style={{ color: tier?.color }}>
           {tier?.title} · {machine.title}
@@ -48,37 +56,30 @@ export default async function MachinePage({ params }: PageProps) {
           {machine.name}
         </h1>
         <p className="mt-6 max-w-md text-base text-text2">
-          {machine.summary} Тяните мышкой — постройка повернётся. Наведите на блоки — они раздвинутся.
+          {machine.summary}
         </p>
       </SceneSection>
 
       <main className="relative bg-bg">
         <section className="mx-auto grid max-w-6xl gap-12 px-6 py-24 sm:px-12 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:py-32">
           <div>
-            <SectionHeading index="01" kicker="Зачем" title={machine.title} />
+            <SectionHeading index={indexOf("story")} kicker="Зачем" title={machine.title} />
             {machine.story.map((paragraph) => (
               <p key={paragraph} className={prose}>
                 {paragraph}
               </p>
             ))}
           </div>
-          <dl className="self-start border border-line">
-            {machine.facts.map((fact) => (
-              <div key={fact.label} className="flex items-baseline justify-between gap-6 border-b border-line px-5 py-4 last:border-b-0">
-                <dt className="font-mono text-xs uppercase tracking-[0.2em] text-text3">{fact.label}</dt>
-                <dd className="text-right font-mono text-lg text-text1">{fact.value}</dd>
-              </div>
-            ))}
-            <div className="flex items-baseline justify-between gap-6 px-5 py-4">
-              <dt className="font-mono text-xs uppercase tracking-[0.2em] text-text3">Всего блоков</dt>
-              <dd className="font-mono text-lg text-accent">{structure.blocks.length}</dd>
-            </div>
-          </dl>
+          <FactList facts={machine.facts} total={{ label: "Всего блоков", value: structure.blocks.length }} />
         </section>
+
+        {guide && <GuideSection index={indexOf("guide")} title="Главное за минуту" guide={guide} />}
+
+        {line && <LineSection index={indexOf("line")} line={line} current={step} />}
 
         <section className="border-t border-line">
           <div className="mx-auto max-w-6xl px-6 py-24 sm:px-12 lg:py-32">
-            <SectionHeading index="02" kicker="Структура" title="Из чего сложена" />
+            <SectionHeading index={indexOf("structure")} kicker="Структура" title="Из чего сложена" />
             <div className="mt-12">
               <MachineDiagram slug={machine.slug} />
             </div>
@@ -88,7 +89,7 @@ export default async function MachinePage({ params }: PageProps) {
         {hasCoils && (
           <section className="border-t border-line">
             <div className="mx-auto max-w-6xl px-6 py-24 sm:px-12 lg:py-32">
-              <SectionHeading index="03" kicker="Нагрев" title="Катушки решают, что можно плавить" />
+              <SectionHeading index={indexOf("heat")} kicker="Нагрев" title="Катушки решают, что можно плавить" />
               <p className={prose}>
                 У каждого рецепта есть минимальная температура. Катушки из купроникеля дают{" "}
                 {formatNumber(coilHeat(GAME.coils[0].ordinal))} K — хватит на сталь и алюминий. Каждый следующий ярус
@@ -108,21 +109,7 @@ export default async function MachinePage({ params }: PageProps) {
           </section>
         )}
 
-        <nav className="border-t border-line" aria-label="Другие машины">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6 px-6 py-16 sm:px-12">
-            <Link href={tier ? `/tiers/${tier.id}` : "/"} className={`${link} font-mono text-sm uppercase tracking-[0.2em]`}>
-              ← {tier ? `Все машины: ${tier.title}` : "На главную"}
-            </Link>
-            {next !== machine && (
-              <Link href={`/machines/${next.slug}`} className="group text-right">
-                <span className="block font-mono text-xs uppercase tracking-[0.2em] text-text3">Дальше</span>
-                <span className="font-mono text-2xl uppercase text-text1 transition-colors group-hover:text-accent">
-                  {next.title} →
-                </span>
-              </Link>
-            )}
-          </div>
-        </nav>
+        <LineNav current={step} />
       </main>
     </>
   );

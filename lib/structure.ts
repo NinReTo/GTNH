@@ -27,6 +27,8 @@ export interface BlockKind {
   readonly isCutout?: boolean;
   /** Прозрачный блок (стекло). */
   readonly isGlass?: boolean;
+  /** Холодный тёмный блок (наквада): без тёплого контурного свечения — иначе почти чёрный синий корпус выглядит рыжим. */
+  readonly isCool?: boolean;
 }
 
 /**
@@ -35,7 +37,8 @@ export interface BlockKind {
  * Пробел — пусто, символы из hollow — полость внутри (там светится нутро).
  */
 /** Что внутри полости: раскалённое нутро (светится) или вода (не светится). */
-export type Interior = "fire" | "water";
+/** Что внутри постройки: огонь (светится и освещает её), вода или ничего. */
+export type Interior = "fire" | "water" | "none";
 
 export interface StructureDef {
   readonly layers: readonly (readonly string[])[];
@@ -195,7 +198,9 @@ export function buildStructure(def: StructureDef, kinds: Readonly<Record<string,
     ? [0, 1, 2].map((axis) => hollow.reduce((sum, point) => sum + point[axis], 0) / hollow.length) as unknown as Vec3
     : middle;
 
-  return { blocks, hollow, size, lightPosition, interior: def.interior ?? "fire" };
+  // Без полости огню негде гореть: свет в середине сплошной или открытой постройки
+  // (кольцо реактора синтеза) только просачивается пятнами на пол и блоки.
+  return { blocks, hollow, size, lightPosition, interior: def.interior ?? (hollow.length > 0 ? "fire" : "none") };
 }
 
 /** Сколько блоков каждого вида в постройке. */
@@ -221,13 +226,153 @@ export function explodedPosition(block: Pick<Block, "home" | "push">, weight: nu
 }
 
 /**
+ * Ищет первый блок постройки на луче (в её координатах; direction не обязан быть
+ * единичным). Идёт по сетке клетка за клеткой от входа луча в габарит — так
+ * точку под курсором берём на настоящем блоке, а не на стенке габаритной
+ * коробки: у комплекса сборки наночипов коробка 63 × 49 × 63, а блоки занимают
+ * малую её часть, и точка на коробке висела в воздухе за десятки метров от них.
+ * Возвращает центр найденного блока или null, если луч прошёл мимо всех.
+ */
+export function createBlockPicker(homes: readonly Vec3[]): (origin: Vec3, direction: Vec3) => Vec3 | null {
+  if (homes.length === 0) return () => null;
+  const size = EBF.blockSize;
+  // Клетка i по каждой оси — полуинтервал [corner + i·size, corner + (i+1)·size); центры блоков ровно посередине.
+  const corner = [0, 1, 2].map((axis) => Math.min(...homes.map((home) => home[axis])) - size / 2);
+  const cellOf = (value: number, axis: number) => Math.floor((value - corner[axis]) / size);
+  const counts = [0, 1, 2].map((axis) => Math.max(...homes.map((home) => cellOf(home[axis], axis))) + 1);
+  const key = (x: number, y: number, z: number) => (x * counts[1] + y) * counts[2] + z;
+  const occupied = new Map<number, Vec3>();
+  homes.forEach((home) => occupied.set(key(cellOf(home[0], 0), cellOf(home[1], 1), cellOf(home[2], 2)), home));
+
+  return (origin, direction) => {
+    // Где луч входит в габарит и выходит из него (метод плит).
+    let enter = 0;
+    let leave = Number.POSITIVE_INFINITY;
+    for (let axis = 0; axis < origin.length; axis += 1) {
+      const low = corner[axis];
+      const high = corner[axis] + counts[axis] * size;
+      if (direction[axis] === 0) {
+        if (origin[axis] < low || origin[axis] > high) return null;
+        continue;
+      }
+      const first = (low - origin[axis]) / direction[axis];
+      const second = (high - origin[axis]) / direction[axis];
+      enter = Math.max(enter, Math.min(first, second));
+      leave = Math.min(leave, Math.max(first, second));
+    }
+    if (enter > leave) return null;
+
+    // Шаги по клеткам (Amanatides–Woo): каждый раз переходим через ближайшую грань клетки.
+    const start = [0, 1, 2].map((axis) => origin[axis] + direction[axis] * enter);
+    const cell = [0, 1, 2].map((axis) => Math.min(counts[axis] - 1, Math.max(0, cellOf(start[axis], axis))));
+    const step = direction.map((value) => Math.sign(value));
+    const delta = direction.map((value) => (value === 0 ? Number.POSITIVE_INFINITY : Math.abs(size / value)));
+    const next = [0, 1, 2].map((axis) => {
+      if (direction[axis] === 0) return Number.POSITIVE_INFINITY;
+      const border = corner[axis] + (cell[axis] + (step[axis] > 0 ? 1 : 0)) * size;
+      return enter + (border - start[axis]) / direction[axis];
+    });
+    while (cell.every((value, axis) => value >= 0 && value < counts[axis])) {
+      const found = occupied.get(key(cell[0], cell[1], cell[2]));
+      if (found) return found;
+      const axis = next[0] < next[1] ? (next[0] < next[2] ? 0 : 2) : next[1] < next[2] ? 1 : 2;
+      cell[axis] += step[axis];
+      next[axis] += delta[axis];
+    }
+    return null;
+  };
+}
+
+/** Как блок огромной постройки выходит наружу при раздвижении куполом. */
+export interface DomeBlock {
+  /** Ось (0 — X, 1 — Y, 2 — Z) и сторона, куда блок выходит. На самой середине — null: ему некуда. */
+  readonly axis: 0 | 1 | 2 | null;
+  readonly sign: number;
+  /** Сколько метров от середины постройки до блока по этой оси: на эту долю он и выходит. */
+  readonly reach: number;
+  /**
+   * Номер линии насквозь — блоков той же оси и стороны с теми же двумя другими
+   * координатами. Сила у всей линии одна, поэтому её блоки выходят вместе и
+   * внутренний никогда не обгоняет наружный. -1 — блоку некуда выходить.
+   */
+  readonly line: number;
+}
+
+/**
+ * Раскладка купола: каждый блок выходит по той грани габарита постройки, к
+ * которой он ближе всего (в долях полуширины): вверх или в одну из четырёх
+ * сторон. Вниз — никогда: там пол. Нижние блоки выходят вбок.
+ * Середина постройки — по X и Z ноль, по Y половина высоты.
+ */
+export function domeLayout(blocks: readonly Pick<Block, "home">[], size: Vec3): readonly DomeBlock[] {
+  const center: Vec3 = [0, (size[1] * EBF.blockSize) / 2, 0];
+  const half = size.map((side) => (side * EBF.blockSize) / 2);
+  const directions = blocks.map(({ home }) => {
+    const offsets = home.map((value, axis) => value - center[axis]);
+    const scores = offsets.map((offset, axis) => Math.abs(offset) / half[axis]);
+    // Нижняя половина вверх не выходит, а вниз нельзя — для неё ось Y не годится.
+    if (offsets[1] < 0) scores[1] = 0;
+    const axis = ([0, 2, 1] as const).reduce((best, candidate) => (scores[candidate] > scores[best] ? candidate : best));
+    if (scores[axis] === 0) return { axis: null, sign: 0, reach: 0 };
+    return { axis, sign: Math.sign(offsets[axis]), reach: Math.abs(offsets[axis]) };
+  });
+  // Линия насквозь — блоки с той же осью и стороной и теми же двумя другими координатами.
+  const lines = new Map<string, number>();
+  return blocks.map(({ home }, index) => {
+    const { axis, sign, reach } = directions[index];
+    if (axis === null) return { axis, sign, reach, line: -1 };
+    const key = [axis, sign, ...home.filter((_, other) => other !== axis)].join(":");
+    if (!lines.has(key)) lines.set(key, lines.size);
+    return { axis, sign, reach, line: lines.get(key) ?? -1 };
+  });
+}
+
+/**
+ * Насколько курсор раздвигает каждый блок. hit — блок под курсором. Сила линии
+ * насквозь — по её блоку, ближайшему к курсору: если брать наружный блок линии,
+ * у узкой башни посреди широкой постройки (комплекс наночипов) вся колонна
+ * получала силу по верхнему блоку в 15 м от курсора — ноль, и ничего не двигалось.
+ */
+export function domeWeights(layout: readonly DomeBlock[], homes: readonly Vec3[], hit: Vec3, radius: number): readonly number[] {
+  const byLine = new Map<number, number>();
+  layout.forEach((dome, index) => {
+    if (dome.line < 0) return;
+    const weight = cursorWeight(Math.hypot(...homes[index].map((value, axis) => value - hit[axis])), radius);
+    if (weight > (byLine.get(dome.line) ?? 0)) byLine.set(dome.line, weight);
+  });
+  return layout.map((dome) => byLine.get(dome.line) ?? 0);
+}
+
+/**
+ * Где блок при раздвижении куполом: выходит по своей оси на EXPLODE.domePush
+ * метров при полном раздвижении. Вся линия насквозь выходит вместе (сила у неё
+ * одна), а соседи по грани только сдвигаются вдоль друг друга — налезть они не могут.
+ */
+export function domePosition(home: Vec3, dome: DomeBlock, weight: number, scale = 1): Vec3 {
+  if (dome.axis === null) return home;
+  const position: [number, number, number] = [home[0], home[1], home[2]];
+  position[dome.axis] += dome.sign * EXPLODE.domePush * scale * smooth01(weight);
+  return position;
+}
+
+/** Во сколько раз крупнее купол у очень длинной постройки: см. EXPLODE.domeReferenceSide. */
+export function domeScale(size: Vec3): number {
+  return Math.max(1, Math.max(...size) / EXPLODE.domeReferenceSide);
+}
+
+/**
  * Насколько курсор раздвигает блок: distance — расстояние в метрах от центра
  * блока до луча из камеры через курсор. Прямо под курсором — 1, на краю
- * радиуса и дальше — 0, между ними плавно.
+ * радиуса (radius, метры) и дальше — 0, между ними плавно.
  */
-export function cursorWeight(distance: number): number {
+export function cursorWeight(distance: number, radius: number = HOVER.radius): number {
   if (!(distance >= 0)) return 0;
-  return smooth01(1 - distance / HOVER.radius);
+  return smooth01(1 - distance / radius);
+}
+
+/** Радиус раздвижения постройки: у огромных — шире, чтобы блоки отходили крупными кусками. */
+export function hoverRadius(blockCount: number): number {
+  return blockCount >= HOVER.hugeBlocks ? HOVER.radius * HOVER.hugeRadiusScale : HOVER.radius;
 }
 
 /**

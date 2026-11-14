@@ -7,7 +7,9 @@ import {
   BoxGeometry,
   Color,
   DoubleSide,
+  InstancedMesh,
   LinearMipmapLinearFilter,
+  Matrix4,
   MeshPhysicalMaterial,
   NearestFilter,
   RepeatWrapping,
@@ -16,13 +18,26 @@ import {
   Vector3,
   type Group,
   type Material,
-  type Mesh,
   type Ray,
   type Texture,
 } from "three";
-import { CORE, EBF, LIGHT, MATERIAL } from "@/lib/config";
+import { CORE, EBF, HOVER, LIGHT, MATERIAL } from "@/lib/config";
 import { KINDS, structureOf, type KindId, type Machine } from "@/lib/machines";
-import { FACES, approach, cursorWeight, explodedPosition, type Block, type BlockKind } from "@/lib/structure";
+import {
+  FACES,
+  approach,
+  createBlockPicker,
+  cursorWeight,
+  explodedPosition,
+  hoverRadius,
+  domeLayout,
+  domePosition,
+  domeScale,
+  domeWeights,
+  type Block,
+  type BlockKind,
+  type Vec3,
+} from "@/lib/structure";
 import { PointerContext, type Pointer } from "@/lib/store";
 
 const GT = "/textures/gregtech";
@@ -79,7 +94,7 @@ export function blockMaterial(kind: BlockKind, map: Texture, detail: Detail, glo
     roughnessMap: detail.metalRoughness,
     metalness: kind.isMatte ? 0 : kind.isHot ? MATERIAL.coilMetalness : MATERIAL.casingMetalness,
     roughness: kind.isMatte ? MATERIAL.matteRoughness : kind.isHot ? MATERIAL.coilRoughness : MATERIAL.casingRoughness,
-    sheen: MATERIAL.sheen,
+    sheen: kind.isCool ? 0 : MATERIAL.sheen,
     sheenRoughness: MATERIAL.sheenRoughness,
     sheenColor: new Color(MATERIAL.sheenColor),
   });
@@ -127,6 +142,41 @@ function buildMaterials(kindIds: readonly string[], textures: Record<string, Tex
   );
 }
 
+/**
+ * Блоки одного вида и с рисунком на одной и той же грани рисуются одним
+ * вызовом видеокарты (InstancedMesh): у плазменной кузницы больше пяти тысяч
+ * блоков, и по вызову на блок кадр стоил 54 мс. Для каждого блока — в каком
+ * наборе он лежит и под каким номером.
+ */
+interface Batches {
+  readonly meshes: readonly InstancedMesh[];
+  readonly slots: readonly { readonly mesh: InstancedMesh; readonly instance: number }[];
+}
+
+function buildBatches(blocks: readonly Block[], materials: Record<string, KindMaterials>, geometry: BoxGeometry): Batches {
+  const groups = new Map<string, number[]>();
+  blocks.forEach((block, index) => {
+    const key = [block.kind, materials[block.kind].face ? block.face : ""].join(":");
+    groups.set(key, [...(groups.get(key) ?? []), index]);
+  });
+  const matrix = new Matrix4();
+  const slots: { mesh: InstancedMesh; instance: number }[] = [];
+  const meshes = [...groups.values()].map((indices) => {
+    const first = blocks[indices[0]];
+    const mesh = new InstancedMesh(geometry, materialsFor(first, materials), indices.length);
+    mesh.castShadow = !(KINDS[first.kind as KindId] as BlockKind).isGlass;
+    mesh.receiveShadow = true;
+    // Блоки разъезжаются за рамку, посчитанную по их домашним местам, — без этого их бы отсекало.
+    mesh.frustumCulled = false;
+    indices.forEach((blockIndex, instance) => {
+      mesh.setMatrixAt(instance, matrix.makeTranslation(...blocks[blockIndex].home));
+      slots[blockIndex] = { mesh, instance };
+    });
+    return mesh;
+  });
+  return { meshes, slots };
+}
+
 /** Шесть материалов куба: рисунок — только на одной грани, остальное — основа. */
 function materialsFor(block: Block, materials: Record<string, KindMaterials>): Material | Material[] {
   const { base, face } = materials[block.kind];
@@ -153,7 +203,6 @@ export function Structure3D({ machine, shadows, hasLight = true }: Structure3DPr
   const textures = useTexture(useMemo(() => textureUrls(kindIds), [kindIds])) as Record<string, Texture>;
   const detail = useTexture(DETAIL_URLS) as Detail;
 
-  const meshes = useRef<(Mesh | null)[]>([]);
   /** Текущее раздвижение каждого блока, от 0 до 1. Плавно идёт за курсором. */
   const weights = useRef<number[]>([]);
   const homes = useMemo(() => structure.blocks.map((block) => new Vector3(...block.home)), [structure]);
@@ -191,34 +240,75 @@ export function Structure3D({ machine, shadows, hasLight = true }: Structure3DPr
     const side = EBF.blockSize * EBF.blockScale;
     return new BoxGeometry(side, side, side);
   }, []);
+  const batches = useMemo(() => buildBatches(structure.blocks, materials, geometry), [structure, materials, geometry]);
+  useEffect(() => () => batches.meshes.forEach((mesh) => mesh.dispose()), [batches]);
+  const matrix = useMemo(() => new Matrix4(), []);
   const coreColor = useMemo(() => new Color(CORE.color).multiplyScalar(CORE.intensity), []);
   const isWater = structure.interior === "water";
+  // Огромные постройки раздвигаются шаром: блоки отходят от точки внутри постройки во все стороны.
+  const isSphere = structure.blocks.length >= HOVER.hugeBlocks;
+  const domeSize = isSphere ? domeScale(structure.size) : 1;
+  const radius = hoverRadius(structure.blocks.length) * domeSize;
+  const dome = useMemo(() => (isSphere ? domeLayout(structure.blocks, structure.size) : []), [isSphere, structure]);
+  const pickBlock = useMemo(() => (isSphere ? createBlockPicker(structure.blocks.map((block) => block.home)) : null), [isSphere, structure]);
+  const localOrigin = useMemo(() => new Vector3(), []);
+  const localTarget = useMemo(() => new Vector3(), []);
+  /** Первый блок под курсором — в координатах постройки. От него расходится купол. */
+  const entry = useRef<Vec3>([0, 0, 0]);
 
   /** Насколько раздвинуть блок: по близости его места к лучу из камеры через курсор. */
   const targetWeight = (home: Vector3, pointer: Pointer | null, ray: Ray): number => {
     if (!pointer || !root.current) return 0;
     worldHome.copy(home).applyMatrix4(root.current.matrixWorld);
-    return cursorWeight(Math.sqrt(ray.distanceSqToPoint(worldHome)));
+    return cursorWeight(Math.sqrt(ray.distanceSqToPoint(worldHome)), radius);
   };
 
   // Блоки раздвигаются только рядом с курсором: чем ближе центр блока к лучу
   // из камеры через курсор, тем дальше он отходит.
   useFrame((state, delta) => {
-    const pointer = getPointer();
+    let pointer = getPointer();
     if (pointer) state.raycaster.setFromCamera(cursor.set(...pointer), state.camera);
+    if (isSphere && pickBlock && pointer && root.current) {
+      const { ray } = state.raycaster;
+      // Луч — в координаты постройки: две его точки переводим обратно из мира.
+      root.current.worldToLocal(localOrigin.copy(ray.origin));
+      root.current.worldToLocal(localTarget.copy(ray.origin).add(ray.direction));
+      const found = pickBlock([localOrigin.x, localOrigin.y, localOrigin.z], [
+        localTarget.x - localOrigin.x,
+        localTarget.y - localOrigin.y,
+        localTarget.z - localOrigin.z,
+      ]);
+      if (found) {
+        entry.current = found;
+      } else {
+        // Луч прошёл мимо всех блоков — раздвигать нечего.
+        pointer = null;
+      }
+    }
 
-    let hasMoved = false;
+    const homesList = structure.blocks.map((block) => block.home);
+    const sphereTargets = isSphere && pointer ? domeWeights(dome, homesList, entry.current, radius) : null;
+    const moved = new Set<InstancedMesh>();
     structure.blocks.forEach((block, index) => {
-      const target = targetWeight(homes[index], pointer, state.raycaster.ray);
+      const target = isSphere
+        ? pointer
+          ? (sphereTargets?.[index] ?? 0)
+          : 0
+        : targetWeight(homes[index], pointer, state.raycaster.ray);
       const current = weights.current[index] ?? 0;
       const weight = approach(current, target, delta);
       if (weight === current) return;
       weights.current[index] = weight;
-      meshes.current[index]?.position.set(...explodedPosition(block, weight));
-      hasMoved = true;
+      const position = isSphere ? domePosition(block.home, dome[index], weight, domeSize) : explodedPosition(block, weight);
+      const slot = batches.slots[index];
+      slot.mesh.setMatrixAt(slot.instance, matrix.makeTranslation(...position));
+      moved.add(slot.mesh);
     });
 
-    if (!hasMoved) return;
+    if (moved.size === 0) return;
+    moved.forEach((mesh) => {
+      mesh.instanceMatrix.needsUpdate = true;
+    });
     if (shadows) gl.shadowMap.needsUpdate = true;
     // Блоки ещё не доехали — заказываем следующий кадр; доедут — рисование остановится само.
     state.invalidate();
@@ -226,18 +316,8 @@ export function Structure3D({ machine, shadows, hasLight = true }: Structure3DPr
 
   return (
     <group ref={root}>
-      {structure.blocks.map((block, index) => (
-        <mesh
-          key={block.id}
-          ref={(mesh) => {
-            meshes.current[index] = mesh;
-          }}
-          position={homes[index]}
-          geometry={geometry}
-          material={materialsFor(block, materials)}
-          castShadow={!(KINDS[block.kind as KindId] as BlockKind).isGlass}
-          receiveShadow
-        />
+      {batches.meshes.map((mesh) => (
+        <primitive key={mesh.uuid} object={mesh} />
       ))}
 
       {/* Самосветящееся нутро: ничего не освещает, но видно в щели и даёт ореол. У бака внутри вода — она не светится. */}
@@ -255,7 +335,7 @@ export function Structure3D({ machine, shadows, hasLight = true }: Structure3DPr
         ),
       )}
 
-      {hasLight && !isWater && (
+      {hasLight && structure.interior === "fire" && (
       <pointLight
         position={[...structure.lightPosition]}
         color={LIGHT.color}

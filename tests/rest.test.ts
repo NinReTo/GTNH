@@ -1,12 +1,53 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { CAMERA, FLOOR, FOG, GAME, HERO, HOVER, ICON, LIGHT, PERF, THEME, WORKSHOP } from "@/lib/config";
-import { cameraSetup, iconCameraSetup, pullback, sizeScale } from "@/lib/camera";
+import { cameraSetup, iconCameraSetup, pullback, sceneScale, sizeScale, zoomDistance } from "@/lib/camera";
 import { coilHeat, heatBonuses, heatCapacity, voltageHeatBonus } from "@/lib/heat";
 import { clamp, clamp01, inverseLerp, smooth01 } from "@/lib/math";
+import { packLayers, unpackLayers } from "@/lib/packed-layers";
 import { pickDpr } from "@/lib/perf";
-import { parseDisabledEffects, toPointer } from "@/lib/store";
+import { EFFECT_NAMES, parseDisabledEffects, toPointer } from "@/lib/store";
 import { footprint, workshopCamera, workshopPlacements } from "@/lib/workshop";
+
+describe("сжатые схемы огромных построек", () => {
+  test("распаковка возвращает схему ровно как была", () => {
+    const layers = [["  AAA ", "B~B", "   "], ["CCCCCCCCCCCC", "D D", "   "]];
+    expect(unpackLayers(packLayers(layers))).toEqual(layers);
+  });
+});
+
+describe("туман у крупных построек", () => {
+  test("у расчётной постройки туман на своём месте", () => {
+    expect(sceneScale(cameraSetup([3, CAMERA.referenceSize, 3]))).toBeCloseTo(1);
+  });
+
+  test("реактор синтеза (15 блоков) не тонет в тумане: камера ближе, чем туман закрывает всё", () => {
+    const setup = cameraSetup([15, 3, 15]);
+    const reach = Math.hypot(...setup.position.map((value, axis) => value - setup.target[axis]));
+    expect(reach).toBeLessThan(FOG.near * sceneScale(setup));
+  });
+});
+
+describe("приближение колёсиком", () => {
+  test("вверх — ближе, вниз — дальше", () => {
+    expect(zoomDistance(10, 10, -100)).toBeLessThan(10);
+    expect(zoomDistance(10, 10, 100)).toBeGreaterThan(10);
+  });
+
+  test("не подходит ближе и не отходит дальше пределов", () => {
+    expect(zoomDistance(10, 10, -100000)).toBeCloseTo(10 * CAMERA.zoomMin);
+    expect(zoomDistance(10, 10, 100000)).toBeCloseTo(10 * CAMERA.zoomMax);
+  });
+
+  test("к огромной постройке можно подъехать до zoomNearest метров, хотя это меньше 35 %", () => {
+    expect(zoomDistance(700, 700, -1e6)).toBeCloseTo(CAMERA.zoomNearest);
+  });
+
+  test("ближний предел меньше начального расстояния, дальний — больше", () => {
+    expect(CAMERA.zoomMin).toBeLessThan(1);
+    expect(CAMERA.zoomMax).toBeGreaterThan(1);
+  });
+});
 
 describe("камера", () => {
   const reference = [3, CAMERA.referenceSize, 3] as const;
@@ -185,8 +226,10 @@ describe("нагрев", () => {
     expect(heatBonuses(1300, 1300)).toMatchObject({ canRun: true, discounts: 0, perfectOverclocks: 0 });
   });
 
-  test("ярусы напряжения растут ровно вчетверо", () => {
-    GAME.voltageTiers.slice(1).forEach((tier, index) => {
+  test("ярусы напряжения растут ровно вчетверо (кроме MAX — он на 8 EU/t меньше) и доходят до MAX", () => {
+    const tiers = GAME.voltageTiers;
+    expect(tiers[tiers.length - 1]).toEqual({ name: "MAX", voltage: 2 ** 31 - 8 });
+    tiers.slice(1, -1).forEach((tier, index) => {
       expect(tier.voltage).toBe(GAME.voltageTiers[index].voltage * GAME.voltageStep);
     });
   });
@@ -224,7 +267,7 @@ describe("выключение эффектов через адрес", () => {
   });
 
   test("слово all выключает всё", () => {
-    expect(parseDisabledEffects("?off=all").size).toBe(3);
+    expect(parseDisabledEffects("?off=all").size).toBe(EFFECT_NAMES.length);
   });
 
   test("незнакомые слова и пустой адрес ничего не выключают", () => {
@@ -310,6 +353,18 @@ describe("правило «все числа в lib/config.ts»", () => {
     "lib/camera.ts",
     "lib/heat.ts",
     "lib/perf.ts",
+    "lib/lines.ts",
+    "lib/guides.ts",
+    "lib/singles.ts",
+    "lib/boilers.ts",
+    "lib/lv.ts",
+    "lib/mv.ts",
+    "lib/hv.ts",
+    "lib/high.ts",
+    "components/landing/GuideSection.tsx",
+    "components/landing/LineRow.tsx",
+    "components/landing/LineSection.tsx",
+    "components/scene/SingleScene.tsx",
   ];
 
   /** Убирает комментарии и строки (в них числа — это текст и классы, а не настройки). */

@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, type ReactElement } from "react";
+import { useEffect, useRef, type ReactElement } from "react";
 import { useThree } from "@react-three/fiber";
-import { Bloom, ChromaticAberration, EffectComposer, Noise, ToneMapping } from "@react-three/postprocessing";
+import { Bloom, EffectComposer, ToneMapping } from "@react-three/postprocessing";
 import { ToneMappingMode, type EffectComposer as ComposerImpl } from "postprocessing";
-import { Vector2 } from "three";
 import { PERF, POST } from "@/lib/config";
 import type { EffectName } from "@/lib/store";
 
@@ -25,7 +24,6 @@ interface EffectsProps {
 export function Effects({ disabled, bench, multisampling }: EffectsProps) {
   const composer = useRef<ComposerImpl>(null);
   const gl = useThree((state) => state.gl);
-  const chromaticOffset = useMemo(() => new Vector2(POST.chromaticOffset, POST.chromaticOffset), []);
 
   // Честный замер: рисуем кадры подряд и после каждого читаем один пиксель —
   // это заставляет видеокарту закончить работу, а не просто принять команды.
@@ -67,12 +65,7 @@ export function Effects({ disabled, bench, multisampling }: EffectsProps) {
       />,
     );
   }
-  if (!disabled.has("chromatic")) {
-    passes.push(
-      <ChromaticAberration key="chromatic" offset={chromaticOffset} radialModulation={false} modulationOffset={0} />,
-      <Noise key="noise" premultiply opacity={POST.noiseOpacity} />,
-    );
-  }
+  // Разъезд цветовых каналов и зерно убраны по просьбе: они размывали края пиксельных текстур.
   passes.push(<ToneMapping key="tone" mode={ToneMappingMode.ACES_FILMIC} />);
 
   return (

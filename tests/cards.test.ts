@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import { iconCameraSetup } from "@/lib/camera";
 import { HOVER, ICON } from "@/lib/config";
-import { isCardLit, otherSlot, returnStep, specCamera, specKey, useCardStore, type CardSpec } from "@/lib/cards";
+import { cssSize, devicePixels, isCardLit, nearestCard, orbitReturnStep, otherSlot, returnStep, specCamera, specKey, useCardStore, type CardSpec } from "@/lib/cards";
 import { findMachine, structureOf } from "@/lib/machines";
 
 const furnace: CardSpec = { kind: "machine", slug: "electric-blast-furnace" };
-const bronze: CardSpec = { kind: "single", id: "macerator", tier: "bronze", hull: "plain" };
-const steel: CardSpec = { kind: "single", id: "macerator", tier: "steel", hull: "plain" };
+const bronze: CardSpec = { kind: "single", slug: "macerator-bronze" };
+const steel: CardSpec = { kind: "single", slug: "macerator-steel" };
 
 describe("карточки", () => {
   beforeEach(() => {
@@ -96,6 +96,27 @@ describe("подсветка карточки", () => {
   });
 });
 
+describe("какую карточку оживить", () => {
+  const left = { left: 0, top: 0, right: 100, bottom: 100 };
+  const right = { left: 300, top: 0, right: 400, bottom: 100 };
+
+  test("курсор над карточкой — она", () => {
+    expect(nearestCard(50, 50, [left, right], 200)).toBe(0);
+  });
+
+  test("курсор между карточками — ближайшая", () => {
+    expect(nearestCard(250, 50, [left, right], 200)).toBe(1);
+  });
+
+  test("дальше порога от всех — никакая", () => {
+    expect(nearestCard(50, 400, [left, right], 200)).toBe(-1);
+  });
+
+  test("ровно на пороге от края — ещё оживает", () => {
+    expect(nearestCard(50, 300, [left], 200)).toBe(0);
+  });
+});
+
 describe("плавный возврат домой", () => {
   const home = [0, 2, 10] as const;
 
@@ -140,6 +161,22 @@ describe("плавный возврат домой", () => {
 
   test("уже дома — стоит на месте", () => {
     expect(returnStep(home, home, 0.016)).toEqual({ position: home, isHome: true });
+  });
+
+  test("камера, повёрнутая на другую сторону, возвращается по дуге и не подлетает к модели", () => {
+    const center = [0, 2, 0] as const;
+    // Камера за моделью: прямая к дому прошла бы через центр.
+    let position: readonly [number, number, number] = [0, 2, -10];
+    let isHome = false;
+    let closest = Number.POSITIVE_INFINITY;
+    while (!isHome) {
+      const step = orbitReturnStep(position, home, center, 0.016);
+      position = step.position;
+      isHome = step.isHome;
+      closest = Math.min(closest, Math.hypot(position[0] - center[0], position[1] - center[1], position[2] - center[2]));
+    }
+    expect(position).toEqual(home);
+    expect(closest).toBeGreaterThan(9.9);
   });
 
 });
@@ -223,5 +260,29 @@ describe("два живых холста", () => {
     state().stay();
     state().release(slot);
     expect(state().slots[slot]).toMatchObject({ card: first, isReady: true, isLeaving: false });
+  });
+});
+
+describe("снимок точка в точку", () => {
+  test("дробная карточка округляется вниз до целых экранных точек", () => {
+    expect(devicePixels(272.656, 1)).toBe(272);
+    expect(devicePixels(272.656, 1.25)).toBe(340);
+  });
+
+  test("ширина в CSS даёт холст ровно на столько же точек, без потери точки на округлении", () => {
+    for (const dpr of [1, 1.25, 1.5, 2]) {
+      for (const pixels of [214, 272, 341, 545]) {
+        expect(Math.floor(cssSize(pixels, dpr) * dpr)).toBe(pixels);
+        expect(devicePixels(cssSize(pixels, dpr), dpr)).toBe(pixels);
+      }
+    }
+  });
+
+  test("квадрат не шире карточки", () => {
+    expect(cssSize(devicePixels(272.656, 1.25), 1.25)).toBeLessThanOrEqual(272.656);
+  });
+
+  test("нулевая ширина — ноль точек, а не отрицательное число", () => {
+    expect(devicePixels(0, 1)).toBe(0);
   });
 });

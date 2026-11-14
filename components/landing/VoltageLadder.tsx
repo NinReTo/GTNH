@@ -18,7 +18,8 @@ function barWidth(voltage: number): number {
 export function VoltageLadder() {
   const [selected, setSelected] = useState<number>(GAME.heatBonusBaseTier);
   const tier = TIERS[selected];
-  const timesBase = GAME.voltageStep ** selected;
+  // Делим, а не возводим 4 в степень: MAX в моде чуть меньше «вчетверо от UXV».
+  const timesBase = Math.round(tier.voltage / TIERS[0].voltage);
 
   return (
     <Figure caption="Наведите на ярус: каждый следующий ровно вчетверо мощнее предыдущего.">

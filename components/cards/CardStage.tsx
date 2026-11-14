@@ -6,8 +6,13 @@ import { useRouter } from "next/navigation";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, OrbitControls } from "@react-three/drei";
 import { CAMERA, ICON, LIGHT, THEME } from "@/lib/config";
+import { useDevicePixelRatio } from "./useDevicePixelRatio";
 import {
-  returnStep,
+  boxOf,
+  cardRegistry,
+  cssSize,
+  nearestCard,
+  orbitReturnStep, returnStep,
   specCamera,
   specKey,
   useCardStore,
@@ -20,16 +25,6 @@ import { PointerContext, toPointer, type Pointer } from "@/lib/store";
 import { CardContent } from "./CardContent";
 
 const ENVIRONMENT = "/hdri/workshop_1k.hdr";
-
-/**
- * Плотность пикселей у снимков и у живых моделей одна и та же — родная для
- * экрана. Иначе при наведении живая модель оказывается чётче снимка, и это
- * видно как «вспышка качества».
- */
-function useScreenDpr(): number {
-  const [dpr] = useState(() => window.devicePixelRatio);
-  return dpr;
-}
 
 /** Свет карточки — тот же, что в шапке: рассеянный и снимок цеха. */
 function CardLight() {
@@ -65,14 +60,16 @@ function Shot({ shot }: { shot: ShotRequest }) {
 
   useFrame((state) => {
     if (isTaken.current) return;
-    // Холст ещё не успел принять размер этой карточки — ждём следующего кадра.
-    if (Math.round(state.size.width) !== shot.size) {
+    // Холст ещё не стал ровно нужного числа точек — ждём следующего кадра.
+    const canvas = state.gl.domElement;
+    if (canvas.width !== shot.size || canvas.height !== shot.size) {
       state.invalidate();
       return;
     }
     isTaken.current = true;
     state.gl.render(state.scene, state.camera);
-    done(shot, state.gl.domElement.toDataURL("image/webp", 1));
+    // PNG — без сжатия с потерями: webp даже на максимуме чуть размывает мелкие пиксели текстур.
+    done(shot, canvas.toDataURL("image/png"));
   }, 1);
 
   return <CardContent spec={shot.spec} />;
@@ -85,15 +82,16 @@ function Shot({ shot }: { shot: ShotRequest }) {
  */
 function SnapshotCanvas() {
   const next = useCardStore((state) => state.queue[0]);
-  const dpr = useScreenDpr();
-  const size = next?.size ?? ICON.snapshotSize;
+  const dpr = useDevicePixelRatio();
+  // Заказ — в экранных точках; холст ставим ровно на столько точек.
+  const size = next ? cssSize(next.size, dpr) : ICON.snapshotSize;
 
   return (
     <Canvas
       frameloop="demand"
       dpr={dpr}
       gl={{ preserveDrawingBuffer: true, alpha: true, antialias: true }}
-      camera={{ fov: CAMERA.fov, near: CAMERA.near, far: CAMERA.far }}
+      camera={{ fov: CAMERA.fov, near: CAMERA.near, far: ICON.cameraFar }}
       // Холст стоит за левым краем окна: его не видно, но рисует он как обычно.
       style={{ position: "fixed", top: 0, right: "100%", width: size, height: size, pointerEvents: "none" }}
     >
@@ -151,8 +149,8 @@ function ReturnHome({ index, spec, isLeaving }: { index: number; spec: CardSpec;
     const home = specCamera(spec);
     const [cx, cy, cz] = state.camera.position.toArray();
     const [tx, ty, tz] = controls.target.toArray();
-    const camera = returnStep([cx, cy, cz], home.position, delta);
     const target = returnStep([tx, ty, tz], home.target, delta);
+    const camera = orbitReturnStep([cx, cy, cz], home.position, target.position, delta);
     state.camera.position.set(...camera.position);
     controls.target.set(...target.position);
     state.camera.lookAt(...target.position);
@@ -202,9 +200,7 @@ function LiveCanvas({ index }: { index: number }) {
   const router = useRouter();
   const slot: LiveSlot | null = useCardStore((state) => state.slots[index]);
   const isCurrent = useCardStore((state) => state.current === index);
-  const leave = useCardStore((state) => state.leave);
-  const stay = useCardStore((state) => state.stay);
-  const dpr = useScreenDpr();
+  const dpr = useDevicePixelRatio();
   const pointer = useRef<Pointer | null>(null);
   const press = useRef<readonly [number, number] | null>(null);
   const [getPointer] = useState(() => () => pointer.current);
@@ -219,14 +215,14 @@ function LiveCanvas({ index }: { index: number }) {
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
     pointer.current = toPointer(event.clientX, event.clientY, event.currentTarget.getBoundingClientRect());
   };
-  // Мышка ушла — модель не убираем сразу, а даём ей плавно вернуться домой.
+  // Мышка ушла с модели — блоки съезжаются. Саму модель включает и выключает слежение за курсором (NearWatcher).
+  const setPointerOver = useCardStore((state) => state.setPointerOver);
   const handlePointerLeave = () => {
     pointer.current = null;
-    if (isInteractive) leave();
+    if (isCurrent) setPointerOver(false);
   };
-  // Мышка вернулась на ту же модель посреди возврата — возврат прерывается.
   const handlePointerEnter = () => {
-    if (isInteractive) stay();
+    if (isCurrent) setPointerOver(true);
   };
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     press.current = [event.clientX, event.clientY];
@@ -272,7 +268,7 @@ function LiveCanvas({ index }: { index: number }) {
           его показать, две разные машины наложатся друг на друга.
         */}
         <div className="h-full w-full" style={{ opacity: isShown ? 1 : 0 }}>
-          <Canvas frameloop="demand" dpr={dpr} gl={{ alpha: true, antialias: true }} camera={{ fov: CAMERA.fov, near: CAMERA.near, far: CAMERA.far }}>
+          <Canvas frameloop="demand" dpr={dpr} gl={{ alpha: true, antialias: true }} camera={{ fov: CAMERA.fov, near: CAMERA.near, far: ICON.cameraFar }}>
             {slot && (
               <Live
                 key={specKey(slot.card.spec)}
@@ -287,6 +283,52 @@ function LiveCanvas({ index }: { index: number }) {
       </PointerContext.Provider>
     </div>
   );
+}
+
+/**
+ * Следит за курсором: ближайшая карточка не дальше ICON.nearReach оживает
+ * заранее, ещё до того, как мышь на неё зайдёт. Курсор ушёл дальше — модель
+ * возвращается домой. Пока модель держат кнопкой мыши, её не переключаем.
+ */
+function NearWatcher() {
+  useEffect(() => {
+    let last: { x: number; y: number; isPressed: boolean } | null = null;
+    let frame = 0;
+    const check = () => {
+      frame = 0;
+      if (!last) return;
+      const { slots, current, activate, leave } = useCardStore.getState();
+      const present = slots[current];
+      if (last.isPressed && present && !present.isLeaving) return;
+      const entries = [...cardRegistry];
+      const index = nearestCard(last.x, last.y, entries.map((entry) => entry.element.getBoundingClientRect()), ICON.nearReach);
+      const entry = entries[index];
+      if (!entry) {
+        if (present && !present.isLeaving) leave();
+        return;
+      }
+      if (present && present.card.element === entry.element && !present.isLeaving) return;
+      activate({ spec: entry.spec, element: entry.element, box: boxOf(entry.element), href: entry.href });
+    };
+    // Проверяем не чаще раза за кадр: движение мыши приходит чаще, чем рисуется экран.
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(check);
+    };
+    const handleMove = (event: globalThis.PointerEvent) => {
+      last = { x: event.clientX, y: event.clientY, isPressed: event.buttons !== 0 };
+      schedule();
+    };
+    // Мышь стоит, а страница прокручивается — карточки сами подъезжают к курсору.
+    const handleScroll = () => schedule();
+    window.addEventListener("pointermove", handleMove, { passive: true });
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("scroll", handleScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+  return null;
 }
 
 /** Два живых холста: под мышкой и доигрывающий возврат. Окно поменяло размер — оба убираем. */
@@ -312,6 +354,7 @@ export default function CardStage() {
     <>
       <SnapshotCanvas />
       <LiveLayer />
+      <NearWatcher />
     </>
   );
 }

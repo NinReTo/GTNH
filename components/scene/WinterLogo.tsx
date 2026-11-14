@@ -235,11 +235,7 @@ function useIsOnScreen(element: RefObject<HTMLDivElement | null>): boolean {
 export default function WinterLogo() {
   const wrapper = useRef<HTMLDivElement>(null);
   const isOnScreen = useIsOnScreen(wrapper);
-  // Разъезд цветовых каналов расщепляет крошечные снежинки на красную и синюю точки — в зимней шапке он выключен.
-  const [settings] = useState(() => {
-    const base = readSettings();
-    return { ...base, disabled: new Set([...base.disabled, "chromatic" as const]) };
-  });
+  const [settings] = useState(readSettings);
   const [aspect] = useState(() => window.innerWidth / (window.innerHeight * HERO.screens));
   const [dpr] = useState(() => pickDpr(window.innerWidth, window.innerHeight, window.devicePixelRatio));
   const camera = winterCamera(aspect);

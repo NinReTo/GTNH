@@ -3,48 +3,81 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { boxOf, isCardLit, specKey, useCardStore, type CardSpec } from "@/lib/cards";
-import { STEAM_TIER_TITLES, findMachine, structureOf, type Hull, type SteamTier } from "@/lib/machines";
+import { cardRegistry, cssSize, devicePixels, isCardLit, specKey, useCardStore, type CardSpec } from "@/lib/cards";
+import { useDevicePixelRatio } from "./useDevicePixelRatio";
+import { stepHref, type LineStep } from "@/lib/lines";
+import { findMachine, structureOf } from "@/lib/machines";
+import { findSingle } from "@/lib/singles";
 
 /** Трёхмерное для карточек грузится только в браузере. */
 export const CardStageLoader = dynamic(() => import("./CardStage"), { ssr: false });
 
 /** Квадрат с моделью: в покое — снимок, под мышкой поверх него ложится живая модель. */
 function CardPicture({ spec, href, label }: { spec: CardSpec; href?: string; label: string }) {
+  const outer = useRef<HTMLDivElement>(null);
   const element = useRef<HTMLDivElement>(null);
   const [node, setNode] = useState<HTMLDivElement | null>(null);
+  const [pixels, setPixels] = useState(0);
+  const dpr = useDevicePixelRatio();
   const image = useCardStore((state) => state.images[specKey(spec)]);
   const request = useCardStore((state) => state.request);
-  const activateCard = useCardStore((state) => state.activate);
-  const isLit = useCardStore((state) => isCardLit(state.slots, state.current, node));
+  const isLit = useCardStore((state) => state.isPointerOver && isCardLit(state.slots, state.current, node));
   const key = specKey(spec);
 
-  // Снимок заказываем ровно в размер карточки на странице и переснимаем, если окно
-  // поменяло размер: растянутый снимок мылится, и при наведении казалось бы, что
-  // качество вдруг улучшилось.
+  // Квадрат с моделью — ровно целое число экранных точек, и снимок заказываем ровно
+  // в эти точки. Окно или масштаб страницы поменялись — переснимаем: растянутый или
+  // ужатый снимок мылится.
   useEffect(() => {
-    const box = element.current;
+    const box = outer.current;
     if (!box) return;
-    setNode(box);
-    const measure = () => request(spec, Math.round(box.getBoundingClientRect().width));
+    setNode(element.current);
+    const measure = () => {
+      const next = devicePixels(box.getBoundingClientRect().width, dpr);
+      setPixels(next);
+      if (next > 0) request(spec, next);
+    };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(box);
     return () => observer.disconnect();
     // spec пересоздаётся при каждой отрисовке, а смысл в нём один — имя карточки.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [request, key]);
+  }, [request, key, dpr]);
 
-  const activate = () => {
-    if (element.current) activateCard({ spec, element: element.current, box: boxOf(element.current), href });
-  };
+  // Карточка вписывается в общий список: живую модель включает слежение за курсором (CardStage).
+  useEffect(() => {
+    if (!element.current) return;
+    const entry = { spec, element: element.current, href };
+    cardRegistry.add(entry);
+    return () => {
+      cardRegistry.delete(entry);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, href]);
+
+  // Пока квадрат не замерен, он во всю ширину; потом — ровно в целые экранные точки.
+  const side = pixels > 0 ? cssSize(pixels, dpr) : undefined;
+  const isSharp = image !== undefined && image.size === pixels;
 
   return (
-    <div ref={element} data-lit={isLit} className="relative aspect-square w-full" onPointerEnter={activate}>
-      {image && (
-        // eslint-disable-next-line @next/next/no-img-element -- снимок модели, сделанный в браузере; оптимизатору картинок он недоступен
-        <img src={image.src} alt={label} className="absolute inset-0 h-full w-full" />
-      )}
+    <div ref={outer} className="relative aspect-square w-full">
+      <div
+        ref={element}
+        data-lit={isLit}
+        className="relative mx-auto aspect-square w-full"
+        style={side === undefined ? undefined : { width: side, height: side }}
+      >
+        {image && (
+          // eslint-disable-next-line @next/next/no-img-element -- снимок модели, сделанный в браузере; оптимизатору картинок он недоступен
+          <img
+            src={image.src}
+            alt={label}
+            className="absolute inset-0 h-full w-full"
+            // Снимок под другой размер (пока переснимается) показываем сглаженным, свой — точка в точку.
+            style={{ imageRendering: isSharp ? "pixelated" : "auto" }}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -65,26 +98,43 @@ function Caption({ title, note }: { title: string; note: ReactNode }) {
 const frame =
   "group block border border-line transition-colors hover:border-accent focus-visible:border-accent has-[[data-lit=true]]:border-accent";
 
+/** Рамка карточки; у машины, на странице которой мы сейчас, рамка горит всё время. */
+function frameOf(isCurrent: boolean): string {
+  return isCurrent ? frame.replace("border-line", "border-accent") : frame;
+}
+
 /** Карточка постройки: модель и подпись; щелчок открывает страницу постройки. */
-export function MachineCard({ slug }: { slug: string }) {
+export function MachineCard({ slug, isCurrent = false }: { slug: string; isCurrent?: boolean }) {
   const machine = findMachine(slug);
   if (!machine) return null;
   const { size } = structureOf(machine);
-  const href = `/machines/${machine.slug}`;
+  const href = stepHref({ kind: "machine", slug });
   return (
-    <Link href={href} className={frame}>
+    <Link href={href} className={frameOf(isCurrent)} aria-current={isCurrent ? "page" : undefined}>
       <CardPicture spec={{ kind: "machine", slug }} href={href} label={machine.title} />
       <Caption title={machine.title} note={size.join(" × ")} />
     </Link>
   );
 }
 
-/** Карточка одноблочной машины. Своей страницы у неё нет: модель можно только покрутить. */
-export function SingleCard({ id, tier, hull, title }: { id: string; tier: SteamTier; hull: Hull; title: string }) {
+/** Карточка одноблочной машины; щелчок открывает её страницу. */
+export function SingleCard({ slug, isCurrent = false }: { slug: string; isCurrent?: boolean }) {
+  const single = findSingle(slug);
+  if (!single) return null;
+  const href = stepHref({ kind: "single", slug });
   return (
-    <div className={frame}>
-      <CardPicture spec={{ kind: "single", id, tier, hull }} label={`${title}, ${STEAM_TIER_TITLES[tier].toLowerCase()}`} />
-      <Caption title={title} note={STEAM_TIER_TITLES[tier]} />
-    </div>
+    <Link href={href} className={frameOf(isCurrent)} aria-current={isCurrent ? "page" : undefined}>
+      <CardPicture spec={{ kind: "single", slug }} href={href} label={`${single.title}, ${single.label.toLowerCase()}`} />
+      <Caption title={single.title} note={single.does} />
+    </Link>
+  );
+}
+
+/** Карточка ступени прогрессии: одноблочная машина или постройка. */
+export function StepCard({ step, isCurrent = false }: { step: LineStep; isCurrent?: boolean }) {
+  return step.kind === "machine" ? (
+    <MachineCard slug={step.slug} isCurrent={isCurrent} />
+  ) : (
+    <SingleCard slug={step.slug} isCurrent={isCurrent} />
   );
 }

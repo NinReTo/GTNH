@@ -2,16 +2,14 @@ import { create } from "zustand";
 import { HOVER, ICON } from "./config";
 import { iconCameraSetup, type CameraSetup } from "./camera";
 import type { Vec3 } from "./structure";
-import { findMachine, structureOf, type Hull, type SteamTier } from "./machines";
+import { findMachine, structureOf } from "./machines";
 
-/** Что изображает карточка: постройку или одноблочную машину в одной из версий. */
-export type CardSpec =
-  | { readonly kind: "machine"; readonly slug: string }
-  | { readonly kind: "single"; readonly id: string; readonly tier: SteamTier; readonly hull: Hull };
+/** Что изображает карточка: постройку или одноблочную машину (обе — по адресному имени). */
+export type CardSpec = { readonly kind: "machine"; readonly slug: string } | { readonly kind: "single"; readonly slug: string };
 
 /** Уникальное имя карточки: по нему хранится её снимок. */
 export function specKey(spec: CardSpec): string {
-  return spec.kind === "machine" ? ["machine", spec.slug].join(":") : ["single", spec.id, spec.tier].join(":");
+  return [spec.kind, spec.slug].join(":");
 }
 
 /** Камера карточки: снимок и живая модель смотрят одинаково, поэтому подмена незаметна. */
@@ -21,6 +19,43 @@ export function specCamera(spec: CardSpec): CameraSetup {
   if (!machine) throw new Error(`Неизвестная постройка «${spec.slug}»`);
   return iconCameraSetup(structureOf(machine).size);
 }
+
+/** Прямоугольник карточки в окне: левый, верхний, правый и нижний край в CSS-пикселях. */
+export interface Rect {
+  readonly left: number;
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+}
+
+/**
+ * Какую карточку оживить: ближайшую к курсору, если до её края не дальше reach
+ * (над самой карточкой расстояние — ноль). Ни одной рядом — -1.
+ */
+export function nearestCard(x: number, y: number, rects: readonly Rect[], reach: number): number {
+  let best = -1;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  rects.forEach((rect, index) => {
+    const dx = Math.max(rect.left - x, 0, x - rect.right);
+    const dy = Math.max(rect.top - y, 0, y - rect.bottom);
+    const distance = Math.hypot(dx, dy);
+    if (distance <= reach && distance < bestDistance) {
+      best = index;
+      bestDistance = distance;
+    }
+  });
+  return best;
+}
+
+/** Карточка на странице, которую можно оживить: её квадрат с моделью, что в нём и куда ведёт щелчок. */
+export interface CardEntry {
+  readonly spec: CardSpec;
+  readonly element: HTMLElement;
+  readonly href?: string;
+}
+
+/** Все карточки страницы. Карточка сама вписывается сюда, когда появляется, и выписывается, когда исчезает. */
+export const cardRegistry = new Set<CardEntry>();
 
 /** Где лежит карточка на странице (а не в окне): живой холст прокручивается вместе со страницей. */
 export interface Box {
@@ -48,7 +83,22 @@ export interface ActiveCard {
   readonly href?: string;
 }
 
-/** Заказ на снимок: какая карточка и какого размера она на странице (точки). */
+/**
+ * Сколько целых экранных точек займёт квадрат с моделью в карточке шириной
+ * cssWidth. Карточки в сетке бывают дробной ширины (272.66), а экран рисует
+ * только целые точки: картинку пришлось бы ужимать, и она мылится. Поэтому
+ * квадрат с моделью делаем ровно целым числом экранных точек.
+ */
+export function devicePixels(cssWidth: number, dpr: number): number {
+  return Math.max(0, Math.floor(cssWidth * dpr + ICON.pixelEpsilon));
+}
+
+/** Ширина в CSS для ровно pixels экранных точек (с запасом на округление). */
+export function cssSize(pixels: number, dpr: number): number {
+  return (pixels + ICON.pixelEpsilon) / dpr;
+}
+
+/** Заказ на снимок: какая карточка и сколько экранных точек в её квадрате. */
 export interface ShotRequest {
   readonly spec: CardSpec;
   readonly size: number;
@@ -97,6 +147,12 @@ interface CardState {
   readonly slots: Slots;
   /** Номер холста карточки под мышкой. */
   readonly current: number;
+  /**
+   * Курсор сейчас над живой моделью. Модель включается заранее, за ICON.nearReach до
+   * карточки, а рамка должна загораться только под самим курсором.
+   */
+  readonly isPointerOver: boolean;
+  readonly setPointerOver: (isOver: boolean) => void;
   readonly request: (spec: CardSpec, size: number) => void;
   readonly done: (shot: ShotRequest, src: string) => void;
   /** Мышка зашла на карточку. */
@@ -121,6 +177,8 @@ export const useCardStore = create<CardState>((set) => ({
   queue: [],
   slots: [null, null],
   current: 0,
+  isPointerOver: false,
+  setPointerOver: (isOver) => set((state) => (state.isPointerOver === isOver ? state : { isPointerOver: isOver })),
   request: (spec, size) =>
     set((state) => {
       const key = specKey(spec);
@@ -187,11 +245,47 @@ export interface ReturnStep {
  * точка проходит долю оставшегося пути, поэтому возврат одинаково плавный при
  * любой частоте кадров. Почти дошла — встаёт ровно на место.
  */
-export function returnStep(current: Vec3, home: Vec3, deltaSeconds: number): ReturnStep {
+/** Какую долю оставшегося пути пройти за кадр длиной deltaSeconds. */
+function returnShare(deltaSeconds: number): number {
   const step = Math.min(Math.max(0, deltaSeconds), HOVER.maxStep);
-  const share = 1 - Math.exp(-step / ICON.returnTime);
+  return 1 - Math.exp(-step / ICON.returnTime);
+}
+
+export function returnStep(current: Vec3, home: Vec3, deltaSeconds: number): ReturnStep {
+  const share = returnShare(deltaSeconds);
   const next = current.map((value, axis) => value + (home[axis] - value) * share);
   const distance = Math.hypot(...next.map((value, axis) => value - home[axis]));
   if (distance < ICON.returnEpsilon) return { position: home, isHome: true };
   return { position: [next[0], next[1], next[2]], isHome: false };
+}
+
+/** Точка относительно центра в сферических координатах: расстояние, поворот вокруг вертикали, угол от вертикали. */
+function toSpherical(point: Vec3, center: Vec3) {
+  const [x, y, z] = point.map((value, axis) => value - center[axis]);
+  const radius = Math.hypot(x, y, z);
+  return { radius, theta: Math.atan2(x, z), phi: Math.acos(Math.min(1, Math.max(-1, y / radius))) };
+}
+
+/**
+ * Шаг возврата камеры, которая вращается вокруг center. Камера едет по дуге
+ * на своём расстоянии, а не по прямой: прямая от повёрнутой камеры к дому
+ * проходит сквозь модель, и на полпути модель резко вырастала во весь холст.
+ */
+export function orbitReturnStep(current: Vec3, home: Vec3, center: Vec3, deltaSeconds: number): ReturnStep {
+  const share = returnShare(deltaSeconds);
+  const from = toSpherical(current, center);
+  const to = toSpherical(home, center);
+  // Поворачиваем коротким путём: из 350° в 10° — через 0°, а не назад через 180°.
+  const turn = Math.atan2(Math.sin(to.theta - from.theta), Math.cos(to.theta - from.theta));
+  const radius = from.radius + (to.radius - from.radius) * share;
+  const theta = from.theta + turn * share;
+  const phi = from.phi + (to.phi - from.phi) * share;
+  const next: Vec3 = [
+    center[0] + radius * Math.sin(phi) * Math.sin(theta),
+    center[1] + radius * Math.cos(phi),
+    center[2] + radius * Math.sin(phi) * Math.cos(theta),
+  ];
+  const distance = Math.hypot(...next.map((value, axis) => value - home[axis]));
+  if (distance < ICON.returnEpsilon) return { position: home, isHome: true };
+  return { position: next, isHome: false };
 }

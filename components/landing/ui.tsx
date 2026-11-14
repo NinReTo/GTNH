@@ -28,6 +28,34 @@ export function SectionHeading({ index, kicker, title }: SectionHeadingProps) {
   );
 }
 
+type FactListProps = {
+  facts: readonly { readonly label: string; readonly value: string }[];
+  /** Последняя строка, выделенная цветом (например, «Всего блоков»). */
+  total?: { readonly label: string; readonly value: ReactNode };
+};
+
+/** Таблица фактов о машине: подпись слева, значение справа. */
+export function FactList({ facts, total }: FactListProps) {
+  const row = "flex items-baseline justify-between gap-6 border-b border-line px-5 py-4 last:border-b-0";
+  const term = "font-mono text-xs uppercase tracking-[0.2em] text-text3";
+  return (
+    <dl className="self-start border border-line">
+      {facts.map((fact) => (
+        <div key={fact.label} className={row}>
+          <dt className={term}>{fact.label}</dt>
+          <dd className="text-right font-mono text-lg text-text1">{fact.value}</dd>
+        </div>
+      ))}
+      {total && (
+        <div className={row}>
+          <dt className={term}>{total.label}</dt>
+          <dd className="font-mono text-lg text-accent">{total.value}</dd>
+        </div>
+      )}
+    </dl>
+  );
+}
+
 type SliderProps = {
   label: string;
   value: number;

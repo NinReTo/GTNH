@@ -1,8 +1,8 @@
 import { createContext } from "react";
 
-/** Какие части картинки можно выключить для замеров: ?off=bloom,chromatic,shadows */
-export type EffectName = "bloom" | "chromatic" | "shadows";
-export const EFFECT_NAMES: readonly EffectName[] = ["bloom", "chromatic", "shadows"];
+/** Какие части картинки можно выключить для замеров: ?off=bloom,shadows */
+export type EffectName = "bloom" | "shadows";
+export const EFFECT_NAMES: readonly EffectName[] = ["bloom", "shadows"];
 
 /** Курсор в координатах холста: x и y от −1 до 1, начало в центре, y вверх. */
 export type Pointer = readonly [number, number];

@@ -13,6 +13,29 @@ export function sizeScale(size: Vec3): number {
   return Math.max(1, Math.max(...size) / CAMERA.referenceSize);
 }
 
+/**
+ * Новое расстояние камеры до цели после прокрутки колёсиком: вниз — дальше,
+ * вверх — ближе. Не ближе zoomMin и не дальше zoomMax от начального расстояния.
+ */
+export function zoomDistance(current: number, initial: number, deltaY: number): number {
+  const next = current * Math.exp(deltaY * CAMERA.zoomPerPixel);
+  return clamp(next, Math.min(initial * CAMERA.zoomMin, CAMERA.zoomNearest), initial * CAMERA.zoomMax);
+}
+
+/** Расстояние от камеры до точки, вокруг которой она вращается. */
+function reachOf(setup: CameraSetup): number {
+  return Math.hypot(...setup.position.map((value, axis) => value - setup.target[axis]));
+}
+
+/**
+ * Во сколько раз камера дальше расчётной (печь 3×4×3 на широком экране).
+ * Туман, пол и дальняя плоскость растягиваются во столько же раз — иначе
+ * крупная постройка (реактор синтеза, 15 блоков в ширину) целиком тонет в тумане.
+ */
+export function sceneScale(setup: CameraSetup): number {
+  return Math.max(1, reachOf(setup) / reachOf({ position: CAMERA.position, target: CAMERA.target }));
+}
+
 export interface CameraSetup {
   readonly position: Vec3;
   readonly target: Vec3;
@@ -39,7 +62,15 @@ export function iconCameraSetup(size: Vec3): CameraSetup {
  * пользователь — мышкой вокруг той же цели.
  */
 export function cameraSetup(size: Vec3, aspect: number = CAMERA.referenceAspect): CameraSetup {
-  const scale = sizeScale(size);
+  return scaledSetup(sizeScale(size), aspect);
+}
+
+/** Камера шапки одноблочной машины: тот же угол, что у построек, но ближе — иначе один блок теряется. */
+export function singleCameraSetup(aspect: number = CAMERA.referenceAspect): CameraSetup {
+  return scaledSetup(CAMERA.singleScale, aspect);
+}
+
+function scaledSetup(scale: number, aspect: number): CameraSetup {
   const reach = scale * pullback(aspect);
   const target = CAMERA.target.map((value) => value * scale);
   const position = CAMERA.position.map((value, axis) => target[axis] + (value - CAMERA.target[axis]) * reach);

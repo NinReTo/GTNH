@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 const Scene = dynamic(() => import("./Scene"), { ssr: false });
 const Workshop = dynamic(() => import("./Workshop"), { ssr: false });
 const WinterLogo = dynamic(() => import("./WinterLogo"), { ssr: false });
+const SingleScene = dynamic(() => import("./SingleScene"), { ssr: false });
 
 /** Кнопка замера: видна только на странице с ?bench в адресе. */
 function BenchButton() {
@@ -40,6 +41,8 @@ function BenchButton() {
 type SceneSectionProps = {
   /** Какую постройку показать: её адресное имя из lib/machines.ts. Без него показывается весь паровой цех. */
   slug?: string;
+  /** Одноблочная машина вместо постройки: её адресное имя из lib/singles.ts. */
+  single?: string;
   /** Зимняя шапка с эмблемой GT New Horizons вместо цеха — для главной. */
   isLogo?: boolean;
   /** Подписи поверх сцены: заголовок и пояснение. */
@@ -50,12 +53,21 @@ type SceneSectionProps = {
  * Шапка страницы: неподвижный блок со сценой, ниже — сразу текст. Сцену
  * вертят перетаскиванием, блоки у курсора раздвигаются.
  */
-export function SceneSection({ slug, isLogo = false, children }: SceneSectionProps) {
+export function SceneSection({ slug, single, isLogo = false, children }: SceneSectionProps) {
+  const scene = single ? (
+    <SingleScene slug={single} />
+  ) : slug ? (
+    <Scene slug={slug} />
+  ) : isLogo ? (
+    <WinterLogo />
+  ) : (
+    <Workshop />
+  );
   return (
     <section className="hero relative w-full overflow-hidden" aria-label="Трёхмерная модель">
-      {slug ? <Scene slug={slug} /> : isLogo ? <WinterLogo /> : <Workshop />}
+      {scene}
       <BenchButton />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-bg via-bg/70 to-transparent p-6 pt-24 sm:p-12 sm:pt-32">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 p-6 pt-24 sm:p-12 sm:pt-32">
         {children}
       </div>
     </section>

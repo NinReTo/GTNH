@@ -7,19 +7,20 @@ import { FLOOR, MATERIAL } from "@/lib/config";
 
 const PBR = "/textures/pbr";
 
-/** Сколько раз текстура повторяется на всём полу: его размер, делённый на метры одного повтора. */
-const REPEATS = FLOOR.size / FLOOR.metersPerRepeat;
-
-function setupFloorTexture(texture: Texture): void {
+function setupFloorTexture(texture: Texture, repeats: number): void {
   texture.wrapS = RepeatWrapping;
   texture.wrapT = RepeatWrapping;
-  texture.repeat.set(REPEATS, REPEATS);
+  texture.repeat.set(repeats, repeats);
   // Пол всегда виден под острым углом — без анизотропии он первым превращается в «мыло».
   texture.anisotropy = MATERIAL.anisotropy;
   texture.needsUpdate = true;
 }
 
-export function Floor() {
+/** scale — во сколько раз пол больше обычного: у крупных построек камера дальше, и край пола иначе виден. */
+export function Floor({ scale = 1 }: { scale?: number }) {
+  const size = FLOOR.size * scale;
+  // Сколько раз текстура повторяется на всём полу: плитка остаётся того же размера в метрах.
+  const repeats = size / FLOOR.metersPerRepeat;
   const textures = useTexture({
     map: `${PBR}/floor-color.webp`,
     normalMap: `${PBR}/floor-normal.webp`,
@@ -27,13 +28,13 @@ export function Floor() {
   });
 
   useLayoutEffect(() => {
-    Object.values(textures).forEach(setupFloorTexture);
+    Object.values(textures).forEach((texture) => setupFloorTexture(texture, repeats));
     textures.map.colorSpace = SRGBColorSpace;
-  }, [textures]);
+  }, [textures, repeats]);
 
   return (
     <mesh rotation-x={-Math.PI / 2} receiveShadow>
-      <planeGeometry args={[FLOOR.size, FLOOR.size]} />
+      <planeGeometry args={[size, size]} />
       <meshStandardMaterial
         {...textures}
         color={FLOOR.color}
