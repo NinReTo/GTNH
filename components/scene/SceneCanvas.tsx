@@ -4,11 +4,12 @@ import { Suspense, useEffect, useRef, useState, type PointerEvent, type ReactNod
 import { Canvas, useThree } from "@react-three/fiber";
 import { Environment, OrbitControls } from "@react-three/drei";
 import { MOUSE, NoToneMapping, Vector3 } from "three";
-import { CAMERA, FOG, LIGHT, POST, THEME } from "@/lib/config";
+import { CAMERA, FLOOR, FOG, LIGHT, POST, THEME } from "@/lib/config";
 import { sceneScale, zoomDistance, type CameraSetup } from "@/lib/camera";
 import { pickDpr } from "@/lib/perf";
 import { PointerContext, parseDisabledEffects, toPointer, type EffectName, type Pointer } from "@/lib/store";
 import { Effects } from "./Effects";
+import { ChunkGrid } from "./ChunkGrid";
 import { Floor } from "./Floor";
 
 /** Отдаёт наружу способ заказать кадр: сцена рисуется только когда что-то изменилось. */
@@ -102,6 +103,8 @@ type SceneCanvasProps = {
   camera: CameraSetup;
   fogNear?: number;
   fogFar?: number;
+  /** Ширина и глубина постройки в блоках: по ним на полу рисуются границы чанков. Без них сетки нет. */
+  footprint?: readonly [number, number];
   /** Что стоит в сцене: постройки и их свет. Пол, окружение, управление и эффекты — общие. */
   children: ReactNode;
 };
@@ -111,7 +114,7 @@ type SceneCanvasProps = {
  * и постобработка. Курсор у каждой сцены свой — наведение на одну сцену не
  * трогает другие на той же странице.
  */
-export function SceneCanvas({ settings, camera, fogNear, fogFar, children }: SceneCanvasProps) {
+export function SceneCanvas({ settings, camera, fogNear, fogFar, footprint, children }: SceneCanvasProps) {
   // Своя дымка у цеха подобрана под его камеру; у построек туман отодвигается вместе с камерой.
   const scale = sceneScale(camera);
   const near = fogNear ?? FOG.near * scale;
@@ -156,6 +159,7 @@ export function SceneCanvas({ settings, camera, fogNear, fogFar, children }: Sce
           <Suspense fallback={null}>
             <Floor scale={scale} />
           </Suspense>
+          {footprint && <ChunkGrid footprint={footprint} reach={(FLOOR.size * scale) / [0, 0].length} />}
           {/* Готовое управление из drei: сцену вертят перетаскиванием. Своё приближение drei выключено — оно забрало бы колёсико у прокрутки страницы; приближают с Ctrl или Cmd (ModifierZoom). */}
           <OrbitControls
             makeDefault

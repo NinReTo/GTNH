@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { DIAGRAM, EBF, HOVER, THEME } from "@/lib/config";
-import { KINDS, findMachine, structureOf, type KindId } from "@/lib/machines";
+import { kindsOf, structureOf } from "@/lib/machines";
+import { findScene } from "@/lib/setups";
 import { countByKind, explodedPosition, type BlockKind, type Vec3 } from "@/lib/structure";
 import { Figure, Slider, formatNumber } from "./ui";
 
@@ -35,17 +36,18 @@ type MachineDiagramProps = {
 export function MachineDiagram({ slug }: MachineDiagramProps) {
   const [weight, setWeight] = useState<number>(iso.initialExplode);
   const [highlighted, setHighlighted] = useState<string | null>(null);
-  const machine = findMachine(slug);
+  const machine = findScene(slug);
   if (!machine) return null;
 
   const { blocks } = structureOf(machine);
+  const kinds = kindsOf(machine);
   const counts = countByKind(blocks);
   const legend = Object.keys(counts);
 
   const list = (
     <ul className="self-center">
       {legend.map((id) => {
-        const kind: BlockKind = KINDS[id as KindId];
+        const kind: BlockKind = kinds[id];
         return (
           <li key={id}>
             <button
@@ -124,7 +126,7 @@ export function MachineDiagram({ slug }: MachineDiagramProps) {
       <Figure caption="Двигайте ползунок — блоки раздвинутся. Наведите на строку справа, чтобы найти такие блоки в постройке.">
         <svg viewBox={`0 0 ${width} ${iso.height}`} role="img" aria-label={`Разбор по блокам: ${machine.title}`} className="w-full">
           {placed.map(({ block, position }) => {
-            const kind: BlockKind = KINDS[block.kind as KindId];
+            const kind: BlockKind = kinds[block.kind];
             return (
               <g
                 key={block.id}

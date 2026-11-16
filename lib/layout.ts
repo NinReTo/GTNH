@@ -1,0 +1,199 @@
+import type { BlockKind, Face, Interior, StructureDef, Vec3 } from "./structure";
+import type { KindId, Machine } from "./machines";
+
+/**
+ * Сборка линий производства из построек: клетки мира (x — вправо, y — вверх, z — к фасаду),
+ * люки с явным направлением, трубы и кабели с явными отростками. Готовая сетка превращается
+ * в обычную схему постройки, и её рисует та же сцена, что и машины.
+ */
+export interface Cell {
+  readonly kind: string;
+  /** Куда смотрит грань с рисунком (люк, генератор, котёл, сундук). */
+  readonly face?: Face;
+  /** Отростки трубы или кабеля, носик воронки. */
+  readonly links?: readonly Face[];
+  /** Полость печи: там светится нутро. */
+  readonly isHollow?: boolean;
+}
+
+export type Grid = ReadonlyMap<string, Cell>;
+
+export const STEP: Readonly<Record<Face, Vec3>> = { px: [1, 0, 0], nx: [-1, 0, 0], py: [0, 1, 0], ny: [0, -1, 0], pz: [0, 0, 1], nz: [0, 0, -1] };
+const SIDES = Object.keys(STEP) as Face[];
+export const OPPOSITE: Readonly<Record<Face, Face>> = { px: "nx", nx: "px", py: "ny", ny: "py", pz: "nz", nz: "pz" };
+
+export const keyOf = (cell: Vec3): string => cell.join(",");
+export const cellOf = (key: string): Vec3 => key.split(",").map(Number) as unknown as Vec3;
+export const move = (cell: Vec3, side: Face, steps = 1): Vec3 => [0, 1, 2].map((axis) => cell[axis] + STEP[side][axis] * steps) as unknown as Vec3;
+
+/** Сторона, в которую надо шагнуть из from, чтобы попасть в соседнюю клетку to. */
+function sideTo(from: Vec3, to: Vec3): Face {
+  const side = SIDES.find((candidate) => keyOf(move(from, candidate)) === keyOf(to));
+  if (!side) throw new Error(`Клетки ${keyOf(from)} и ${keyOf(to)} не соседние`);
+  return side;
+}
+
+export function withCells(grid: Grid, cells: readonly (readonly [Vec3, Cell])[]): Grid {
+  const next = new Map(grid);
+  for (const [cell, value] of cells) next.set(keyOf(cell), value);
+  return next;
+}
+
+export interface Box {
+  readonly min: Vec3;
+  readonly max: Vec3;
+}
+
+export function boxOf(cells: readonly Vec3[]): Box {
+  const pick = (choose: (...values: number[]) => number) => [0, 1, 2].map((axis) => choose(...cells.map((cell) => cell[axis]))) as unknown as Vec3;
+  return { min: pick(Math.min), max: pick(Math.max) };
+}
+
+/** Стена бокса, на которой лежит клетка: сначала боковые (x), потом задняя и передняя, иначе — верх. */
+export function wallOf(cell: Vec3, box: Box): Face {
+  if (cell[0] === box.min[0]) return "nx";
+  if (cell[0] === box.max[0]) return "px";
+  if (cell[2] === box.min[2]) return "nz";
+  if (cell[2] === box.max[2]) return "pz";
+  return "py";
+}
+
+/**
+ * Кладёт постройку в сетку: (x, y, z) — левый передний нижний угол, строки схемы идут от фасада назад (−z).
+ * Люки, которые в схеме смотрят «наружу», получают явное направление — от стены своей постройки.
+ */
+export function placeMachine(grid: Grid, machine: Machine, at: Vec3, kinds: Readonly<Record<string, BlockKind>>, keepHollow: boolean): { readonly grid: Grid; readonly cells: readonly Vec3[] } {
+  const { layers, hollow = "" } = machine.def;
+  const placed: (readonly [Vec3, Cell])[] = [];
+  layers.forEach((rows, fromTop) =>
+    rows.forEach((row, rowIndex) =>
+      [...row].forEach((symbol, column) => {
+        if (symbol === " ") return;
+        const cell: Vec3 = [at[0] + column, at[1] + layers.length - 1 - fromTop, at[2] - rowIndex];
+        if (hollow.includes(symbol)) {
+          if (keepHollow) placed.push([cell, { kind: "", isHollow: true }]);
+          return;
+        }
+        placed.push([cell, { kind: machine.def.kinds[symbol] }]);
+      }),
+    ),
+  );
+  const cells = placed.map(([cell]) => cell);
+  const box = boxOf(cells);
+  const faced = placed.map(([cell, value]): readonly [Vec3, Cell] =>
+    kinds[value.kind]?.face?.rule === "outward" ? [cell, { ...value, face: wallOf(cell, box) }] : [cell, value],
+  );
+  return { grid: withCells(grid, faced), cells: placed.filter(([, value]) => !value.isHollow).map(([cell]) => cell) };
+}
+
+/**
+ * Ставит люк на стену постройки: берёт уже стоящий люк этого вида или блок корпуса на этой стене —
+ * пониже и поближе к середине стены. Грань люка смотрит наружу, клетка перед ней должна быть свободна.
+ */
+export function addHatch(grid: Grid, body: readonly Vec3[], kind: string, wall: Face, skip: readonly string[] = []): { readonly grid: Grid; readonly hatch: Vec3; readonly out: Vec3 } {
+  const box = boxOf(body);
+  const middle = [0, 1, 2].map((axis) => (box.min[axis] + box.max[axis]) / 2);
+  const isFree = (cell: Vec3) => !grid.has(keyOf(cell));
+  const existing = body.find((cell) => grid.get(keyOf(cell))?.kind === kind && !skip.includes(keyOf(cell)) && isFree(move(cell, wall)) && wallOf(cell, box) === wall);
+  const candidates = body
+    .filter((cell) => {
+      const value = grid.get(keyOf(cell));
+      return value && !value.isHollow && !/ontroller|Hatch|Bus|energy|muffler|maintenance/i.test(value.kind) && !skip.includes(keyOf(cell)) && isFree(move(cell, wall));
+    })
+    .filter((cell) => wallOf(cell, box) === wall || (wall === "nz" && cell[2] === box.min[2]) || (wall === "pz" && cell[2] === box.max[2]))
+    .sort((a, b) => a[1] - b[1] || Math.abs(a[0] - middle[0]) + Math.abs(a[2] - middle[2]) - (Math.abs(b[0] - middle[0]) + Math.abs(b[2] - middle[2])));
+  const hatch = existing ?? candidates[0];
+  if (!hatch) throw new Error(`Нет места для люка ${kind} на стене ${wall}`);
+  return { grid: withCells(grid, [[hatch, { kind, face: wall }]]), hatch, out: move(hatch, wall) };
+}
+
+/**
+ * Путь по свободным клеткам от from до любой клетки-цели (поиск в ширину): так трубы и кабели
+ * обходят постройки и друг друга. Цели могут быть заняты — например, уже проложенным кабелем.
+ */
+export function route(grid: Grid, from: Vec3, goals: readonly Vec3[], margin: number): readonly Vec3[] {
+  const goalKeys = new Set(goals.map(keyOf));
+  const box = boxOf([...[...grid.keys()].map(cellOf), from, ...goals]);
+  const inside = (cell: Vec3) => cell[1] >= 0 && [0, 1, 2].every((axis) => cell[axis] >= box.min[axis] - margin && cell[axis] <= box.max[axis] + margin);
+  const previous = new Map<string, string | null>([[keyOf(from), null]]);
+  const queue: Vec3[] = [from];
+  for (let index = 0; index < queue.length; index += 1) {
+    const cell = queue[index];
+    if (goalKeys.has(keyOf(cell))) {
+      const path: Vec3[] = [];
+      for (let key: string | null = keyOf(cell); key; key = previous.get(key) ?? null) path.unshift(cellOf(key));
+      return path;
+    }
+    for (const side of SIDES) {
+      const next = move(cell, side);
+      const key = keyOf(next);
+      if (previous.has(key) || !inside(next) || (grid.has(key) && !goalKeys.has(key))) continue;
+      previous.set(key, keyOf(cell));
+      queue.push(next);
+    }
+  }
+  throw new Error(`Не нашёл пути от ${keyOf(from)}`);
+}
+
+/** Кладёт трубу или кабель по пути. Отростки — к соседям по пути и к концам; с уже лежащим участком того же вида они срастаются. */
+export function lay(grid: Grid, path: readonly Vec3[], kind: string, startLink?: Face, endLink?: Face): Grid {
+  const placed = path.map((cell, index): readonly [Vec3, Cell] => {
+    const links = new Set<Face>(grid.get(keyOf(cell))?.kind === kind ? (grid.get(keyOf(cell))?.links ?? []) : []);
+    if (index > 0) links.add(sideTo(cell, path[index - 1]));
+    if (index < path.length - 1) links.add(sideTo(cell, path[index + 1]));
+    if (index === 0 && startLink) links.add(startLink);
+    if (index === path.length - 1 && endLink) links.add(endLink);
+    return [cell, { kind, links: [...links].sort() }];
+  });
+  return withCells(grid, placed);
+}
+
+/** Ряд одинаковых блоков (генераторы, котлы) вдоль x, лицом в одну сторону. */
+export function row(grid: Grid, start: Vec3, count: number, kind: string, face: Face): Grid {
+  return withCells(grid, Array.from({ length: count }, (_unused, index): readonly [Vec3, Cell] => [move(start, "px", index), { kind, face }]));
+}
+
+/** Буквы схемы берутся из дальней части таблицы символов: их много, и они не пересекаются с буквами построек. */
+const FIRST_SYMBOL = "Ā".charCodeAt(0);
+
+/** Превращает сетку в обычную постройку сайта. */
+export function toMachine(grid: Grid, base: Omit<Machine, "def">, extraKinds: Readonly<Record<string, BlockKind>>, interior?: Interior): Machine {
+  const cells = [...grid.keys()].map(cellOf);
+  const { min, max } = boxOf(cells);
+  const symbols = new Map<string, string>();
+  const kinds: Record<string, KindId> = {};
+  const faces: Record<string, Face> = {};
+  const links: Record<string, readonly Face[]> = {};
+  let hollow = "";
+  const symbolOf = (value: Cell): string => {
+    const signature = [value.isHollow ? "hollow" : value.kind, value.face ?? "", ...(value.links ?? [])].join(":");
+    const known = symbols.get(signature);
+    if (known) return known;
+    const symbol = String.fromCharCode(FIRST_SYMBOL + symbols.size);
+    symbols.set(signature, symbol);
+    if (value.isHollow) hollow += symbol;
+    // Виды из extraKinds в общий справочник не входят — сцена берёт их из самой постройки (kindsOf).
+    else kinds[symbol] = value.kind as KindId;
+    if (value.face) faces[symbol] = value.face;
+    if (value.links) links[symbol] = value.links;
+    return symbol;
+  };
+  const layers = Array.from({ length: max[1] - min[1] + 1 }, (_layer, fromTop) =>
+    Array.from({ length: max[2] - min[2] + 1 }, (_row, fromFront) =>
+      Array.from({ length: max[0] - min[0] + 1 }, (_column, x) => {
+        const value = grid.get(keyOf([min[0] + x, max[1] - fromTop, max[2] - fromFront]));
+        return value ? symbolOf(value) : " ";
+      }).join(""),
+    ),
+  );
+  const def: StructureDef & { readonly kinds: Readonly<Record<string, KindId>> } = {
+    layers,
+    kinds,
+    faces,
+    links,
+    extraKinds,
+    ...(hollow ? { hollow } : {}),
+    ...(interior ? { interior } : {}),
+  };
+  return { ...base, def };
+}

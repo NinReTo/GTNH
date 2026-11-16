@@ -1,10 +1,13 @@
 import { GAME } from "./config";
 
 /** Ярус напряжения на сайте. Пар — до электричества; дальше — ярусы самого мода. */
-export type TierId = "steam" | "lv" | "mv" | "hv" | "ev" | "iv" | "luv" | "zpm" | "uv" | "uhv" | "uev" | "uiv" | "umv" | "uxv" | "max";
+export type TierId = "steam" | "lv" | "mv" | "hv" | "ev" | "iv" | "luv" | "zpm" | "uv" | "uhv" | "uev" | "uiv" | "umv" | "uxv";
 
-/** Что показывает шапка страницы яруса: весь паровой цех или одну постройку. */
-export type TierScene = { readonly kind: "workshop" } | { readonly kind: "machine"; readonly slug: string };
+/** Что показывает шапка страницы яруса: весь паровой цех, одну постройку или одну одноблочную машину (у МАХ построек нет). */
+export type TierScene =
+  | { readonly kind: "workshop" }
+  | { readonly kind: "machine"; readonly slug: string }
+  | { readonly kind: "single"; readonly slug: string };
 
 export interface Tier {
   readonly id: TierId;
@@ -158,32 +161,21 @@ export const TIERS: readonly Tier[] = [
     title: "UMV",
     subtitle: `${GAME.voltageTiers[GAME.highTiers.umv].voltage} EU/t`,
     color: GAME.tierColors.umv,
-    // Контроллер эндотермического холодильника — постройки, которую ярус улучшает.
-    icon: "fridge-controller",
+    // Контроллер Глаза гармонии — главной постройки яруса.
+    icon: "eoh-controller",
     summary:
-      "Двенадцатый ярус, предпоследний. Новых построек почти нет — это ярус улучшений: второй уровень холодильника, второе кольцо Кузницы богов, модули лифта T2 и T3. Цель — Глаз гармонии.",
-    scene: { kind: "machine", slug: "endothermic-fridge" },
+      "Двенадцатый ярус, предпоследний. Это ярус улучшений — второй уровень холодильника, второе кольцо Кузницы богов, модули лифта T2 и T3 — и Глаза гармонии, последней и самой дорогой постройки игры.",
+    scene: { kind: "machine", slug: "eye-of-harmony" },
   },
   {
     id: "uxv",
     title: "UXV",
     subtitle: `${GAME.voltageTiers[GAME.highTiers.uxv].voltage} EU/t`,
     color: GAME.tierColors.uxv,
-    // Контроллер Глаза гармонии — постройки, по которой книга заданий и называет эту эру.
-    icon: "eoh-controller",
-    summary:
-      "Тринадцатый и последний ярус GTNH 2.9. В книге заданий это «эра Глаза гармонии»: он делает универсиум, а из него — детали UXV и Звёздные врата.",
-    scene: { kind: "machine", slug: "eye-of-harmony" },
-  },
-  {
-    id: "max",
-    title: "MAX",
-    subtitle: `${GAME.voltageTiers[GAME.highTiers.max].voltage} EU/t`,
-    color: GAME.tierColors.max,
-    // Шеврон Звёздных врат — последней цели книги заданий.
+    // Шеврон Звёздных врат — последней цели книги заданий (в вики врата отнесены к UXV).
     icon: "sg-chevron",
     summary:
-      "Последнее напряжение мода, в книге заданий — «МАХ». Планковские МАХ-схемы, детали МАХ («Ты это сделал!» — последний этап игры) и главная цель всей сборки — Звёздные врата.",
+      "Тринадцатый и последний ярус GTNH 2.9. В книге заданий это «эра Глаза гармонии»: из его универсиума делают детали UXV, а главная цель — Звёздные врата.",
     scene: { kind: "machine", slug: "stargate" },
   },
 ];

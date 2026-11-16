@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CardStageLoader, StepCard } from "@/components/cards/Cards";
+import { CraftLine } from "@/components/landing/CraftLine";
 import { LineRow } from "@/components/landing/LineRow";
 import { SectionHeading } from "@/components/landing/ui";
 import { SceneSection } from "@/components/scene/SceneSection";
 import { GAME } from "@/lib/config";
+import { craftLinesOf } from "@/lib/crafts";
 import { catalogOf, linesOf, type CatalogGroup } from "@/lib/lines";
 import { TIERS, findTier } from "@/lib/tiers";
 
@@ -53,13 +55,17 @@ export default async function TierPage({ params }: PageProps) {
   const lines = linesOf(tier.id);
   const catalog = catalogOf(tier.id);
   // Номера разделов по порядку: прогрессий или каталога у яруса может не быть.
-  const order = [lines.length > 0 && "lines", catalog.length > 0 && "catalog"].filter(Boolean);
+  const crafts = craftLinesOf(tier.id);
+  const order = [crafts.length > 0 && "craft", lines.length > 0 && "lines", catalog.length > 0 && "catalog"].filter(Boolean);
   const indexOf = (section: string) => String(order.indexOf(section) + 1).padStart(2, "0");
 
   return (
     <>
       <CardStageLoader />
-      <SceneSection slug={tier.scene.kind === "machine" ? tier.scene.slug : undefined}>
+      <SceneSection
+        slug={tier.scene.kind === "machine" ? tier.scene.slug : undefined}
+        single={tier.scene.kind === "single" ? tier.scene.slug : undefined}
+      >
         <span className="block h-1 w-12" style={{ backgroundColor: tier.color }} />
         <h1 className="mt-4 font-mono text-5xl font-bold uppercase leading-none tracking-tight sm:text-7xl" style={{ color: tier.color }}>
           {tier.title}
@@ -69,6 +75,30 @@ export default async function TierPage({ params }: PageProps) {
       </SceneSection>
 
       <main className="relative bg-bg">
+        {crafts.length > 0 && (
+          <section className="mx-auto max-w-6xl px-6 pt-20 sm:px-12 lg:pt-28">
+            <SectionHeading index={indexOf("craft")} kicker={tier.title} title={crafts.length > 1 ? "Главные металлы" : "Главный металл"} />
+            <p className={prose}>
+              Из главного металла яруса делают корпуса всех машин. Здесь — как его получить: от сырья до слитка, шаг за
+              шагом, и в какой машине идёт каждый шаг. Число в углу ячейки — сколько штук. Наведите курсор на ячейку,
+              чтобы увидеть название.
+            </p>
+            {crafts.map((craft) => (
+              <div key={craft.metal} className="mt-12">
+                <h3 className="font-mono text-lg uppercase tracking-[0.1em] text-text1">
+                  {craft.material ? (
+                    <Link href={`/materials/${craft.material}`} className={link}>
+                      {craft.metal} — как получить →
+                    </Link>
+                  ) : (
+                    craft.metal
+                  )}
+                </h3>
+                <CraftLine line={craft} />
+              </div>
+            ))}
+          </section>
+        )}
         {lines.length > 0 && (
           <section className="mx-auto max-w-6xl px-6 py-20 sm:px-12 lg:py-28">
             <SectionHeading index={indexOf("lines")} kicker={tier.title} title="Прогрессия" />

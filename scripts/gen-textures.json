@@ -1,0 +1,1887 @@
+{
+ "g-reinforced-wood-top": {
+  "src": "gregtech/textures/blocks/iconsets/CASING_REINFORCED_WOOD_TOP"
+ },
+ "g-frame-steel": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   128,
+   128,
+   128
+  ]
+ },
+ "g-big-barrel-brewery-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/CASING_REINFORCED_WOOD_TOP",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_MULTI_BREWERY_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/CASING_REINFORCED_WOOD_TOP"
+ },
+ "g-clean-stainlesssteel": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CLEAN_STAINLESSSTEEL"
+ },
+ "g-item-pipe-tin": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ITEM_PIPE_TIN"
+ },
+ "g-dissection-apparatus-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CLEAN_STAINLESSSTEEL",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_INDUSTRIAL_EXTRACTOR_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CLEAN_STAINLESSSTEEL"
+ },
+ "g-microwave-grinder-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CLEAN_STAINLESSSTEEL",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_ELECTRIC_BLAST_FURNACE_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CLEAN_STAINLESSSTEEL"
+ },
+ "g-industrial-sieve": {
+  "src": "gregtech/textures/blocks/iconsets/INDUSTRIAL_SIEVE_CASING"
+ },
+ "g-large-sieve-grate": {
+  "src": "gregtech/textures/blocks/iconsets/LARGE_SIEVE_GRATE"
+ },
+ "g-large-sifter-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/INDUSTRIAL_SIEVE_CASING",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/industrialSifterActive",
+  "base": "gregtech/textures/blocks/iconsets/INDUSTRIAL_SIEVE_CASING"
+ },
+ "g-chemically-inert": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CHEMICALLY_INERT"
+ },
+ "g-frame-polyvinylchloride": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   215,
+   230,
+   230
+  ]
+ },
+ "g-latex-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CHEMICALLY_INERT",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_MULTI_LATEX_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CHEMICALLY_INERT"
+ },
+ "g-tm-tesla-base-sides": {
+  "src": "gregtech/textures/blocks/iconsets/TM_TESLA_BASE_SIDES"
+ },
+ "g-tm-tesla-toroid": {
+  "src": "gregtech/textures/blocks/iconsets/TM_TESLA_TOROID"
+ },
+ "g-tm-tesla-winding-secon": {
+  "src": "gregtech/textures/blocks/iconsets/TM_TESLA_WINDING_SECONDARY_SIDES"
+ },
+ "g-frame-titanium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   220,
+   160,
+   240
+  ]
+ },
+ "g-tesla-tower-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/TM_TESLA_BASE_SIDES",
+  "overlay": "gregtech/textures/blocks/iconsets/TM_TESLA_TOWER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/TM_TESLA_BASE_SIDES"
+ },
+ "g-robust-tungstensteel": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ROBUST_TUNGSTENSTEEL"
+ },
+ "g-iridium": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_IRIDIUM"
+ },
+ "g-frame-damascussteel": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   110,
+   110,
+   110
+  ]
+ },
+ "g-frame-tungsten": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   50,
+   50,
+   50
+  ]
+ },
+ "g-item-pipe-black-pluton": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ITEM_PIPE_BLACK_PLUTONIUM"
+ },
+ "g-1": {
+  "src": "goodgenerator/textures/blocks/preciseUnitCasing/1"
+ },
+ "g-solar-factory-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CLEAN_STAINLESSSTEEL",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_SOLAR_FACTORY_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CLEAN_STAINLESSSTEEL"
+ },
+ "g-solid-steel": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_SOLID_STEEL"
+ },
+ "g-pipe-steel": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PIPE_STEEL"
+ },
+ "g-turbocan-pro-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_SOLID_STEEL",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_MULTI_CANNER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_SOLID_STEEL"
+ },
+ "g-tfftcasing": {
+  "src": "kekztech/textures/blocks/TFFTCasing"
+ },
+ "g-tfftstorage-field-bloc": {
+  "src": "kekztech/textures/blocks/TFFTStorageFieldBlock1"
+ },
+ "g-tfft-ctl": {
+  "src": "kekztech/textures/blocks/TFFTCasing",
+  "overlay": "gregtech/textures/blocks/iconsets/TFFT_ACTIVE",
+  "base": "kekztech/textures/blocks/TFFTCasing"
+ },
+ "g-concrete-light-stone": {
+  "src": "gregtech/textures/blocks/iconsets/CONCRETE_LIGHT_STONE"
+ },
+ "g-frame-tungstencarbide": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   51,
+   0,
+   102
+  ]
+ },
+ "g-coolant-tower-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/CONCRETE_LIGHT_STONE",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_HEAT_EXCHANGER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/CONCRETE_LIGHT_STONE"
+ },
+ "g-extreme-entity-crush-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_SOLID_STEEL",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_DISTILLATION_TOWER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_SOLID_STEEL"
+ },
+ "g-heatproofcasing": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_HEATPROOFCASING"
+ },
+ "g-dissolution-tank-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CLEAN_STAINLESSSTEEL",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_OIL_CRACKER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CLEAN_STAINLESSSTEEL"
+ },
+ "g-pipe-titanium": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PIPE_TITANIUM"
+ },
+ "g-stable-titanium": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_STABLE_TITANIUM"
+ },
+ "g-large-heat-exchanger-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_STABLE_TITANIUM",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_HEAT_EXCHANGER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_STABLE_TITANIUM"
+ },
+ "g-block-iron-fence": {
+  "src": "gregtech/textures/blocks/iconsets/BLOCK_IRON_FENCE"
+ },
+ "g-gearbox-steel": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_GEARBOX_STEEL"
+ },
+ "g-coil-cupronickel-backg": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_COIL_CUPRONICKEL_BACKGROUND"
+ },
+ "g-sturdy-printer": {
+  "src": "gregtech/textures/blocks/iconsets/STURDY_PRINTER_CASING"
+ },
+ "g-industrial-3d-copyin-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/STURDY_PRINTER_CASING",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/industrialChiselActive",
+  "base": "gregtech/textures/blocks/iconsets/STURDY_PRINTER_CASING"
+ },
+ "g-stable-tantalloy61": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_TANTALLOY61"
+ },
+ "g-firebox-bronze": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_FIREBOX_BRONZE"
+ },
+ "g-industrial-coke-oven-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_TANTALLOY61",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/cokeOvenActive",
+  "base": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_TANTALLOY61"
+ },
+ "g-compressor-pipe": {
+  "src": "gregtech/textures/blocks/iconsets/COMPRESSOR_PIPE_CASING"
+ },
+ "g-compressor": {
+  "src": "gregtech/textures/blocks/iconsets/COMPRESSOR_CASING"
+ },
+ "g-large-electric-compr-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/COMPRESSOR_CASING",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_MULTI_COMPRESSOR_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/COMPRESSOR_CASING"
+ },
+ "g-solenoid-ev": {
+  "src": "gregtech/textures/blocks/iconsets/EV_SIDE_CYCLOTRON_SOLENOID"
+ },
+ "g-frame-blacksteel": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   100,
+   100,
+   100
+  ]
+ },
+ "g-large-fluid-extracto-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ROBUST_TUNGSTENSTEEL",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/largeFluidExtractorActive",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ROBUST_TUNGSTENSTEEL"
+ },
+ "g-grate": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_GRATE"
+ },
+ "g-industrial-precision-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_SOLID_STEEL",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_MULTI_LATHE_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_SOLID_STEEL"
+ },
+ "g-forming-core": {
+  "src": "gregtech/textures/blocks/iconsets/FORMING_CORE"
+ },
+ "g-gearbox-titanium": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_GEARBOX_TITANIUM"
+ },
+ "g-industrial-bending-m-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_STABLE_TITANIUM",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/industrialPlatePressActive",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_STABLE_TITANIUM"
+ },
+ "g-industrial-forming-p-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_STABLE_TITANIUM",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/industrialPlatePressActive",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_STABLE_TITANIUM"
+ },
+ "g-precise-stationary": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PRECISE_STATIONARY"
+ },
+ "g-frame-polytetrafluoroethylene": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   100,
+   100,
+   100
+  ]
+ },
+ "g-pipe-polytetrafluoroet": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PIPE_POLYTETRAFLUOROETHYLENE"
+ },
+ "g-large-neutralization-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PRECISE_STATIONARY",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_LNE_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PRECISE_STATIONARY"
+ },
+ "g-stable-red-steel": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_RED_STEEL"
+ },
+ "g-frame-redsteel": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   140,
+   100,
+   100
+  ]
+ },
+ "g-large-thermal-refine-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_RED_STEEL",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/industrialThermalCentrifugeActive",
+  "base": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_RED_STEEL"
+ },
+ "g-stable-grisium": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_GRISIUM"
+ },
+ "g-ore-washing-plant-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_GRISIUM",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/industrialWashPlantActive",
+  "base": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_GRISIUM"
+ },
+ "g-engine-intake": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ENGINE_INTAKE"
+ },
+ "g-large-semifluid-burn-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ENGINE_INTAKE",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_DIESEL_ENGINE_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ENGINE_INTAKE"
+ },
+ "g-reinforced-glass": {
+  "src": "gregtech/textures/blocks/iconsets/REINFORCED_GLASS"
+ },
+ "g-yszceramic-electrolyte": {
+  "src": "kekztech/textures/blocks/YSZCeramicElectrolyteUnit"
+ },
+ "g-solid-oxide-fuel-cel-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CLEAN_STAINLESSSTEEL",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_HEAT_EXCHANGER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CLEAN_STAINLESSSTEEL"
+ },
+ "g-item-pipe-electrum": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ITEM_PIPE_ELECTRUM"
+ },
+ "g-frame-iron": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   200,
+   200,
+   200
+  ]
+ },
+ "g-amazon": {
+  "src": "miscutils/textures/blocks/TileEntities/CASING_AMAZON"
+ },
+ "g-amazon-warehousing-d-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/CASING_AMAZON",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/amazonPackagerActive",
+  "base": "miscutils/textures/blocks/TileEntities/CASING_AMAZON"
+ },
+ "g-boldarnator-ctl": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/industrialRockBreakerActive",
+  "base": "gregtech/textures/blocks/materialicons/NONE/frameGt"
+ },
+ "g-frame-leagrisium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   53,
+   93,
+   106
+  ]
+ },
+ "g-advanced-cryogenic": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_ADVANCED_CRYOGENIC"
+ },
+ "g-cryogenic-freezer-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_ADVANCED_CRYOGENIC",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/industrialVacuumFreezerActive",
+  "base": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_ADVANCED_CRYOGENIC"
+ },
+ "g-dangote-distillus-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CLEAN_STAINLESSSTEEL",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_DISTILLATION_TOWER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CLEAN_STAINLESSSTEEL"
+ },
+ "g-assembler": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ASSEMBLER"
+ },
+ "g-gearbox-tungstensteel": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_GEARBOX_TUNGSTENSTEEL"
+ },
+ "g-advanced-assembly-li-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_GRATE",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_SCREEN",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_GRATE"
+ },
+ "g-deep-earth-heating-p-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_HEATPROOFCASING",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_SCREEN",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_HEATPROOFCASING"
+ },
+ "g-radiationproof": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_RADIATIONPROOF"
+ },
+ "g-decay-warehouse-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_RADIATIONPROOF",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_SCREEN",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_RADIATIONPROOF"
+ },
+ "g-refined-graphite": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_REFINED_GRAPHITE"
+ },
+ "g-frame-gold": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   255,
+   255,
+   30
+  ]
+ },
+ "g-frame-tungstensteel": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   100,
+   100,
+   160
+  ]
+ },
+ "g-sheet-gold": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/sheetmetal",
+  "tint": [
+   255,
+   255,
+   30
+  ]
+ },
+ "g-density-squared-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ROBUST_TUNGSTENSTEEL",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/advancedImplosionActive",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ROBUST_TUNGSTENSTEEL"
+ },
+ "g-digester-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ROBUST_TUNGSTENSTEEL",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_OIL_CRACKER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ROBUST_TUNGSTENSTEEL"
+ },
+ "g-sheet-steel": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/sheetmetal",
+  "tint": [
+   128,
+   128,
+   128
+  ]
+ },
+ "g-drone-centre-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_SOLID_STEEL",
+  "overlay": "gregtech/textures/blocks/iconsets/DRONE_CENTRE_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_SOLID_STEEL"
+ },
+ "g-sterile": {
+  "src": "miscutils/textures/blocks/TileEntities/sterileCasing"
+ },
+ "g-extreme-industrial-g-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/sterileCasing",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_DISTILLATION_TOWER_ACTIVE",
+  "base": "miscutils/textures/blocks/TileEntities/sterileCasing"
+ },
+ "g-iv-side": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_IV_SIDE"
+ },
+ "g-autoclave": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_AUTOCLAVE"
+ },
+ "g-cable": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CABLE"
+ },
+ "g-graphite-moderator": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_GRAPHITE_MODERATOR"
+ },
+ "g-insulated-fluid-pipe": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_INSULATED_FLUID_PIPE"
+ },
+ "g-beryllium-integrated-r": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_BERYLLIUM_INTEGRATED_REACTOR"
+ },
+ "g-processor": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PROCESSOR"
+ },
+ "g-pump": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PUMP"
+ },
+ "g-motor": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_MOTOR"
+ },
+ "g-pipe-tungstensteel": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PIPE_TUNGSTENSTEEL"
+ },
+ "g-htgr-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_IV_SIDE",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_HEAT_EXCHANGER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_IV_SIDE"
+ },
+ "g-frame-potin": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   201,
+   151,
+   129
+  ]
+ },
+ "g-item-pipe-brass": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ITEM_PIPE_BRASS"
+ },
+ "g-stable-potin": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_POTIN"
+ },
+ "g-industrial-electroly-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_POTIN",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/industrialElectrolyzerActive",
+  "base": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_POTIN"
+ },
+ "g-tension-resistant-mach": {
+  "src": "gregtech/textures/blocks/iconsets/TENSION_RESISTANT_MACHINE_CASING"
+ },
+ "g-extruder-machine": {
+  "src": "gregtech/textures/blocks/iconsets/EXTRUDER_MACHINE_CASING"
+ },
+ "g-sheet-tungsten": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/sheetmetal",
+  "tint": [
+   50,
+   50,
+   50
+  ]
+ },
+ "g-industrial-extrusion-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/EXTRUDER_MACHINE_CASING",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/industrialExtruderActive",
+  "base": "gregtech/textures/blocks/iconsets/EXTRUDER_MACHINE_CASING"
+ },
+ "g-turbine-titanium": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_TURBINE_TITANIUM"
+ },
+ "g-mixing": {
+  "src": "gregtech/textures/blocks/iconsets/MIXING_CASING"
+ },
+ "g-industrial-mixing-ma-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MIXING_CASING",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/industrialMixerActive",
+  "base": "gregtech/textures/blocks/iconsets/MIXING_CASING"
+ },
+ "g-solenoid-iv": {
+  "src": "gregtech/textures/blocks/iconsets/IV_SIDE_CYCLOTRON_SOLENOID"
+ },
+ "g-forge": {
+  "src": "gregtech/textures/blocks/iconsets/FORGE_CASING"
+ },
+ "g-bwadv-176-176-186": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/blockCasingAdvanced",
+  "tint": [
+   176,
+   176,
+   186
+  ]
+ },
+ "g-industrial-sledgeham-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/FORGE_CASING",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/industrialForgeHammerActive",
+  "base": "gregtech/textures/blocks/iconsets/FORGE_CASING"
+ },
+ "g-laser": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_LASER"
+ },
+ "g-laser-plate": {
+  "src": "gregtech/textures/blocks/iconsets/LASER_PLATE"
+ },
+ "g-hyper-intensity-lase-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_LASER",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_ENGRAVER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_LASER"
+ },
+ "g-large-molecular-asse-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ROBUST_TUNGSTENSTEEL",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_ME_HATCH_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ROBUST_TUNGSTENSTEEL"
+ },
+ "g-stable-maragingsteel": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_MARAGINGSTEEL"
+ },
+ "g-industrial-wire-fact-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_MARAGINGSTEEL",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/industrialWiremillActive",
+  "base": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_MARAGINGSTEEL"
+ },
+ "g-frame-tantalum_carbide": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   139,
+   136,
+   120
+  ]
+ },
+ "g-sheet-blacksteel": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/sheetmetal",
+  "tint": [
+   100,
+   100,
+   100
+  ]
+ },
+ "g-cutting-factory-frame": {
+  "src": "gregtech/textures/blocks/iconsets/CUTTING_FACTORY_FRAME"
+ },
+ "g-industrial-cutting-f-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/CUTTING_FACTORY_FRAME",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/industrialCuttingMachineActive",
+  "base": "gregtech/textures/blocks/iconsets/CUTTING_FACTORY_FRAME"
+ },
+ "g-frame-aquatic_steel": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   120,
+   120,
+   180
+  ]
+ },
+ "g-block-copper": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/block1",
+  "tint": [
+   255,
+   100,
+   0
+  ]
+ },
+ "g-block-zinc": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/block1",
+  "tint": [
+   250,
+   240,
+   240
+  ]
+ },
+ "g-industrial-chemical--ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_GRISIUM",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/industrialWashPlantActive",
+  "base": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_GRISIUM"
+ },
+ "g-ems": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_EMS"
+ },
+ "g-frame-neodymiummagnetic": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   100,
+   100,
+   100
+  ]
+ },
+ "g-magnetic-flux-exhibi-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_EMS",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_EMS_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_EMS"
+ },
+ "g-stable-stellite": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_STELLITE"
+ },
+ "g-stable-zeron100": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_ZERON100"
+ },
+ "g-lftr-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_STELLITE",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_NUCLEAR_REACTOR_ACTIVE",
+  "base": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_STELLITE"
+ },
+ "g-top": {
+  "src": "miscutils/textures/blocks/TileEntities/machine_top"
+ },
+ "g-nuclear-salt-process-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/machine_top",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_DISASSEMBLER_ACTIVE",
+  "base": "miscutils/textures/blocks/TileEntities/machine_top"
+ },
+ "g-mass-solidifier": {
+  "src": "gregtech/textures/blocks/iconsets/MASS_SOLIDIFIER_CASING"
+ },
+ "g-mass-solidifier-radiat": {
+  "src": "gregtech/textures/blocks/iconsets/MASS_SOLIDIFIER_RADIATOR_CASING"
+ },
+ "g-mass-solidifier-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MASS_SOLIDIFIER_CASING",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_MASS_SOLIDIFIER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MASS_SOLIDIFIER_CASING"
+ },
+ "g-stable-hastelloy-n": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_HASTELLOY_N"
+ },
+ "g-fluid-incoloy-ds": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_FLUID_INCOLOY_DS"
+ },
+ "g-stable-hastelloy-x": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_HASTELLOY_X"
+ },
+ "g-reactor-fuel-process-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_HASTELLOY_N",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_MULTI_SMELTER_ACTIVE",
+  "base": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_HASTELLOY_N"
+ },
+ "g-rocketdyne": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_ROCKETDYNE"
+ },
+ "g-inconel-reinforced": {
+  "src": "gregtech/textures/blocks/iconsets/INCONEL_REINFORCED_CASING"
+ },
+ "g-rocketdyne-f1a-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_ROCKETDYNE",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/largeRocketEngineActive",
+  "base": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_ROCKETDYNE"
+ },
+ "g-solar-tower-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_STELLITE",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/solarTowerActive",
+  "base": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_STELLITE"
+ },
+ "g-0": {
+  "src": "goodgenerator/textures/blocks/preciseUnitCasing/0"
+ },
+ "g-precise-auto-assembl-ctl": {
+  "src": "goodgenerator/textures/blocks/preciseUnitCasing/0",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_QTANK",
+  "base": "goodgenerator/textures/blocks/preciseUnitCasing/0"
+ },
+ "g-ev-side": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_EV_SIDE"
+ },
+ "g-zyngen-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/INCONEL_REINFORCED_CASING",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_MULTI_SMELTER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/INCONEL_REINFORCED_CASING"
+ },
+ "g-frame-maraging350": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   128,
+   128,
+   128
+  ]
+ },
+ "g-pipe-bronze": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PIPE_BRONZE"
+ },
+ "g-thermal-boiler-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_TANTALLOY61",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/thermalBoilerActive",
+  "base": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_TANTALLOY61"
+ },
+ "g-tree-growth-simulato-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/sterileCasing",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/treeFarmActive",
+  "base": "miscutils/textures/blocks/TileEntities/sterileCasing"
+ },
+ "g-aquatic": {
+  "src": "gregtech/textures/blocks/iconsets/AQUATIC_CASING"
+ },
+ "g-frame-stainlesssteel": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   200,
+   200,
+   220
+  ]
+ },
+ "g-sheet-stainlesssteel": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/sheetmetal",
+  "tint": [
+   200,
+   200,
+   220
+  ]
+ },
+ "g-zhuhai-fishing-port-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/AQUATIC_CASING",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_VACUUM_FREEZER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/AQUATIC_CASING"
+ },
+ "g-mv-side-cyclotron-sole": {
+  "src": "gregtech/textures/blocks/iconsets/MV_SIDE_CYCLOTRON_SOLENOID"
+ },
+ "g-redox-ev": {
+  "src": "gregtech/textures/blocks/iconsets/CASING_REDOX_EV"
+ },
+ "g-turbine-steel": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_TURBINE_STEEL"
+ },
+ "g-xl-turbo-steam-turbi-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_TURBINE_STEEL",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_SCREEN",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_TURBINE_STEEL"
+ },
+ "g-thtr-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_RADIATIONPROOF",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_HEAT_EXCHANGER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_RADIATIONPROOF"
+ },
+ "g-yotta-fluid-tank-casin": {
+  "src": "goodgenerator/textures/blocks/yottaFluidTankCasing_SIDE"
+ },
+ "g-yottank-ctl": {
+  "src": "goodgenerator/textures/blocks/yottaFluidTankCasing_SIDE",
+  "overlay": "gregtech/textures/blocks/iconsets/EM_CONTROLLER_ACTIVE",
+  "base": "goodgenerator/textures/blocks/yottaFluidTankCasing_SIDE"
+ },
+ "g-multi-use": {
+  "src": "gregtech/textures/blocks/iconsets/MULTI-USE_CASING"
+ },
+ "g-thermic-heating-devi-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_TANTALLOY61",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/fluidHeaterActive",
+  "base": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_TANTALLOY61"
+ },
+ "g-firebox-titanium": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_FIREBOX_TITANIUM"
+ },
+ "g-universal-chemical-f-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_STABLE_TITANIUM",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_DIESEL_ENGINE_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_STABLE_TITANIUM"
+ },
+ "g-water-plant-concrete": {
+  "src": "gregtech/textures/blocks/iconsets/WATER_PLANT_CONCRETE_CASING"
+ },
+ "g-frame-iridium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   240,
+   240,
+   245
+  ]
+ },
+ "g-vent": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_VENT"
+ },
+ "g-clarifier-purificati-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/WATER_PLANT_CONCRETE_CASING",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_DISTILLATION_TOWER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/WATER_PLANT_CONCRETE_CASING"
+ },
+ "g-lu-v-side": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_LuV_SIDE"
+ },
+ "g-frame-naquadahalloy": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   40,
+   40,
+   40
+  ]
+ },
+ "g-compact-fusion-react-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_LuV_SIDE",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FUSION1",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_LuV_SIDE"
+ },
+ "g-stable-talonite": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_TALONITE"
+ },
+ "g-frame-inconel_690": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   118,
+   220,
+   138
+  ]
+ },
+ "g-frame-staballoy": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   68,
+   75,
+   66
+  ]
+ },
+ "g-flotation-cell-regul-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_TALONITE",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/frothFlotationCellActive",
+  "base": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_TALONITE"
+ },
+ "g-pressure-resistant-wal": {
+  "src": "goodgenerator/textures/blocks/pressureResistantWalls"
+ },
+ "g-extreme-heat-exchang-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ROBUST_TUNGSTENSTEEL",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_HEAT_EXCHANGER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ROBUST_TUNGSTENSTEEL"
+ },
+ "g-bw-176-176-186": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/blockCasing",
+  "tint": [
+   176,
+   176,
+   186
+  ]
+ },
+ "g-firebox-steel": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_FIREBOX_STEEL"
+ },
+ "g-firebox-staballoy": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_FIREBOX_STABALLOY"
+ },
+ "g-industrial-arc-furna-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PIPE_STEEL",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_DISTILLATION_TOWER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PIPE_STEEL"
+ },
+ "g-pipe-t1": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_PIPE_T1"
+ },
+ "g-grinding-factory": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_GRINDING_FACTORY"
+ },
+ "g-gearbox-t1": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_GEARBOX_T1"
+ },
+ "g-isamill-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_GRINDING_FACTORY",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_SCREEN",
+  "base": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_GRINDING_FACTORY"
+ },
+ "g-industrial-autoclave-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_AUTOCLAVE",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_MULTI_AUTOCLAVE_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_AUTOCLAVE"
+ },
+ "g-molecular-containment": {
+  "src": "gregtech/textures/blocks/iconsets/MOLECULAR_CONTAINMENT_CASING"
+ },
+ "g-speeding-pipe-side": {
+  "src": "goodgenerator/textures/blocks/speedingPipe_SIDE"
+ },
+ "g-molecular-transforme-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MOLECULAR_CONTAINMENT_CASING",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/industrialMolecularTransformerActive",
+  "base": "gregtech/textures/blocks/iconsets/MOLECULAR_CONTAINMENT_CASING"
+ },
+ "g-ozone": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_OZONE"
+ },
+ "g-high-pressure-resistan": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_HIGH_PRESSURE_RESISTANT"
+ },
+ "g-ozonation-purificati-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_OZONE",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_LARGE_CHEMICAL_REACTOR_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_OZONE"
+ },
+ "g-bwadv-160-160-170": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/blockCasingAdvanced",
+  "tint": [
+   160,
+   160,
+   170
+  ]
+ },
+ "g-siphon": {
+  "src": "gtnhintergalactic/textures/blocks/gasSiphon/SiphonCasing"
+ },
+ "g-planetary-gas-siphon-ctl": {
+  "src": "gtnhintergalactic/textures/blocks/gasSiphon/SiphonCasing",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_SCREEN",
+  "base": "gtnhintergalactic/textures/blocks/gasSiphon/SiphonCasing"
+ },
+ "g-sparge-tower-exterior": {
+  "src": "gregtech/textures/blocks/iconsets/SPARGE_TOWER_EXTERIOR_CASING"
+ },
+ "g-sparge-tower-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/SPARGE_TOWER_EXTERIOR_CASING",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/spargeTowerActive",
+  "base": "gregtech/textures/blocks/iconsets/SPARGE_TOWER_EXTERIOR_CASING"
+ },
+ "g-vacuum-casing-side": {
+  "src": "gregtech/textures/blocks/iconsets/VACUUM_CASING_SIDE"
+ },
+ "g-utupu-tanuri-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/VACUUM_CASING_SIDE",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/industrialDehydratorActive",
+  "base": "gregtech/textures/blocks/iconsets/VACUUM_CASING_SIDE"
+ },
+ "g-whakawhiti-wera-xl-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_TALONITE",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/advancedHeatExchangerActive",
+  "base": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_STABLE_TALONITE"
+ },
+ "g-turbine-stainlesssteel": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_TURBINE_STAINLESSSTEEL"
+ },
+ "g-xl-turbo-gas-turbine-ctl": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_SCREEN",
+  "base": "gregtech/textures/blocks/materialicons/NONE/frameGt"
+ },
+ "g-industrial-strength-co": {
+  "src": "gregtech/textures/blocks/iconsets/INDUSTRIAL_STRENGTH_CONCRETE"
+ },
+ "g-industrial-water-plant": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_INDUSTRIAL_WATER_PLANT"
+ },
+ "g-water-purification-p-ctl": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_PURIFICATION_PLANT_ACTIVE",
+  "base": "gregtech/textures/blocks/materialicons/NONE/frameGt"
+ },
+ "g-em-power": {
+  "src": "gregtech/textures/blocks/iconsets/EM_POWER"
+ },
+ "g-active-transformer-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/EM_POWER",
+  "overlay": "gregtech/textures/blocks/iconsets/EM_CONTROLLER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/EM_POWER"
+ },
+ "g-em-pc": {
+  "src": "gregtech/textures/blocks/iconsets/EM_PC"
+ },
+ "g-em-pc-vent": {
+  "src": "gregtech/textures/blocks/iconsets/EM_PC_VENT"
+ },
+ "g-data-bank-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/EM_POWER",
+  "overlay": "gregtech/textures/blocks/iconsets/EM_CONTROLLER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/EM_POWER"
+ },
+ "g-em": {
+  "src": "gregtech/textures/blocks/iconsets/EM_CASING"
+ },
+ "g-em-coil": {
+  "src": "gregtech/textures/blocks/iconsets/EM_COIL"
+ },
+ "g-energy-infuser-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/EM_CASING",
+  "overlay": "gregtech/textures/blocks/iconsets/EM_CONTROLLER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/EM_CASING"
+ },
+ "g-flocculation": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_FLOCCULATION"
+ },
+ "g-frame-adamantium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   128,
+   128,
+   128
+  ]
+ },
+ "g-flocculation-purific-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_FLOCCULATION",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_LARGE_CHEMICAL_REACTOR_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_FLOCCULATION"
+ },
+ "g-matter-fabricator": {
+  "src": "gregtech/textures/blocks/iconsets/MATTER_FABRICATOR_CASING"
+ },
+ "g-matter-generation-coil": {
+  "src": "gregtech/textures/blocks/iconsets/MATTER_GENERATION_COIL"
+ },
+ "g-redox-uv": {
+  "src": "gregtech/textures/blocks/iconsets/CASING_REDOX_UV"
+ },
+ "g-particle-containment": {
+  "src": "gregtech/textures/blocks/iconsets/PARTICLE_CONTAINMENT_CASING"
+ },
+ "g-resonance-chamber-iii": {
+  "src": "gregtech/textures/blocks/iconsets/ResonanceChamber_III"
+ },
+ "g-modulator-3": {
+  "src": "gregtech/textures/blocks/iconsets/Modulator_3"
+ },
+ "g-elemental-confinement": {
+  "src": "gregtech/textures/blocks/iconsets/ELEMENTAL_CONFINEMENT_SHELL"
+ },
+ "g-elemental-duplicator-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/ELEMENTAL_CONFINEMENT_SHELL",
+  "overlay": "miscutils/textures/blocks/iconsets/controllerFaces/elementalDuplicatorActive",
+  "base": "gregtech/textures/blocks/iconsets/ELEMENTAL_CONFINEMENT_SHELL"
+ },
+ "g-coolant-duct": {
+  "src": "gregtech/textures/blocks/iconsets/COOLANT_DUCT_CASING"
+ },
+ "g-heating-duct": {
+  "src": "gregtech/textures/blocks/iconsets/HEATING_DUCT_CASING"
+ },
+ "g-hot-isostatic-pressu-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/COMPRESSOR_CASING",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_MULTI_COMPRESSOR_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/COMPRESSOR_CASING"
+ },
+ "g-large-scale-auto-ass-ctl": {
+  "src": "miscutils/textures/blocks/TileEntities/machine_top",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_DISASSEMBLER_ACTIVE",
+  "base": "miscutils/textures/blocks/TileEntities/machine_top"
+ },
+ "g-shielded-accelerator": {
+  "src": "gtnhlanth/textures/blocks/casing.shielded_accelerator"
+ },
+ "g-electrode": {
+  "src": "gtnhlanth/textures/blocks/casing.electrode"
+ },
+ "g-coolant-delivery": {
+  "src": "gtnhlanth/textures/blocks/casing.coolant_delivery"
+ },
+ "g-linear-accelerator-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_GRATE",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_OIL_CRACKER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_GRATE"
+ },
+ "g-source-chamber-ctl": {
+  "src": "gtnhlanth/textures/blocks/casing.shielded_accelerator",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_OIL_CRACKER_ACTIVE",
+  "base": "gtnhlanth/textures/blocks/casing.shielded_accelerator"
+ },
+ "g-niobium-cavity": {
+  "src": "gtnhlanth/textures/blocks/casing.niobium_cavity"
+ },
+ "g-antenna-t1": {
+  "src": "gtnhlanth/textures/blocks/casing.antenna_t1"
+ },
+ "g-synchrotron-ctl": {
+  "src": "gtnhlanth/textures/blocks/casing.shielded_accelerator",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_OIL_CRACKER_ACTIVE",
+  "base": "gtnhlanth/textures/blocks/casing.shielded_accelerator"
+ },
+ "g-focus-manipulator": {
+  "src": "gtnhlanth/textures/blocks/casing.focus_manipulator"
+ },
+ "g-focus-holder": {
+  "src": "gtnhlanth/textures/blocks/casing.focus_holder"
+ },
+ "g-target-receptacle": {
+  "src": "gtnhlanth/textures/blocks/casing.target_receptacle"
+ },
+ "g-target-holder": {
+  "src": "gtnhlanth/textures/blocks/casing.target_holder"
+ },
+ "g-target-chamber-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_GRATE",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_OIL_CRACKER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_GRATE"
+ },
+ "g-extreme-corrosion-resi": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_EXTREME_CORROSION_RESISTANT"
+ },
+ "g-naquadah-reinforced-wa": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_NAQUADAH_REINFORCED_WATER_PLANT"
+ },
+ "g-ph-neutralization-pu-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_NAQUADAH_REINFORCED_WATER_PLANT",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_LARGE_CHEMICAL_REACTOR_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_NAQUADAH_REINFORCED_WATER_PLANT"
+ },
+ "g-spinmatron": {
+  "src": "gregtech/textures/blocks/iconsets/SPINMATRON_CASING"
+ },
+ "g-pipe-polybenzimidazole": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PIPE_POLYBENZIMIDAZOLE"
+ },
+ "g-supercritical-fluid-tu": {
+  "src": "goodgenerator/textures/blocks/supercriticalFluidTurbineCasing"
+ },
+ "g-block-naquadahalloy": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/block1",
+  "tint": [
+   40,
+   40,
+   40
+  ]
+ },
+ "g-block-neutronium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/block1",
+  "tint": [
+   250,
+   250,
+   250
+  ]
+ },
+ "g-frame-neutronium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   250,
+   250,
+   250
+  ]
+ },
+ "g-block-nichrome": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/block1",
+  "tint": [
+   205,
+   206,
+   246
+  ]
+ },
+ "g-frame-infinity": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   128,
+   128,
+   128
+  ]
+ },
+ "g-block-whitedwarfmatter": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/block1",
+  "tint": [
+   0,
+   0,
+   0
+  ]
+ },
+ "g-frame-spacetime": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   255,
+   255,
+   255
+  ]
+ },
+ "g-spinmatron-2737-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/SPINMATRON_CASING",
+  "overlay": "gregtech/textures/blocks/iconsets/TFFT_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/SPINMATRON_CASING"
+ },
+ "g-coil-naquadah-backgrou": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_COIL_NAQUADAH_BACKGROUND"
+ },
+ "g-turbine-tungstensteel": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_TURBINE_TUNGSTENSTEEL"
+ },
+ "g-xl-turbo-plasma-turb-ctl": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_SCREEN",
+  "base": "gregtech/textures/blocks/materialicons/NONE/frameGt"
+ },
+ "g-mining-osmiridium": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_MINING_OSMIRIDIUM"
+ },
+ "g-frame-osmiridium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   100,
+   100,
+   255
+  ]
+ },
+ "g-void-miner-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_MINING_OSMIRIDIUM",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_SCREEN",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_MINING_OSMIRIDIUM"
+ },
+ "g-vent-t2": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_VENT_T2"
+ },
+ "g-component-assembly-l-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_IRIDIUM",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_COMPONENT_ASSEMBLY_LINE_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_IRIDIUM"
+ },
+ "g-beam-mirror-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_GRATE",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_BEAM_MIRROR",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_GRATE"
+ },
+ "g-beam-splitter-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_GRATE",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_BEAM_SPLITTER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_GRATE"
+ },
+ "g-beam-stabilizer-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_GRATE",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_BEAM_STABILIZER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_GRATE"
+ },
+ "g-beam-crafter-ctl": {
+  "src": "gtnhlanth/textures/blocks/casing.shielded_accelerator",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_BEAMCRAFTER_ACTIVE",
+  "base": "gtnhlanth/textures/blocks/casing.shielded_accelerator"
+ },
+ "g-plasma-heater": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PLASMA_HEATER"
+ },
+ "g-frame-superconductorzpmbase": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   10,
+   10,
+   10
+  ]
+ },
+ "g-temperature-fluctuat-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PLASMA_HEATER",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_LARGE_CHEMICAL_REACTOR_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PLASMA_HEATER"
+ },
+ "g-naquadria-reinforced-w": {
+  "src": "gregtech/textures/blocks/iconsets/NAQUADRIA_REINFORCED_WATER_PLANT_CASING"
+ },
+ "g-uv-backlight-sterilize": {
+  "src": "gregtech/textures/blocks/iconsets/UV_BACKLIGHT_STERILIZER_CASING"
+ },
+ "g-frame-stellaralloy": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   211,
+   255,
+   255
+  ]
+ },
+ "g-laser-purification-u-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/NAQUADRIA_REINFORCED_WATER_PLANT_CASING",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_LARGE_CHEMICAL_REACTOR_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/NAQUADRIA_REINFORCED_WATER_PLANT_CASING"
+ },
+ "g-collider": {
+  "src": "gregtech/textures/blocks/iconsets/COLLIDER_CASING"
+ },
+ "g-cms": {
+  "src": "gregtech/textures/blocks/iconsets/CMS_CASING"
+ },
+ "g-atlas": {
+  "src": "gregtech/textures/blocks/iconsets/ATLAS_CASING"
+ },
+ "g-alice": {
+  "src": "gregtech/textures/blocks/iconsets/ALICE_CASING"
+ },
+ "g-lhcb": {
+  "src": "gregtech/textures/blocks/iconsets/LHCB_CASING"
+ },
+ "g-large-hadron-collide-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/COLLIDER_CASING",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_LHC",
+  "base": "gregtech/textures/blocks/iconsets/COLLIDER_CASING"
+ },
+ "g-containment": {
+  "src": "gregtech/textures/blocks/iconsets/CONTAINMENT_CASING"
+ },
+ "g-matter-fabrication-c-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MATTER_FABRICATOR_CASING",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_SCREEN",
+  "base": "gregtech/textures/blocks/iconsets/MATTER_FABRICATOR_CASING"
+ },
+ "g-pcb-tier-1": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PCB_TIER_1"
+ },
+ "g-block-plascrete": {
+  "src": "gregtech/textures/blocks/iconsets/BLOCK_PLASCRETE"
+ },
+ "g-frame-vibrantalloy": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   149,
+   224,
+   17
+  ]
+ },
+ "g-pcb-tier-2": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PCB_TIER_2"
+ },
+ "g-frame-duranium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   255,
+   255,
+   255
+  ]
+ },
+ "g-pcb-tier-3": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PCB_TIER_3"
+ },
+ "g-radiant-naquadah-alloy": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_RADIANT_NAQUADAH_ALLOY"
+ },
+ "g-pcb-factory-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PCB_TIER_1",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_ASSEMBLY_LINE_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PCB_TIER_1"
+ },
+ "g-nano-forge-casing-1": {
+  "src": "gregtech/textures/blocks/iconsets/NANO_FORGE_CASING_1"
+ },
+ "g-nano-forge-casing-3": {
+  "src": "gregtech/textures/blocks/iconsets/NANO_FORGE_CASING_3"
+ },
+ "g-frame-magmatter": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   255,
+   255,
+   255
+  ]
+ },
+ "g-frame-blackdwarfmatter": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   0,
+   0,
+   0
+  ]
+ },
+ "g-frame-whitedwarfmatter": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   0,
+   0,
+   0
+  ]
+ },
+ "g-nano-forge-casing-4": {
+  "src": "gregtech/textures/blocks/iconsets/NANO_FORGE_CASING_4"
+ },
+ "g-nanite-core": {
+  "src": "gregtech/textures/blocks/iconsets/NANITE_CORE"
+ },
+ "g-nano-forge-casing-2": {
+  "src": "gregtech/textures/blocks/iconsets/NANO_FORGE_CASING_2"
+ },
+ "g-nano-forge-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_RADIANT_NAQUADAH_ALLOY",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_ASSEMBLY_LINE_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_RADIANT_NAQUADAH_ALLOY"
+ },
+ "g-em-pc-adv": {
+  "src": "gregtech/textures/blocks/iconsets/EM_PC_ADV"
+ },
+ "g-research-station-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/EM_PC",
+  "overlay": "gregtech/textures/blocks/iconsets/EM_CONTROLLER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/EM_PC"
+ },
+ "g-quantum-computer-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/EM_PC",
+  "overlay": "gregtech/textures/blocks/iconsets/EM_COMPUTER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/EM_PC"
+ },
+ "g-support-structure-side": {
+  "src": "gtnhintergalactic/textures/blocks/spaceElevator/SupportStructure_Side"
+ },
+ "g-base": {
+  "src": "gtnhintergalactic/textures/blocks/spaceElevator/BaseCasing"
+ },
+ "g-internal-structure-sid": {
+  "src": "gtnhintergalactic/textures/blocks/spaceElevator/InternalStructure_Side"
+ },
+ "g-motor-t1-side": {
+  "src": "gtnhintergalactic/textures/blocks/spaceElevator/MotorT1_Side"
+ },
+ "g-floor-side": {
+  "src": "gtnhintergalactic/textures/blocks/dysonSwarm/Floor_Side"
+ },
+ "g-space-elevator-ctl": {
+  "src": "gtnhintergalactic/textures/blocks/spaceElevator/BaseCasing",
+  "overlay": "gregtech/textures/blocks/iconsets/EM_CONTROLLER_ACTIVE",
+  "base": "gtnhintergalactic/textures/blocks/spaceElevator/BaseCasing"
+ },
+ "g-concrete-backfiller-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_SOLID_STEEL",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_SCREEN",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_SOLID_STEEL"
+ },
+ "g-defc-0": {
+  "src": "kubatech/textures/blocks/casing/defc_0"
+ },
+ "g-fusion-coil": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_FUSION_COIL"
+ },
+ "g-fusion": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_FUSION"
+ },
+ "g-defc-1": {
+  "src": "kubatech/textures/blocks/casing/defc_1"
+ },
+ "g-draconic-fusion-craf-ctl": {
+  "src": "kubatech/textures/blocks/casing/defc_0",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_TELEPORTER_ACTIVE",
+  "base": "kubatech/textures/blocks/casing/defc_0"
+ },
+ "g-coil-awakeneddraconium": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_COIL_AWAKENEDDRACONIUM_BACKGROUND"
+ },
+ "g-sheet-iridium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/sheetmetal",
+  "tint": [
+   240,
+   240,
+   245
+  ]
+ },
+ "g-centrifuge": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_CENTRIFUGE"
+ },
+ "g-integrated-ore-facto-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CLEAN_STAINLESSSTEEL",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_ORE_FACTORY_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_CLEAN_STAINLESSSTEEL"
+ },
+ "g-advancedradiationproof": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ADVANCEDRADIATIONPROOF"
+ },
+ "g-miniature-wormhole-g-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/EM_POWER",
+  "overlay": "miscutils/textures/blocks/iconsets/OVERLAY_FRONT_ADVANCED_MULTIBLOCK_ANIMATED_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/EM_POWER"
+ },
+ "g-mining-blackplutonium": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_MINING_BLACKPLUTONIUM"
+ },
+ "g-field-restricting-glas": {
+  "src": "goodgenerator/textures/blocks/fieldRestrictingGlass"
+ },
+ "g-naquadah-fuel-refine-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_MINING_BLACKPLUTONIUM",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_ASSEMBLY_LINE_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_MINING_BLACKPLUTONIUM"
+ },
+ "g-frame-bedrockium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   50,
+   50,
+   55
+  ]
+ },
+ "g-degasser-purificatio-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PLASMA_HEATER",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_LARGE_CHEMICAL_REACTOR_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_PLASMA_HEATER"
+ },
+ "g-block-quark-containmen": {
+  "src": "gregtech/textures/blocks/iconsets/BLOCK_QUARK_CONTAINMENT_CASING"
+ },
+ "g-block-quark-pipe": {
+  "src": "gregtech/textures/blocks/iconsets/BLOCK_QUARK_PIPE"
+ },
+ "g-block-quark-release-ch": {
+  "src": "gregtech/textures/blocks/iconsets/BLOCK_QUARK_RELEASE_CHAMBER"
+ },
+ "g-baryonic-perfection--ctl": {
+  "src": "gregtech/textures/blocks/iconsets/BLOCK_QUARK_CONTAINMENT_CASING",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_WATER_T8_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/BLOCK_QUARK_CONTAINMENT_CASING"
+ },
+ "g-frame-sixphasedcopper": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   255,
+   120,
+   20
+  ]
+ },
+ "g-frame-mellion": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   60,
+   5,
+   5
+  ]
+ },
+ "g-frame-creon": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   70,
+   0,
+   70
+  ]
+ },
+ "g-frame-transcendentmetal": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   50,
+   50,
+   50
+  ]
+ },
+ "g-exofoundry-heliocast-r": {
+  "src": "gregtech/textures/blocks/iconsets/EXOFOUNDRY_HELIOCAST_REINFORCEMENT"
+ },
+ "g-graviton-top-bottom": {
+  "src": "gregtech/textures/blocks/iconsets/GRAVITON_TOP_BOTTOM"
+ },
+ "g-sheet-spacetime": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/sheetmetal",
+  "tint": [
+   255,
+   255,
+   255
+  ]
+ },
+ "g-exofoundry-central": {
+  "src": "gregtech/textures/blocks/iconsets/EXOFOUNDRY_CENTRAL_CASING"
+ },
+ "g-frame-netherite": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   255,
+   255,
+   255
+  ]
+ },
+ "g-exofoundry-secondary": {
+  "src": "gregtech/textures/blocks/iconsets/EXOFOUNDRY_SECONDARY_CASING"
+ },
+ "g-exofoundry-infinite-ch": {
+  "src": "gregtech/textures/blocks/iconsets/EXOFOUNDRY_INFINITE_CHASSIS"
+ },
+ "g-exofoundry": {
+  "src": "gregtech/textures/blocks/iconsets/EXOFOUNDRY_CASING"
+ },
+ "g-frame-tritanium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   96,
+   0,
+   0
+  ]
+ },
+ "g-frame-superconductoruevbase": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   174,
+   8,
+   8
+  ]
+ },
+ "g-exofoundry-streamlined": {
+  "src": "gregtech/textures/blocks/iconsets/EXOFOUNDRY_STREAMLINED_CASTERS"
+ },
+ "g-sheet-superconductoruevbase": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/sheetmetal",
+  "tint": [
+   174,
+   8,
+   8
+  ]
+ },
+ "g-sheet-preciousmetalalloy": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/sheetmetal",
+  "tint": [
+   128,
+   128,
+   128
+  ]
+ },
+ "g-frame-erbium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   176,
+   152,
+   81
+  ]
+ },
+ "g-exofoundry-extra-casti": {
+  "src": "gregtech/textures/blocks/iconsets/EXOFOUNDRY_EXTRA_CASTING_BASINS"
+ },
+ "g-sheet-erbium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/sheetmetal",
+  "tint": [
+   176,
+   152,
+   81
+  ]
+ },
+ "g-bw-160-160-170": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/blockCasing",
+  "tint": [
+   160,
+   160,
+   170
+  ]
+ },
+ "g-frame-dysprosium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   105,
+   209,
+   80
+  ]
+ },
+ "g-item-pipe-quantium": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_ITEM_PIPE_QUANTIUM"
+ },
+ "g-frame-tengamattuned": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   213,
+   255,
+   128
+  ]
+ },
+ "g-exofoundry-power-effic": {
+  "src": "gregtech/textures/blocks/iconsets/EXOFOUNDRY_POWER_EFFICIENT_SUBSYSTEMS"
+ },
+ "g-sheet-samarium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/sheetmetal",
+  "tint": [
+   255,
+   255,
+   204
+  ]
+ },
+ "g-sheet-tengamattuned": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/sheetmetal",
+  "tint": [
+   213,
+   255,
+   128
+  ]
+ },
+ "g-sheet-quantium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/sheetmetal",
+  "tint": [
+   0,
+   209,
+   11
+  ]
+ },
+ "g-botmium": {
+  "src": "miscutils/textures/blocks/TileEntities/MACHINE_CASING_BOTMIUM"
+ },
+ "g-infinity-cooled": {
+  "src": "gregtech/textures/blocks/iconsets/INFINITY_COOLED_CASING"
+ },
+ "g-frame-infinitycatalyst": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   200,
+   200,
+   210
+  ]
+ },
+ "g-exofoundry-hypercooler": {
+  "src": "gregtech/textures/blocks/iconsets/EXOFOUNDRY_HYPERCOOLER"
+ },
+ "g-sheet-callistoice": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/sheetmetal",
+  "tint": [
+   30,
+   177,
+   255
+  ]
+ },
+ "g-sheet-superconductoruhvbase": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/sheetmetal",
+  "tint": [
+   38,
+   129,
+   189
+  ]
+ },
+ "g-antimatter-containment": {
+  "src": "goodgenerator/textures/blocks/antimatterContainmentCasing"
+ },
+ "g-gravity-stabilization": {
+  "src": "goodgenerator/textures/blocks/gravityStabilizationCasing"
+ },
+ "g-frame-naquadria": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   30,
+   30,
+   30
+  ]
+ },
+ "g-exofoundry-efficient-o": {
+  "src": "gregtech/textures/blocks/iconsets/EXOFOUNDRY_EFFICIENT_OVERCLOCKING"
+ },
+ "g-magnetic-flux": {
+  "src": "goodgenerator/textures/blocks/magneticFluxCasing"
+ },
+ "g-em-inner-spacetime-rei": {
+  "src": "gregtech/textures/blocks/iconsets/EM_INNER_SPACETIME_REINFORCED_EOH_CASING"
+ },
+ "g-em-outer-spacetime-rei": {
+  "src": "gregtech/textures/blocks/iconsets/EM_OUTER_SPACETIME_REINFORCED_EOH_CASING"
+ },
+ "g-frame-universium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   38,
+   49,
+   69
+  ]
+ },
+ "g-frame-mhdcsm": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   255,
+   255,
+   255
+  ]
+ },
+ "g-block-blackdwarfmatter": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/block1",
+  "tint": [
+   0,
+   0,
+   0
+  ]
+ },
+ "g-block-mhdcsm": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/block1",
+  "tint": [
+   255,
+   255,
+   255
+  ]
+ },
+ "g-exofoundry-universal-c": {
+  "src": "gregtech/textures/blocks/iconsets/EXOFOUNDRY_UNIVERSAL_COLLAPSER_ACTIVE"
+ },
+ "g-exo-foundry-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/EXOFOUNDRY_CASING",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_EXOFOUNDRY_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/EXOFOUNDRY_CASING"
+ },
+ "g-receiver-dish-side": {
+  "src": "gtnhintergalactic/textures/blocks/dysonSwarm/ReceiverDish_Side"
+ },
+ "g-receiver-casing-side": {
+  "src": "gtnhintergalactic/textures/blocks/dysonSwarm/ReceiverCasing_Side"
+ },
+ "g-frame-hsss": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   102,
+   0,
+   51
+  ]
+ },
+ "g-tank-10": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_TANK_10"
+ },
+ "g-deployment-unit-casing": {
+  "src": "gtnhintergalactic/textures/blocks/dysonSwarm/DeploymentUnitCasing_Side"
+ },
+ "g-deployment-unit-core-s": {
+  "src": "gtnhintergalactic/textures/blocks/dysonSwarm/DeploymentUnitCore_Side"
+ },
+ "g-frame-superconductoruhvbase": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/frameGt",
+  "tint": [
+   38,
+   129,
+   189
+  ]
+ },
+ "g-deployment-unit-magnet": {
+  "src": "gtnhintergalactic/textures/blocks/dysonSwarm/DeploymentUnitMagnet_Side"
+ },
+ "g-control-casing-side": {
+  "src": "gtnhintergalactic/textures/blocks/dysonSwarm/ControlCasing_Side"
+ },
+ "g-control-primary-side": {
+  "src": "gtnhintergalactic/textures/blocks/dysonSwarm/ControlPrimary_Side"
+ },
+ "g-control-secondary-side": {
+  "src": "gtnhintergalactic/textures/blocks/dysonSwarm/ControlSecondary_Side"
+ },
+ "g-control-toroid-side": {
+  "src": "gtnhintergalactic/textures/blocks/dysonSwarm/ControlToroid_Side"
+ },
+ "g-dyson-swarm-ground-u-ctl": {
+  "src": "gtnhintergalactic/textures/blocks/dysonSwarm/ReceiverCasing_Side",
+  "overlay": "gregtech/textures/blocks/iconsets/EM_CONTROLLER_ACTIVE",
+  "base": "gtnhintergalactic/textures/blocks/dysonSwarm/ReceiverCasing_Side"
+ },
+ "g-protomatter-activation": {
+  "src": "goodgenerator/textures/blocks/protomatterActivationCoil"
+ },
+ "g-antimatter-stabiliza-ctl": {
+  "src": "goodgenerator/textures/blocks/antimatterContainmentCasing",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FUSION1",
+  "base": "goodgenerator/textures/blocks/antimatterContainmentCasing"
+ },
+ "g-antimatter-annihilatio": {
+  "src": "goodgenerator/textures/blocks/antimatterAnnihilationMatrix"
+ },
+ "g-transcendentally-reinf": {
+  "src": "bartworks/textures/blocks/TranscendentallyReinforcedBoronSilicateGlassBlock"
+ },
+ "g-annihilation-matrix-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_CASING_VENT_T2",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FUSION1",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_CASING_VENT_T2"
+ },
+ "g-bwrotor-block": {
+  "src": "bartworks/textures/blocks/BWRotorBlock"
+ },
+ "g-windmill-ctl": {
+  "src": "own-bricks",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_TOP_STEAM_MACERATOR",
+  "base": "own-bricks"
+ },
+ "g-bronzeplatedbricks": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_BRONZEPLATEDBRICKS"
+ },
+ "g-charcoal-pile-ignite-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_BRONZEPLATEDBRICKS",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_CHARCOAL_PIT",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_BRONZEPLATEDBRICKS"
+ },
+ "g-mega-apiary-ctl": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_BRONZEPLATEDBRICKS",
+  "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_DISTILLATION_TOWER_ACTIVE",
+  "base": "gregtech/textures/blocks/iconsets/MACHINE_BRONZEPLATEDBRICKS"
+ }
+}

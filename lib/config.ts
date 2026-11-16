@@ -623,6 +623,248 @@ export const FLOOR = {
   metalness: 0,
 } as const;
 
+export const SHAPES = {
+  /** Блок Minecraft делится на 16 пикселей: в них заданы формы ниже (как в моделях игры). */
+  pixels: 16,
+  /** Сундук: на пиксель уже блока с боков и на два ниже — как в игре (14 × 14 × 14). */
+  chest: [[1, 0, 1], [15, 14, 15]],
+  /** Воронка: широкая чаша сверху (6 пикселей) и узкая середина под ней. */
+  hopper: [
+    [[0, 10, 0], [16, 16, 16]],
+    [[4, 4, 4], [12, 10, 12]],
+  ],
+  /** Носик воронки вниз — когда она подаёт в блок под собой. */
+  spoutDown: [[6, 0, 6], [10, 4, 10]],
+  /** Носик вбок — когда воронка подаёт в соседний блок: 4 пикселя в длину до края клетки, сечение 4 × 4 (с 6-го по 10-й), на высоте с 4-го по 8-й. */
+  spoutSide: { reach: 4, low: 6, high: 10, bottom: 4, top: 8 },
+  /** Труба: тонкая, 6 пикселей в поперечнике (с 5-го по 11-й), остальное в клетке — воздух. */
+  pipe: { low: 5, high: 11 },
+} as const;
+
+/**
+ * Числа для расчёта линий производства главных металлов (lib/production.ts).
+ * Рецепты доменной печи — из CoreMod GTNH 2.9.99 (com/dreammaster/gthandler/recipes/BlastFurnaceRecipes.java),
+ * палладий с родием — из bartworks (DustLoader: время = max(масса / 40, 1) × температура), заморозка раскалённых
+ * слитков — ProcessingIngot (время = масса × 3 тика), остальное — из исходников GT5-Unofficial 5.09.54.265.
+ * Энергия рецептов — TierEU.RECIPE_* (VP: 30/32 от напряжения яруса): MV 120, HV 480, EV 1920, IV 7680, LuV 30720, ZPM 122880.
+ */
+export const PRODUCTION = {
+  /** Тиков в секунде и секунд в минуте: выход считается в слитках за минуту. */
+  ticksPerSecond: 20,
+  secondsPerMinute: 60,
+  /** Энергетический люк пропускает 2 А (MTEHatchEnergy); в каждой постройке линии стоят два люка. */
+  hatchAmps: 2,
+  hatchesPerMachine: 2,
+  /** Разгон: энергия ×4 (OverclockCalculator). Время ÷2, а идеальный разгон (за каждые 1800 K запаса нагрева) — ÷4. */
+  overclockPower: 4,
+  overclockSpeed: 2,
+  perfectOverclockSpeed: 4,
+  /** Толщины кабеля в моде (WireCableBuilder): 1x, 2x, 4x, 8x, 12x, 16x — во столько раз больше ампер. */
+  cableSizes: [1, 2, 4, 8, 12, 16],
+  /**
+   * Бонусы построек: сколько рецептов разом, множитель времени и энергии.
+   * Вулканус — MTEAdvEBF (8 рецептов, время ÷2,2, энергия 90 %, нагрев только от катушек);
+   * криогенный морозильник — MTECryogenicFreezer (16, ÷3, 90 %); доменная печь и вакуумный морозильник — без бонусов,
+   * но у доменной печи к нагреву катушек прибавляется 100 K за ярус выше MV (MTEElectricBlastFurnace).
+   */
+  machines: {
+    "electric-blast-furnace": { parallel: 1, speed: 1, eu: 1, voltageHeat: true },
+    volcanus: { parallel: 8, speed: 1 / 2.2, eu: 0.9, voltageHeat: false },
+    "vacuum-freezer": { parallel: 1, speed: 1, eu: 1, voltageHeat: false },
+    "cryogenic-freezer": { parallel: 16, speed: 1 / 3, eu: 0.9, voltageHeat: false },
+  },
+  /**
+   * Самый быстрый рецепт каждого металла в доменной печи: энергия (EU/t), время (тики), выход, нагрев (K),
+   * раскалённый ли слиток и рецепт его заморозки (время и энергия).
+   * Сталь: железная пыль + углерод + кислород, 25 с. Алюминий: пыль, 60 с. Нержавеющая сталь: пыль + кислород, 60 с.
+   * Титан: процесс Кролля — 2 магния + 1000 л тетрахлорида титана, 40 с на 480 EU/t при 2140 K (мод-ядро; из пыли — 90 с, но пыль титана в игре почти не добыть). Вольфрамовая сталь: пыль, 125 с. Иридий и осмий: пыль, 50 с.
+   * Палладий с родием: масса 105 (три палладия по 106 и родий 103), 2 × 4500 тиков, 480 EU/t; заморозка 315 тиков на 1920 EU/t (BWUtil.calculateRecipeEU).
+   * Массы для заморозки: титан 48, вольфрамовая сталь 120 (сталь 56 и вольфрам 184 пополам), иридий 192, осмий 190.
+   */
+  recipes: {
+    steel: { eut: 120, ticks: 500, out: 1, heat: 1000 },
+    aluminium: { eut: 480, ticks: 1200, out: 1, heat: 2054 },
+    stainless: { eut: 480, ticks: 1200, out: 1, heat: 1700 },
+    titanium: { eut: 480, ticks: 800, out: 1, heat: 2140, freeze: { eut: 120, ticks: 144 } },
+    tungstensteel: { eut: 1920, ticks: 2500, out: 1, heat: 4000, freeze: { eut: 120, ticks: 360 } },
+    rhodiumPalladium: { eut: 480, ticks: 9000, out: 1, heat: 4500, freeze: { eut: 1920, ticks: 315 } },
+    iridium: { eut: 7680, ticks: 1000, out: 1, heat: 4500, freeze: { eut: 120, ticks: 576 } },
+    osmium: { eut: 30720, ticks: 1000, out: 1, heat: 4500, freeze: { eut: 120, ticks: 570 } },
+  },
+  /**
+   * Нейтроний в печи не плавят: его даёт реактор синтеза (FusionReactorRecipes: америций + наквадрия → 144 л
+   * жидкого нейтрония за 12 с, 122 880 EU/t, порог запуска 600 млн EU — третья модель реактора).
+   */
+  neutronium: { eut: 122880, ticks: 240, out: 1, startupEu: 600_000_000 },
+  /**
+   * Бронза в паровой плавильне сплавов (MTESteamAlloySmelter): рецепт 3 меди + 1 олово → 4 бронзы,
+   * 200 тиков, 15 EU/t (AlloySmelterRecipes); бронзовый ярус постройки — энергия ×1,25 и время ×1,6, 8 рецептов разом.
+   * Пар: 1 л на 1 EU (MTESteamMultiBlockBase.onRunningTick при КПД 100 %).
+   */
+  bronze: { eut: 15, ticks: 200, out: 4, parallel: 8, euFactor: 1.25, durationFactor: 1.6, steamPerEu: 1 },
+  /** Сколько котлов или генераторов в одном ряду за линией: 8 с общей трубой сбоку — линия остаётся в чанке 16 × 16. */
+  sourcesPerRow: 8,
+  /** Котёл высокого давления на угле даёт 300 л пара в секунду (вики GTNH, lib/boilers.ts). */
+  boilerSteamPerSecond: 300,
+  /** Котёл тратит 1 л воды на 160 л пара (GTValues.STEAM_PER_WATER). */
+  steamPerWater: 160,
+  /**
+   * Подготовка сырья для стали в электрической печи (LV). Дробилка: слиток железа → пыль за 56 тиков, уголь → пыль
+   * за 16 тиков, 4 EU/t (GTRecipeRegistrator.registerReverseMacerating: время = масса, но не меньше 16). Электролизёр:
+   * 2 пустые капсулы + 1000 л воды → 2 капсулы водорода + 1000 л кислорода, 100 с, 30 EU/t (ElectrolyzerRecipes,
+   * схема 3). Печи нужно 1000 л кислорода на слиток. Насос LV поднимает блок воды (1000 л) за 80 тиков (MTEPump: 160 >> ярус).
+   */
+  steelPrep: {
+    maceratorEut: 4,
+    ingotTicks: 56,
+    coalTicks: 16,
+    electrolyzerEut: 30,
+    electrolyzerTicks: 2000,
+    oxygenPerRun: 1000,
+    oxygenPerSteel: 1000,
+    cellsPerRun: 2,
+    stack: 64,
+    pumpTicksPerBlock: 80,
+    litresPerBlock: 1000,
+  },
+  /**
+   * Угольный котёл высокого давления (MTEBoilerSteel): уголь горит 1600 тиков, котёл получает из него 1600 / 10 = 160 единиц
+   * жара и в раскалённом виде тратит 2 единицы за 40 тиков — один уголь на 160 с.
+   */
+  hpCoalBoilerSecondsPerCoal: 160,
+  /** Паровая турбина (MTESteamTurbine): за раз берёт 6 + ярус литров пара и даёт 3 EU — у LV это 7 л на 3 EU. */
+  steamTurbine: { litresBase: 6, euPerOperation: 3 },
+  /**
+   * Топливо для дизельного генератора и газовой турбины LV (КПД обоих 95 %, LoaderMetaTileEntities). Ценность топлива —
+   * EU на литр (биогаз IC2 — 40, FuelRecipes; биодизель — 320, MaterialsInit). Рецепты (время в тиках, энергия EU/t):
+   * компрессор — 8 сахарного тростника → растительный комок, 300 тиков, 2 EU/t (мод-ядро, CompressorRecipes);
+   * дробилка — 2 комка → измельчённая растительная масса, в среднем 2,75 (шансы 100/100/50/25 %), 200 тиков, 30 EU/t
+   *   (мод-ядро, MaceratorRecipes); центрифуга — масса → биомякина, 300 тиков, 4 EU/t (мод-ядро, CentrifugeRecipes);
+   * пивоварня — биомякина + 1000 л воды → 1000 л биомассы, 170 тиков, 4 EU/t (BreweryRecipes);
+   * ферментер — 100 л биомассы → 100 л сброженной, 150 тиков, 2 EU/t (FermenterRecipes);
+   * дистиллятор — 1000 л сброженной → 1800 л биогаза за 1600 тиков (схема 17) или 150 л этанола за 1500 (схема 3), 8 EU/t;
+   *   заодно удобрение в слот выхода (DistilleryRecipes);
+   * экстрактор жидкостей — семена пшеницы → 10 л масла семян, 32 тика, 2 EU/t (FluidExtractorRecipes);
+   * консервный автомат для жидкостей — 1000 л в капсулу, 16 тиков, 1 EU/t (FluidCannerBackend);
+   * химический реактор — щепоть едкого натра + капсула этанола + 6000 л масла → 6000 л биодизеля и капсула глицерина,
+   *   600 тиков, 30 EU/t (ChemicalRecipes).
+   */
+  fuelChain: {
+    efficiency: 0.95,
+    biogasValue: 40,
+    biodieselValue: 320,
+    compressor: { ticks: 300, eut: 2, cane: 8 },
+    macerator: { ticks: 200, eut: 30, balls: 2, plantmass: 2.75 },
+    centrifuge: { ticks: 300, eut: 4 },
+    brewery: { ticks: 170, eut: 4, litres: 1000 },
+    fermenter: { ticks: 150, eut: 2, litres: 100 },
+    distillery: { ticks: 1500, biogasTicks: 1600, eut: 8, litres: 1000, biogas: 1800, ethanol: 150 },
+    extractor: { ticks: 32, eut: 2, litres: 10 },
+    canner: { ticks: 16, eut: 1, litres: 1000 },
+    reactor: { ticks: 600, eut: 30, litres: 6000 },
+  },
+  /** Лавовый котёл в жару тратит 3 л лавы в секунду (MTEBoilerLava: CONSUMPTION_PER_HEATUP за COOLDOWN_INTERVAL = 20 тиков). */
+  lavaPerBoiler: 3,
+  /**
+   * Паровая водяная помпа (MTESteamWaterPump): раз в секунду берёт 1500 л пара и даёт 1500 л воды × влажность
+   * биома × ярус рамы (бронза — 1, сталь — 2), но не меньше 250 л в Верхнем мире. С полным выходным люком
+   * она стоит и пар не тратит. Влажность 0,4 — равнины, самый частый биом.
+   */
+  waterPump: { waterPerSecond: 1500, steamPerSecond: 1500, frameTier: 1, humidity: 0.4, minWater: 250 },
+  /**
+   * Сталь в кирпичной домне (primitiveBlastRecipes): железный слиток + 4 угля → сталь за 6 минут; с коксом
+   * (RecipeMaps: кокса вдвое меньше, время ×2/3) — 2 кокса и 4 минуты. Коксовая печь: 1 уголь → 1 кокс за 90 с (CokeOvenRecipes).
+   */
+  /** Сколько ампер держит кабель 1x из материала корпуса машины яруса (LoaderMetaPipeEntities): олово 1, медь 1, золото 3, алюминий 1, вольфрам 6, ванадий-галлий 4, наквада 2, сплав наквады 6. */
+  cableAmps: { lv: 1, mv: 1, hv: 3, ev: 1, iv: 6, luv: 4, zpm: 2, uv: 6 },
+  /**
+   * Кирпичная домна (MTEBrickedBlastFurnace). Подают воронкой в контроллер спереди, сталь забирает вагонетка с воронкой
+   * под контроллером. Сундук — 27 слотов по 64 предмета: так считаем, на сколько хватает запаса.
+   */
+  bbf: { ticks: 4800, cokePerSteel: 2, chestSlots: 27, stack: 64 },
+  /**
+   * Коксовая печь (MTECokeOven): на уголь — 500 л креозота, своя ёмкость 64 000 л; полная — встаёт. Предметы и жидкость
+   * ходят только через люки коксовой печи (MTEHatchCokeOven: вход, выход предметов, выход жидкости); печи можно ставить
+   * стенка к стенке.
+   */
+  cokeOven: { ticks: 1800, cokePerCoal: 1, creosotePerCoal: 500, tank: 64_000 },
+} as const;
+
+/**
+ * Калькулятор фабрики (lib/calc). Данные — выгрузка GTNH из калькулятора ShadowTheAge (MIT), ярусы в ней: 0 — LV.
+ */
+export const CALC = {
+  /** Напряжение одного ампера по ярусам выгрузки: LV, MV, HV, EV, IV, LuV, ZPM, UV, UHV, UEV, UIV, UMV, UXV. */
+  voltages: [32, 128, 512, 2048, 8192, 32768, 131072, 524288, 2097152, 8388608, 33554432, 134217728, 536870912],
+  tierNames: ["LV", "MV", "HV", "EV", "IV", "LuV", "ZPM", "UV", "UHV", "UEV", "UIV", "UMV", "UXV"],
+  /** Разгон GregTech: энергия ×4, время ÷2. */
+  overclockPower: 4,
+  overclockSpeed: 2,
+  /** Постройка на сайте питается от двух энергетических люков по 2 ампера (как в линиях производства). */
+  multiblockAmps: 4,
+  ticksPerSecond: 20,
+  /** Рецепт верстака в автокрафте — условно секунда: в выгрузке у него нет времени. */
+  handTicks: 20,
+  /** Печь Minecraft в выгрузке без времени — в GregTech её рецепты ведёт электропечь: 128 тиков по 4 EU/t (FurnaceBackend). */
+  furnace: { type: "Furnace", ticks: 128, eut: 4 },
+  /**
+   * «Цена» товара для выбора рецепта — секунды работы машин на штуку по всей цепочке плюс сырьё: штука руды или
+   * растения — как 2 секунды машины, литр жидкости из мира — тысячная секунды (ведро — секунда), вода — бесплатно.
+   * Ручной рецепт (автокрафт) дороже машинного на 2 секунды: при прочих равных лучше машина.
+   */
+  cost: { rawItem: 2, rawFluidPerLitre: 0.001, water: 0, handPenalty: 2 },
+  /**
+   * Раскладка фабрики (lib/calc/factory.ts): между рядами — 3 блока на трубы и проход; копии одного шага стоят рядами по
+   * 16 (длиннее ряд не помещается в кадр), ряды одного шага соединены общими трубами. Копий одного шага рисуем до 512:
+   * это 240 кирпичных домн и 180 коксовых печей сразу (~15 тыс. блоков — сцена ещё вертится плавно); больше — уже
+   * десятки тысяч блоков, и браузер начинает тормозить. Трубы и кабели ищут путь с запасом в 8 блоков вокруг: на большой
+   * фабрике их много, и 3 блоков, как у линий, мало. Генераторы сайт знает для ярусов LV–UV (lib/setups.ts, POWER).
+   */
+  factory: { rowGap: 3, perBand: 16, maxCopies: 512, routeMargin: 8, generatorTiers: ["lv", "mv", "hv", "ev", "iv", "luv", "zpm", "uv"] },
+  /**
+   * Страница калькулятора: в поиске — первые 30 совпадений (больше глазом не просмотреть); по умолчанию — 60 штук в минуту
+   * (штука в секунду); ярусы — LV…UV (0…7), выше генераторов на сайте нет. Значки — атлас выгрузки: 256 в ряд по 32 пикселя.
+   * Ветка крафта сразу раскрыта на 3 уровня (цель и два шага вниз): глубже у сложных товаров сотни строк.
+   * Полоска сборки фабрики: первые 60 % — расчёт постройки (ряды, трубы, кабели), остальное — загрузка текстур 3D.
+   */
+  /**
+   * Кнопка «Меньше излишков» (lib/calc/optimize.ts): излишки считаем в штуках, жидкость — по 1000 л за штуку (ведро —
+   * как предмет). Для товара пробуем до 8 рецептов и только не дороже лучшего в 4 раза — иначе ради чистоты цепочка
+   * раздувается в десятки машин. Проходов по цепочке — до 3: замена рецепта меняет цепочку ниже, и новые шаги тоже
+   * стоит перебрать; дальше выигрыш почти нулевой.
+   */
+  optimize: { litresPerItem: 1000, optionsPerGoods: 8, costLimit: 4, passes: 3 },
+  ui: { searchLimit: 30, defaultPerMinute: 60, secondsPerMinute: 60, maxTier: 7, iconsPerRow: 256, iconSize: 32, percent: 100, treeOpenDepth: 3, buildShare: 60 },
+  /** Машины утилизации: их рецепты «готовая вещь → металл» калькулятор не берёт (см. isRecycling в lib/calc/planner.ts). */
+  recyclingTypes: ["Arc Furnace", "Fluid Extractor", "Macerator"],
+  /** Постройки без люков и энергии: в них идут только рецепты без жидкостей и без EU/t. */
+  primitiveMachines: ["Coke Oven", "Bricked Blast Furnace"],
+  /** Погрешность дробей: 0,999999 машины — это одна машина. */
+  epsilon: 1e-9,
+  /** Типы рецептов не для фабрики: симуляции, исследования, топливо генераторов, магия, космос. */
+  skippedTypes: [
+    "Item aspects", "Replicator", "Mass Fabrication", "Scanner", "Research Station", "Space Mining", "Space Research", "Space Projects",
+    "Tree Growth Simulator", "Recycler", "Radio Hatch Material List", "Godforge Upgrades", "Matter Amplifier", "Crop Breeder",
+    "Crop Gene Extractor", "Crop Synthesizer", "Seed Generator", "Assemblyline Process", "Combustion Generator Fuels", "Gas Turbine Fuel",
+    "Plasma Generator Fuels", "Thermal Generator Fuels", "Semifluid Generator Fuels", "Magic Energy Absorber Fuels", "Rocket Engine Fuel",
+    "Extreme Diesel Engine Fuel", "Large Boiler", "Matter Fabricator", "Molecular Transformer", "Arcane Infusion",
+    "Magical Crafting (Shaped)", "Magical Crafting (Shapeless)", "Crucible", "Draconic Evolution Fusion Crafter",
+  ],
+  /** Ручные рецепты — их ведёт автокрафт, а не машина GregTech. */
+  handTypes: ["Crafting (Shaped)", "Crafting (Shapeless)", "Extreme Crafting (Shaped)", "Extreme Crafting (Shapeless)"],
+} as const;
+
+export const CHUNK = {
+  /** Чанк Minecraft — область 16 × 16 блоков; по чанкам в игре считают загрузку мира и ставят постройки. */
+  side: 16,
+  /** Цвет границ чанков на полу: тёплый, как подсветка цеха, чтобы не спорить с постройкой. */
+  color: "#ffb347",
+  /** Прозрачность линий. Выше 0.5 сетка перетягивает взгляд с постройки; ниже 0.15 её не видно на бетоне. */
+  opacity: 0.3,
+  /** Линии приподняты над полом на сантиметр, иначе они мерцают, сливаясь с его плоскостью. */
+  lift: 0.01,
+} as const;
+
 export const FOG = {
   /** Туман начинается сразу за разложенной печью (она шириной около 5 м) и не трогает её саму. */
   near: 16,
@@ -700,7 +942,7 @@ export const GAME = {
   /** Номер яруса HV в списке voltageTiers (ULV — нулевой). */
   hvTier: 3,
   /** Номера ярусов от EV до MAX в том же списке. */
-  highTiers: { ev: 4, iv: 5, luv: 6, zpm: 7, uv: 8, uhv: 9, uev: 10, uiv: 11, umv: 12, uxv: 13, max: 14 },
+  highTiers: { ev: 4, iv: 5, luv: 6, zpm: 7, uv: 8, uhv: 9, uev: 10, uiv: 11, umv: 12, uxv: 13 },
   /** Во сколько раз каждый ярус выше предыдущего. */
   voltageStep: 4,
   /**
@@ -728,7 +970,6 @@ export const GAME = {
     umv: "#ff5555",
     // UXV в моде — DARK_RED, как UHV; чтобы вкладки различались, взят красный между UHV и UMV.
     uxv: "#cc2244",
-    max: "#ffffff",
   },
   /** Номер яруса MV: надбавка нагрева начинается выше него (MTEElectricBlastFurnace.BASE_TIER_FOR_HEAT_INCREASE). */
   heatBonusBaseTier: 2,
@@ -752,6 +993,13 @@ export const GAME = {
     { id: "naquadahalloy", name: "Сплав наквады", ordinal: 9 },
     { id: "trinium", name: "Триниум", ordinal: 10 },
   ],
+  /**
+   * Температура плавки главных металлов в доменной печи, K (MaterialsInit.java: setBlastFurnaceTemp;
+   * палладий с родиевым покрытием — WerkstoffLoader.RhodiumPlatedPalladium, setMeltingPoint).
+   */
+  blastTemps: { steel: 1000, aluminium: 1700, stainless: 1700, titanium: 1940, tungstensteel: 4000, rhodiumPalladium: 4500, iridium: 4500, osmium: 4500, neutronium: 10000 },
+  /** Выше этой температуры слиток выходит из печи раскалённым и его остужают в морозильнике (правило GregTech: больше 1750 K). */
+  hotIngotAbove: 1750,
   /** Каждые 900 K сверх рецепта — скидка на энергию (OverclockCalculator.HEAT_DISCOUNT_THRESHOLD). */
   heatDiscountThreshold: 900,
   /** Множитель расхода за одну скидку: 0.95 = −5 % (OverclockCalculator.DEFAULT_HEAT_DISCOUNT_EXPONENT). */
@@ -888,6 +1136,8 @@ export const DIAGRAM = {
 export const ASSETS = {
   /** Коммит GT5-Unofficial, с которого взяты текстуры: фиксируем, чтобы повторный запуск дал те же файлы. */
   gregtechCommit: "2c5b97e3bc5b5acaeda68cd19bc1c1b3c72c9c30",
+  /** Тег GT5-Unofficial той же версии, что в сборке GTNH 2.9 (gregtech-5.09.54.265.jar): с него берёт текстуры генератор построек. */
+  gregtechTag: "5.09.54.265",
   /** Наибольшее значение цветового канала — для перевода цвета материала в множитель. */
   colorMax: 255,
   /**
@@ -967,10 +1217,8 @@ export const ASSETS = {
     "assembler", "circuitassembler", "mixer", "laser_engraver", "cutter", "autoclave", "chemical_reactor",
     "electrolyzer", "centrifuge", "macerator", "extruder", "wiremill", "fluid_solidifier", "hammer",
   ],
-  /** UXV: из одноблочных машин в GTNH 2.9 на ярусе 13 есть только сборщик схем. */
-  uxvMachineFolders: ["circuitassembler"],
-  /** MAX: построек и других машин-обработчиков на этом ярусе в GTNH 2.9 нет — только сборщик схем (CIRCUIT_ASSEMBLER_MAX). */
-  maxMachineFolders: ["circuitassembler"],
+  /** UXV: одноблочных машин с рецептом нет — у сборщика схем UXV (как и у МАХ) в сборке 2.9 нет крафта. */
+  uxvMachineFolders: [],
   /** Коммит GTNH-версии SGCraft (Звёздные врата, лицензия MIT), откуда берутся текстуры врат. */
   sgcraftCommit: "dddfc3f0850d99616310ea195f0e5e7957ba1386",
   uhvMachineFolders: [
@@ -993,7 +1241,7 @@ export const ASSETS = {
     "chemical_reactor", "distillery", "fermenter",
     "electric_furnace", "microwave", "alloy_smelter", "fluid_heater", "arc_furnace",
     "macerator", "simple_washer", "ore_washer", "chemical_bath", "sifter", "thermal_centrifuge",
-    "canner", "fluid_canner", "unboxinator", "recycler", "pump", "miner",
+    "canner", "unboxinator", "recycler", "pump", "miner",
   ],
   /** Сторона текстуры блока в моде. Анимированные текстуры — вертикальная лента кадров, берём верхний квадрат. */
   blockTextureSize: 16,

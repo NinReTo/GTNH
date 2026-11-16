@@ -15,12 +15,13 @@
  *
  * Все числа — из lib/config.ts (Node запускает .ts напрямую).
  */
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { unzipSync } from "fflate";
 import { ASSETS, GAME } from "../lib/config.ts";
+import { ownBlocks } from "./own-blocks.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_GT = path.join(ROOT, "public", "textures", "gregtech");
@@ -429,6 +430,60 @@ async function fetchStargate() {
   }
 }
 
+/**
+ * Текстуры построек, выведенных генератором: список — scripts/gen-textures.json
+ * (имя файла → путь картинки в assets мода, цвет материала или накладка контроллера).
+ */
+/** Свои рисунки вместо блоков Minecraft (scripts/own-blocks.mjs): файлы own-*.webp. */
+async function drawOwnBlocks() {
+  console.log("Нарисовано для проекта: блоки вместо текстур Minecraft");
+  for (const { file, data, side } of ownBlocks()) {
+    await savePixel(await sharp(data, { raw: { width: side, height: side, channels: 3 } }).png().toBuffer(), `${file}.webp`);
+  }
+  // Блок постройки, внутри которого стоит вагонетка с воронкой: нижняя половина закрашена её цветом.
+  const cart = ownBlocks().find((block) => block.file === "own-cart");
+  const half = cart.side / 2;
+  const lower = await sharp(cart.data, { raw: { width: cart.side, height: cart.side, channels: 3 } })
+    .extract({ left: 0, top: half, width: cart.side, height: half })
+    .png()
+    .toBuffer();
+  for (const base of ["coke-brick", "firebrick"]) {
+    const brick = await sharp(path.join(OUT_GT, `${base}.webp`)).resize(cart.side, cart.side, { kernel: "nearest" }).png().toBuffer();
+    await savePixel(await sharp(brick).composite([{ input: lower, left: 0, top: half }]).png().toBuffer(), `cart-${base}.webp`);
+  }
+}
+
+async function fetchGenerated() {
+  await drawOwnBlocks();
+  console.log(`GT5-Unofficial ${ASSETS.gregtechTag} (LGPL-3.0): постройки генератора`);
+  const base = `https://raw.githubusercontent.com/GTNewHorizons/GT5-Unofficial/${ASSETS.gregtechTag}/src/main/resources/assets`;
+  const square = async (src) => {
+    // Основа контроллера из своего рисунка (own-*): берём его, а не файл мода.
+    const own = ownBlocks().find((block) => block.file === src);
+    if (own) return sharp(own.data, { raw: { width: own.side, height: own.side, channels: 3 } }).ensureAlpha().png().toBuffer();
+    const source = await download(`${base}/${src}.png`);
+    const { width } = await sharp(source).metadata();
+    return sharp(source).extract({ left: 0, top: 0, width, height: width }).resize(ASSETS.blockTextureSize, ASSETS.blockTextureSize, { kernel: "nearest" }).ensureAlpha().png().toBuffer();
+  };
+  // Блоки построек (gen-textures.json) и значки предметов для линий крафта (gen-items.json).
+  const list = Object.assign({}, ...(await Promise.all(["gen-textures.json", "gen-items.json"].map(async (name) => JSON.parse(await readFile(path.join(ROOT, "scripts", name), "utf8"))))));
+  for (const [file, { src, tint, overlay, base: under }] of Object.entries(list)) {
+    let image = await square(under ?? src);
+    if (tint) {
+      const { data, info } = await sharp(image).raw().toBuffer({ resolveWithObject: true });
+      for (let offset = 0; offset < data.length; offset += info.channels) {
+        tint.forEach((value, channel) => {
+          data[offset + channel] = Math.round((data[offset + channel] * value) / ASSETS.colorMax);
+        });
+      }
+      image = await sharp(data, { raw: info }).png().toBuffer();
+    }
+    // Накладок может быть несколько: у люка — отверстие и знак «жидкость наружу».
+    for (const layer of overlay ? [overlay].flat() : []) image = await sharp(image).composite([{ input: await square(layer) }]).png().toBuffer();
+    await savePixel(image, `${file}.webp`);
+  }
+}
+
 async function fetchHighTiers() {
   await fetchStargate();
   console.log("GregTech, GT++, KekzTech, GoodGenerator (LGPL-3.0): EV, IV, ZPM");
@@ -436,7 +491,7 @@ async function fetchHighTiers() {
   const faces = "miscutils/textures/blocks/iconsets/controllerFaces";
 
   // Одноблочные: корпус яруса + значок машины; генераторы — как в MTEPlasmaGenerator и MTENaquadahReactor.
-  const tiers = [["ev", "EV", ASSETS.evMachineFolders], ["iv", "IV", ASSETS.ivMachineFolders], ["luv", "LuV", ASSETS.luvMachineFolders], ["zpm", "ZPM", ASSETS.zpmMachineFolders], ["uv", "UV", ASSETS.uvMachineFolders], ["uhv", "UHV", ASSETS.uhvMachineFolders], ["uev", "UEV", ASSETS.uevMachineFolders], ["uiv", "UIV", ASSETS.uivMachineFolders], ["umv", "UMV", ASSETS.umvMachineFolders], ["uxv", "UXV", ASSETS.uxvMachineFolders], ["max", "MAX", ASSETS.maxMachineFolders]];
+  const tiers = [["ev", "EV", ASSETS.evMachineFolders], ["iv", "IV", ASSETS.ivMachineFolders], ["luv", "LuV", ASSETS.luvMachineFolders], ["zpm", "ZPM", ASSETS.zpmMachineFolders], ["uv", "UV", ASSETS.uvMachineFolders], ["uhv", "UHV", ASSETS.uhvMachineFolders], ["uev", "UEV", ASSETS.uevMachineFolders], ["uiv", "UIV", ASSETS.uivMachineFolders], ["umv", "UMV", ASSETS.umvMachineFolders], ["uxv", "UXV", ASSETS.uxvMachineFolders]];
   for (const [tier, name, folders] of tiers) {
     const hull = {};
     for (const side of ["SIDE", "TOP", "BOTTOM"]) {
@@ -740,6 +795,11 @@ await mkdir(OUT_HDRI, { recursive: true });
 const only = process.argv[2];
 // Только новое (котлы, постройки, LV) можно докачать так: node scripts/fetch-textures.mjs lv
 // Только ярусы от EV до UHV: node scripts/fetch-textures.mjs high
+if (only === "gen") {
+  await fetchGenerated();
+  console.log("Готово.");
+  process.exit(0);
+}
 if (only === "high") {
   await fetchHighTiers();
   console.log("Готово.");

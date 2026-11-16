@@ -365,6 +365,14 @@ describe("правило «все числа в lib/config.ts»", () => {
     "components/landing/LineRow.tsx",
     "components/landing/LineSection.tsx",
     "components/scene/SingleScene.tsx",
+    "lib/calc/factory.ts",
+    "lib/calc/load.ts",
+    "components/calc/Calculator.tsx",
+    "components/calc/CraftTree.tsx",
+    "components/calc/RecipePicker.tsx",
+    "components/calc/Icon.tsx",
+    "lib/calc/planner.ts",
+    "lib/calc/optimize.ts",
   ];
 
   /** Убирает комментарии и строки (в них числа — это текст и классы, а не настройки). */

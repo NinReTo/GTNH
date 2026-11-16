@@ -4,6 +4,7 @@
  */
 
 import { HIGH_GUIDES } from "./machines-high";
+import { GEN_GUIDES } from "./gen-machines";
 
 /** Один совет гайда: короткий заголовок и пара предложений. */
 export interface GuideTip {
@@ -46,6 +47,7 @@ const STEAM_MULTI_TIPS: readonly GuideTip[] = [
 /** Гайды построек — по их адресному имени. */
 export const MACHINE_GUIDES: Readonly<Record<string, Guide>> = {
   ...HIGH_GUIDES,
+  ...GEN_GUIDES,
   "bricked-blast-furnace": {
     wiki: "Bricked Blast Furnace",
     tips: [

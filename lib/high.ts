@@ -253,20 +253,8 @@ const UMV_RU = Object.fromEntries(Object.entries(UHV_RU).map(([folder, name]) =>
 const UXV_RU = { circuitassembler: `${UHV_RU.circuitassembler} V` };
 
 const UMV_NOTES = tierNotes(UMV_RU, "umv", {});
-const UXV_NOTES = tierNotes(UXV_RU, "uxv", {
-  circuitassembler: "Единственная одноблочная машина яруса: других машин UXV в GTNH 2.9 нет.",
-});
+const UXV_NOTES = tierNotes(UXV_RU, "uxv", {});
 
-/** У сборщика MAX в ru_RU.lang своё имя, не по образцу ярусов ниже. */
-const MAX_NOTES = tierNotes({ circuitassembler: "MAX сборщик электросхем" }, "max", {
-  circuitassembler: "Единственная машина-обработчик яруса MAX. Собирает схемы MAX — они нужны для деталей UXV и Звёздных врат.",
-});
-
-const MAX_TIPS: readonly GuideTip[] = [
-  { title: "МАХ-схемы", text: "Планковские схемы — последние в сборке. Для них нужен квантовый комплекс сборки наночипов; идут они на детали UXV и Звёздные врата." },
-  { title: "Детали МАХ", text: "Мотор, поршень, помпа, конвейер, роборука и излучатель МАХ — задание «Ты это сделал!», последний этап игры." },
-  { title: "Конец пути", text: "Выше МАХ в моде ничего нет. Ток этого напряжения получают трансформаторами UXV → MAX — для них нужны зепто-силовые ИС." },
-];
 
 const UMV_TIPS: readonly GuideTip[] = [
   { title: "Ярус улучшений", text: "Новых построек почти нет. Главное — улучшать старые: холодильник, Кузницу богов, космический лифт и сборочные линии деталей." },
@@ -339,5 +327,4 @@ export const HIGH_SINGLES: readonly Single[] = [
   ...tierSingles("uiv", ASSETS.uivMachineFolders, UIV_NOTES, UIV_TIPS, "Insanely Ultimate Voltage (UIV)"),
   ...tierSingles("umv", ASSETS.umvMachineFolders, UMV_NOTES, UMV_TIPS, "Mega Ultimate Voltage (UMV)"),
   ...tierSingles("uxv", ASSETS.uxvMachineFolders, UXV_NOTES, UXV_TIPS, "Extended Mega Ultimate Voltage (UXV)"),
-  ...tierSingles("max", ASSETS.maxMachineFolders, MAX_NOTES, MAX_TIPS, "Maximum Voltage (MAX)"),
 ];

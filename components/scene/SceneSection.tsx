@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
+import type { Machine } from "@/lib/machines";
 
 const Scene = dynamic(() => import("./Scene"), { ssr: false });
 const Workshop = dynamic(() => import("./Workshop"), { ssr: false });
@@ -41,6 +42,8 @@ function BenchButton() {
 type SceneSectionProps = {
   /** Какую постройку показать: её адресное имя из lib/machines.ts. Без него показывается весь паровой цех. */
   slug?: string;
+  /** Готовая постройка (фабрика калькулятора) — её адресное имя должно быть своим у каждой. */
+  machine?: Machine;
   /** Одноблочная машина вместо постройки: её адресное имя из lib/singles.ts. */
   single?: string;
   /** Зимняя шапка с эмблемой GT New Horizons вместо цеха — для главной. */
@@ -53,9 +56,11 @@ type SceneSectionProps = {
  * Шапка страницы: неподвижный блок со сценой, ниже — сразу текст. Сцену
  * вертят перетаскиванием, блоки у курсора раздвигаются.
  */
-export function SceneSection({ slug, single, isLogo = false, children }: SceneSectionProps) {
+export function SceneSection({ slug, machine, single, isLogo = false, children }: SceneSectionProps) {
   const scene = single ? (
     <SingleScene slug={single} />
+  ) : machine ? (
+    <Scene key={machine.slug} slug={machine.slug} machine={machine} />
   ) : slug ? (
     <Scene slug={slug} />
   ) : isLogo ? (

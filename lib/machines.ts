@@ -1,6 +1,8 @@
 import { ASSETS } from "./config";
 import type { TierId } from "./tiers";
 import { HIGH_MACHINES } from "./machines-high";
+import { GEN_KINDS } from "./gen-kinds";
+import { GEN_MACHINES } from "./gen-machines";
 import { buildStructure, type BlockKind, type Structure, type StructureDef } from "./structure";
 
 /**
@@ -16,6 +18,8 @@ export const KINDS = {
   inputBus: { label: "Входная шина", texture: "input-bus", face: { rule: "outward", base: "casing" } },
   outputBus: { label: "Выходная шина", texture: "output-bus", face: { rule: "outward", base: "casing" } },
   inputHatch: { label: "Входной люк", texture: "input-hatch", face: { rule: "outward", base: "casing" } },
+  // Выход жидкости у постройки калькулятора; рисунок — люк ректификационной колонны (он же обычный выходной люк GregTech).
+  outputHatch: { label: "Выходной люк", texture: "dt-output-hatch", face: { rule: "outward", base: "casing" } },
   energy: { label: "Энергетический люк", texture: "energy", face: { rule: "outward", base: "casing" } },
   maintenance: { label: "Люк обслуживания", texture: "maintenance", face: { rule: "outward", base: "casing" } },
 
@@ -293,6 +297,51 @@ export const KINDS = {
   ncController: { label: "Контроллер", texture: "nc-controller", face: { rule: "front", base: "neutronium-casing" } },
   eicController: { label: "Контроллер", texture: "eic-controller", face: { rule: "front", base: "naq-reinforced" } },
   lnrController: { label: "Контроллер", texture: "lnr-controller", face: { rule: "front", base: "naq-casing" }, isCool: true },
+
+  // Постройки, выведенные генератором (lib/gen-kinds.ts).
+  // Блоки линий производства (lib/setups.ts): сундук, воронка и вагонетка — свои рисунки вместо блоков Minecraft.
+  // Сундук: защёлка только на передней грани, остальные — доски с рамкой.
+  ownChest: { label: "Сундук", texture: "own-chest", face: { rule: "front", base: "own-chest-side" }, shape: "chest", isMatte: true },
+  ownHopper: { label: "Воронка", texture: "own-hopper", shape: "hopper" },
+  // Воронки с носиком вбок: подают в блок за собой, перед собой или справа.
+  ownHopperBack: { label: "Воронка", texture: "own-hopper", shape: "hopper", spout: "nz" },
+  ownHopperFront: { label: "Воронка", texture: "own-hopper", shape: "hopper", spout: "pz" },
+  ownHopperRight: { label: "Воронка", texture: "own-hopper", shape: "hopper", spout: "px" },
+  // Блок постройки с вагонеткой внутри: клетка остаётся блоком, нижняя половина закрашена цветом вагонетки.
+  cokeBrickCart: { label: "Кирпич коксовой печи, внутри вагонетка с воронкой", texture: "cart-coke-brick", isMatte: true },
+  firebrickCart: { label: "Огнеупорный кирпич, внутри вагонетка с воронкой", texture: "cart-firebrick", isMatte: true },
+  itemPipe: { label: "Латунная предметная труба", texture: "pipe-brass", shape: "pipe" },
+  steamPipe: { label: "Бронзовая жидкостная труба с паром", texture: "pipe-bronze", shape: "pipe" },
+  steamHatch: { label: "Паровой люк", texture: "input-hatch", face: { rule: "outward", base: "bronze-bricks" } },
+  waterPipe: { label: "Медная жидкостная труба с водой", texture: "pipe-copper", shape: "pipe" },
+  // Люки коксовой печи (MTEHatchCokeOven) — на месте любого её кирпича: вход угля, выход кокса, выход креозота.
+  cokeHatchIn: { label: "Люк коксовой печи: вход", texture: "coke-hatch-in", face: { rule: "outward", base: "coke-brick" }, isMatte: true },
+  cokeHatchItems: { label: "Люк коксовой печи: выход предметов", texture: "coke-hatch-items", face: { rule: "outward", base: "coke-brick" }, isMatte: true },
+  cokeHatchFluid: { label: "Люк коксовой печи: выход жидкости", texture: "coke-hatch-fluid", face: { rule: "outward", base: "coke-brick" }, isMatte: true },
+  creosotePipe: { label: "Медная жидкостная труба с креозотом", texture: "pipe-copper", shape: "pipe" },
+  // Трубы топливных цепочек LV: биомасса → сброженная → биогаз или этанол; масло семян и биодизель.
+  biomassPipe: { label: "Медная жидкостная труба с биомассой", texture: "pipe-copper", shape: "pipe" },
+  fermentedPipe: { label: "Медная жидкостная труба со сброженной биомассой", texture: "pipe-copper", shape: "pipe" },
+  biogasPipe: { label: "Стальная жидкостная труба с биогазом", texture: "pipe-steel", shape: "pipe" },
+  ethanolPipe: { label: "Медная жидкостная труба с этанолом", texture: "pipe-copper", shape: "pipe" },
+  seedOilPipe: { label: "Медная жидкостная труба с маслом семян", texture: "pipe-copper", shape: "pipe" },
+  biodieselPipe: { label: "Стальная жидкостная труба с биодизелем", texture: "pipe-steel", shape: "pipe" },
+  // Жидкостная труба фабрики калькулятора: жидкости там разные, подпись — общая.
+  calcFluidPipe: { label: "Жидкостная труба", texture: "pipe-steel", shape: "pipe" },
+  oxygenPipe: { label: "Стальная жидкостная труба с кислородом", texture: "pipe-steel", shape: "pipe" },
+  lavaPipe: { label: "Стальная жидкостная труба с лавой", texture: "pipe-steel", shape: "pipe" },
+  pumpSteamHatch: { label: "Паровой люк помпы", texture: "input-hatch", face: { rule: "outward", base: "wood" } },
+  pumpOutputHatch: { label: "Выходной люк помпы с водой", texture: "pump-output-hatch", face: { rule: "outward", base: "wood" } },
+  // Кабели линий производства — по ярусам, из того же материала, что и в рецепте корпуса машины.
+  cableLv: { label: "Оловянный кабель", texture: "i-cable-tin", shape: "pipe" },
+  cableMv: { label: "Медный кабель", texture: "i-cable-copper", shape: "pipe" },
+  cableHv: { label: "Золотой кабель", texture: "i-cable-gold", shape: "pipe" },
+  cableEv: { label: "Алюминиевый кабель", texture: "i-cable-aluminium", shape: "pipe" },
+  cableIv: { label: "Вольфрамовый кабель", texture: "i-cable-tungsten", shape: "pipe" },
+  cableLuv: { label: "Кабель из ванадий-галлия", texture: "i-cable-vanadiumgallium", shape: "pipe" },
+  cableZpm: { label: "Кабель из наквады", texture: "i-cable-naquadah", shape: "pipe" },
+  cableUv: { label: "Кабель из сплава наквады", texture: "i-cable-naquadahalloy", shape: "pipe" },
+  ...GEN_KINDS,
 } satisfies Record<string, BlockKind>;
 
 export type KindId = keyof typeof KINDS;
@@ -1184,7 +1233,13 @@ export const MACHINES: readonly Machine[] = [
     },
   },
   ...HIGH_MACHINES,
+  ...GEN_MACHINES,
 ];
+
+/** Все виды блоков постройки: общий справочник и её собственные (генераторы и котлы линий производства). */
+export function kindsOf(machine: Machine): Readonly<Record<string, BlockKind>> {
+  return machine.def.extraKinds ? { ...KINDS, ...machine.def.extraKinds } : KINDS;
+}
 
 export function findMachine(slug: string): Machine | undefined {
   return MACHINES.find((machine) => machine.slug === slug);
@@ -1196,7 +1251,7 @@ const structureCache = new Map<string, Structure>();
 export function structureOf(machine: Machine): Structure {
   const cached = structureCache.get(machine.slug);
   if (cached) return cached;
-  const structure = buildStructure(machine.def, KINDS);
+  const structure = buildStructure(machine.def, kindsOf(machine));
   structureCache.set(machine.slug, structure);
   return structure;
 }

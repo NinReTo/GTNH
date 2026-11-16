@@ -175,11 +175,18 @@ describe.each(MACHINES.map((entry) => [entry.title, entry] as const))("люба�
     if (!entry.def.kinds["~"]) return;
     const controllers = blocks.filter((block) => block.kind === entry.def.kinds["~"]);
     expect(controllers).toHaveLength(1);
+    // У солнечной башни контроллер в игре смотрит вверх, на вершине башни (MTESolarTower);
+    // поджигатель угольной ямы стоит на куче сверху (MTECharcoalPit).
+    if (entry.slug === "solar-tower" || entry.slug === "charcoal-pile-igniter") {
+      expect(controllers[0].face).toBe("py");
+      return;
+    }
     expect(controllers[0].face).toBe("pz");
     // У реактора синтеза контроллер во внутренней стенке кольца и смотрит в его центр (MTEFusionComputer),
     // у плазменной кузницы и комплекса наночипов — в середине постройки (MTEPlasmaForge, MTENanochipAssemblyComplex),
-    // у Звёздных врат перед основой стоит наборное устройство.
-    if (entry.slug.startsWith("fusion-reactor-") || ["plasma-forge", "nanochip-assembly-complex", "bec-containment-field", "stargate"].includes(entry.slug)) return;
+    // у Звёздных врат перед основой стоит наборное устройство; у лучевого сборщика и исследовательской станции
+    // контроллер в глубине постройки (смещения по глубине 6 и 4 в buildPiece).
+    if (entry.slug.startsWith("fusion-reactor-") || ["plasma-forge", "nanochip-assembly-complex", "bec-containment-field", "stargate", "compact-fusion-reactor", "beam-crafter", "research-station"].includes(entry.slug)) return;
     expect(controllers[0].grid[2]).toBeGreaterThan(0);
   });
 
@@ -246,8 +253,8 @@ describe("каталог", () => {
     for (const entry of MACHINES) expect(findTier(entry.tier), entry.slug).toBeDefined();
   });
 
-  test("на паре — тринадцать построек, на LV — доменная печь и воздушный фильтр", () => {
-    expect(MACHINES.filter((entry) => entry.tier === "steam")).toHaveLength(13);
+  test("на паре — пятнадцать построек (с ветряком и угольной ямой), на LV — доменная печь и воздушный фильтр", () => {
+    expect(MACHINES.filter((entry) => entry.tier === "steam")).toHaveLength(15);
     expect(MACHINES.filter((entry) => entry.tier === "lv").map((entry) => entry.slug)).toEqual([
       "electric-blast-furnace",
       "electric-air-filter",

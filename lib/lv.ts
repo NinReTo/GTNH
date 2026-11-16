@@ -214,7 +214,6 @@ export const LV_MACHINES: readonly LvMachine[] = [
 
   // Упаковка и прочее
   { folder: "canner", name: "Canner", title: "Консервный автомат", group: "lv-other", does: "заполняет банки и батареи", next: "TurboCan Pro", about: "Раскладывает содержимое по ёмкостям: еду — в банки, пыль — в корпуса батарей." },
-  { folder: "fluid_canner", name: "Fluid Canner", title: "Автомат розлива", group: "lv-other", does: "наливает и сливает жидкости", about: "Наливает жидкости в капсулы и вёдра и сливает их обратно." },
   { folder: "unboxinator", name: "Unpackager", title: "Распаковщик", group: "lv-other", does: "распаковывает", next: "Amazon Warehousing Depot", about: "Достаёт предметы из упаковок и разбирает собранные наборы обратно." },
   { folder: "recycler", name: "Recycler", title: "Утилизатор", group: "lv-other", does: "ненужное — в утиль", next: "Matter Fabrication CPU", about: "Перемалывает любые ненужные предметы в утиль." },
   { folder: "pump", name: "Pump", title: "Насос", group: "lv-other", does: "качает жидкости из мира", next: "Fluid Drilling Rig", about: "Выкачивает жидкость из мира вокруг и под собой.", tip: { title: "Нефть", text: "Насосом в LV добывают нефть — она идёт на полиэтилен и лёгкое топливо." } },

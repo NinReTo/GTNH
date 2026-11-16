@@ -5,6 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
 import {
   BoxGeometry,
+  type BufferGeometry,
   Color,
   DoubleSide,
   InstancedMesh,
@@ -22,9 +23,10 @@ import {
   type Texture,
 } from "three";
 import { CORE, EBF, HOVER, LIGHT, MATERIAL } from "@/lib/config";
-import { KINDS, structureOf, type KindId, type Machine } from "@/lib/machines";
+import { kindsOf, structureOf, type Machine } from "@/lib/machines";
 import {
   FACES,
+  STRUCTURE_READY,
   approach,
   createBlockPicker,
   cursorWeight,
@@ -38,7 +40,9 @@ import {
   type BlockKind,
   type Vec3,
 } from "@/lib/structure";
+import { pipeLinks, shapeBoxes } from "@/lib/shapes";
 import { PointerContext, type Pointer } from "@/lib/store";
+import { shapeGeometry } from "./shapeGeometry";
 
 const GT = "/textures/gregtech";
 export const DETAIL_URLS = {
@@ -47,13 +51,17 @@ export const DETAIL_URLS = {
 };
 
 /** Какие файлы текстур нужны постройке: у каждого вида — своя, плюс основа и свечение грани. */
-function textureUrls(kindIds: readonly string[]): Record<string, string> {
+type Kinds = Readonly<Record<string, BlockKind>>;
+
+function textureUrls(kindIds: readonly string[], kinds: Kinds): Record<string, string> {
   const names = new Set<string>();
   for (const id of kindIds) {
-    const kind: BlockKind = KINDS[id as KindId];
+    const kind: BlockKind = kinds[id];
     names.add(kind.texture);
     if (kind.face) names.add(kind.face.base);
     if (kind.glow) names.add(kind.glow);
+    if (kind.top) names.add(kind.top);
+    if (kind.bottom) names.add(kind.bottom);
   }
   return Object.fromEntries([...names].map((name) => [name, `${GT}/${name}.webp`]));
 }
@@ -124,18 +132,23 @@ interface KindMaterials {
   readonly base: MeshPhysicalMaterial;
   /** Материал грани с рисунком; у простых блоков его нет. */
   readonly face?: MeshPhysicalMaterial;
+  /** Верх и низ одноблочной машины. */
+  readonly top?: MeshPhysicalMaterial;
+  readonly bottom?: MeshPhysicalMaterial;
 }
 
-function buildMaterials(kindIds: readonly string[], textures: Record<string, Texture>, detail: Detail): Record<string, KindMaterials> {
+function buildMaterials(kindIds: readonly string[], textures: Record<string, Texture>, detail: Detail, kinds: Kinds): Record<string, KindMaterials> {
   return Object.fromEntries(
     kindIds.map((id) => {
-      const kind: BlockKind = KINDS[id as KindId];
+      const kind: BlockKind = kinds[id];
       if (!kind.face) return [id, { base: blockMaterial(kind, textures[kind.texture], detail) }];
       return [
         id,
         {
           base: blockMaterial(kind, textures[kind.face.base], detail),
           face: blockMaterial(kind, textures[kind.texture], detail, kind.glow ? textures[kind.glow] : undefined),
+          top: kind.top ? blockMaterial(kind, textures[kind.top], detail) : undefined,
+          bottom: kind.bottom ? blockMaterial(kind, textures[kind.bottom], detail) : undefined,
         },
       ];
     }),
@@ -153,18 +166,41 @@ interface Batches {
   readonly slots: readonly { readonly mesh: InstancedMesh; readonly instance: number }[];
 }
 
-function buildBatches(blocks: readonly Block[], materials: Record<string, KindMaterials>, geometry: BoxGeometry): Batches {
+function buildBatches(blocks: readonly Block[], materials: Record<string, KindMaterials>, geometry: BoxGeometry, kinds: Kinds): Batches {
   const groups = new Map<string, number[]>();
+  // Блоки неполной формы: у трубы форма зависит от соседей, поэтому трубы с разными отростками — разные наборы.
+  const kindAt = new Map(blocks.map((block) => [block.grid.join(":"), block.kind]));
+  const isBlockAt = (cell: Vec3) => kindAt.has(cell.join(":"));
+  const isJoinableAt = (cell: Vec3) => {
+    const id = kindAt.get(cell.join(":"));
+    return id !== undefined && Boolean((kinds[id]).shape);
+  };
+  const linksOf = (block: Block): readonly string[] => {
+    const kind: BlockKind = kinds[block.kind];
+    if (block.links) return block.links;
+    if (kind.shape === "pipe") return pipeLinks(block.grid, isBlockAt, isJoinableAt);
+    return kind.spout ? [kind.spout] : [];
+  };
+  const shapes = new Map<string, BufferGeometry>();
+  const geometryOf = (block: Block): BufferGeometry => {
+    const { shape } = kinds[block.kind];
+    if (!shape) return geometry;
+    const links = linksOf(block);
+    const key = [shape, ...links].join(":");
+    const made = shapes.get(key) ?? shapeGeometry(shapeBoxes(shape, links), EBF.blockSize * EBF.blockScale);
+    shapes.set(key, made);
+    return made;
+  };
   blocks.forEach((block, index) => {
-    const key = [block.kind, materials[block.kind].face ? block.face : ""].join(":");
+    const key = [block.kind, materials[block.kind].face ? block.face : "", ...linksOf(block)].join(":");
     groups.set(key, [...(groups.get(key) ?? []), index]);
   });
   const matrix = new Matrix4();
   const slots: { mesh: InstancedMesh; instance: number }[] = [];
   const meshes = [...groups.values()].map((indices) => {
     const first = blocks[indices[0]];
-    const mesh = new InstancedMesh(geometry, materialsFor(first, materials), indices.length);
-    mesh.castShadow = !(KINDS[first.kind as KindId] as BlockKind).isGlass;
+    const mesh = new InstancedMesh(geometryOf(first), materialsFor(first, materials), indices.length);
+    mesh.castShadow = !(kinds[first.kind]).isGlass;
     mesh.receiveShadow = true;
     // Блоки разъезжаются за рамку, посчитанную по их домашним местам, — без этого их бы отсекало.
     mesh.frustumCulled = false;
@@ -179,9 +215,9 @@ function buildBatches(blocks: readonly Block[], materials: Record<string, KindMa
 
 /** Шесть материалов куба: рисунок — только на одной грани, остальное — основа. */
 function materialsFor(block: Block, materials: Record<string, KindMaterials>): Material | Material[] {
-  const { base, face } = materials[block.kind];
+  const { base, face, top, bottom } = materials[block.kind];
   if (!face || !block.face) return base;
-  return FACES.map((side) => (side === block.face ? face : base));
+  return FACES.map((side) => (side === block.face ? face : side === "py" && top ? top : side === "ny" && bottom ? bottom : base));
 }
 
 interface Structure3DProps {
@@ -199,8 +235,9 @@ export function Structure3D({ machine, shadows, hasLight = true }: Structure3DPr
   /** Где курсор над этой сценой; у каждой сцены свой источник. */
   const getPointer = useContext(PointerContext);
   const structure = useMemo(() => structureOf(machine), [machine]);
+  const kinds = useMemo(() => kindsOf(machine), [machine]);
   const kindIds = useMemo(() => [...new Set(structure.blocks.map((block) => block.kind))], [structure]);
-  const textures = useTexture(useMemo(() => textureUrls(kindIds), [kindIds])) as Record<string, Texture>;
+  const textures = useTexture(useMemo(() => textureUrls(kindIds, kinds), [kindIds, kinds])) as Record<string, Texture>;
   const detail = useTexture(DETAIL_URLS) as Detail;
 
   /** Текущее раздвижение каждого блока, от 0 до 1. Плавно идёт за курсором. */
@@ -219,7 +256,8 @@ export function Structure3D({ machine, shadows, hasLight = true }: Structure3DPr
     Object.values(textures).forEach(setupPixelTexture);
     Object.values(detail).forEach(setupDetailTexture);
     invalidate();
-  }, [textures, detail, invalidate]);
+    window.dispatchEvent(new CustomEvent(STRUCTURE_READY, { detail: machine.slug }));
+  }, [textures, detail, invalidate, machine.slug]);
 
   // Тени зависят только от положения блоков. Пока блоки стоят (а при вращении
   // движется одна камера), карту теней перерисовывать незачем — это была самая
@@ -235,12 +273,12 @@ export function Structure3D({ machine, shadows, hasLight = true }: Structure3DPr
     };
   }, [gl, structure, invalidate, shadows]);
 
-  const materials = useMemo(() => buildMaterials(kindIds, textures, detail), [kindIds, textures, detail]);
+  const materials = useMemo(() => buildMaterials(kindIds, textures, detail, kinds), [kindIds, textures, detail, kinds]);
   const geometry = useMemo(() => {
     const side = EBF.blockSize * EBF.blockScale;
     return new BoxGeometry(side, side, side);
   }, []);
-  const batches = useMemo(() => buildBatches(structure.blocks, materials, geometry), [structure, materials, geometry]);
+  const batches = useMemo(() => buildBatches(structure.blocks, materials, geometry, kinds), [structure, materials, geometry, kinds]);
   useEffect(() => () => batches.meshes.forEach((mesh) => mesh.dispose()), [batches]);
   const matrix = useMemo(() => new Matrix4(), []);
   const coreColor = useMemo(() => new Color(CORE.color).multiplyScalar(CORE.intensity), []);

@@ -2,6 +2,9 @@ import { EBF, EXPLODE, HOVER } from "./config";
 import { clamp01, smooth01 } from "./math";
 
 /** Грань куба: p/n — плюс/минус, вторая буква — ось. Порядок как у граней куба в three.js. */
+/** Событие окна: постройка с адресным именем detail нарисована (текстуры загружены) — калькулятор ждёт его. */
+export const STRUCTURE_READY = "structure-ready";
+
 export type Face = "px" | "nx" | "py" | "ny" | "pz" | "nz";
 export const FACES: readonly Face[] = ["px", "nx", "py", "ny", "pz", "nz"];
 
@@ -13,10 +16,17 @@ export type FaceRule = "front" | "up" | "outward";
 /** Вид блока: как называется и чем нарисован. */
 export interface BlockKind {
   readonly label: string;
+  /** Блок занимает не весь куб (сундук, воронка, труба): рисуется своей формой из lib/shapes.ts. */
+  readonly shape?: "chest" | "hopper" | "pipe";
+  /** Куда смотрит носик воронки, если не вниз: сторона клетки (px, nx, pz, nz). */
+  readonly spout?: "px" | "nx" | "pz" | "nz";
   /** Имя файла текстуры в public/textures/gregtech без расширения. */
   readonly texture: string;
   /** Отдельная текстура одной грани (экран, люк); остальные грани рисуются текстурой base. */
   readonly face?: { readonly rule: FaceRule; readonly base: string };
+  /** Свои текстуры верха и низа (одноблочные машины): иначе верх и низ рисуются основой. */
+  readonly top?: string;
+  readonly bottom?: string;
   /** Карта свечения грани с рисунком. */
   readonly glow?: string;
   /** Не металл (кирпич, дерево): без металлического блеска. */
@@ -44,6 +54,12 @@ export interface StructureDef {
   readonly layers: readonly (readonly string[])[];
   readonly kinds: Readonly<Record<string, string>>;
   readonly hollow?: string;
+  /** Куда смотрит грань с рисунком у блоков этого символа — вместо общего правила вида (люки линий производства). */
+  readonly faces?: Readonly<Record<string, Face>>;
+  /** Отростки трубы или носик воронки у блоков этого символа: стороны клетки (px, nz…). */
+  readonly links?: Readonly<Record<string, readonly string[]>>;
+  /** Виды блоков, которых нет в общем справочнике: генераторы и котлы линий производства. */
+  readonly extraKinds?: Readonly<Record<string, BlockKind>>;
   /** По умолчанию в полости огонь. */
   readonly interior?: Interior;
 }
@@ -60,6 +76,8 @@ export interface Block {
   readonly push: Vec3;
   /** Грань с рисунком, если она есть. */
   readonly face: Face | null;
+  /** Отростки трубы или носик воронки, если схема задала их сама. */
+  readonly links?: readonly string[];
 }
 
 export interface Structure {
@@ -184,7 +202,8 @@ export function buildStructure(def: StructureDef, kinds: Readonly<Record<string,
       grid: cell.grid,
       home: homeOf(cell.grid),
       push: pushes[index],
-      face: faceOf(kinds[kind].face?.rule, cell.grid),
+      face: def.faces?.[cell.symbol] ?? faceOf(kinds[kind].face?.rule, cell.grid),
+      ...(def.links?.[cell.symbol] ? { links: def.links[cell.symbol] } : {}),
     };
   });
 

@@ -33,9 +33,21 @@ export function TierTabs() {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg">
       <div className="mx-auto max-w-6xl px-4 sm:px-8">
-        <Link href="/" className="inline-block pt-3 font-mono text-sm text-text1 hover:text-accent">
-          <span className="text-text3">GT New Horizons /</span> <span className="font-bold">Машины</span>
-        </Link>
+        <div className="flex items-baseline gap-4 pt-3 font-mono text-sm">
+          <Link href="/" className="text-text1 hover:text-accent">
+            <span className="text-text3">GT New Horizons /</span> <span className="font-bold">Машины</span>
+          </Link>
+          <span className="text-text3" aria-hidden>
+            ·
+          </span>
+          <Link
+            href="/calculator"
+            aria-current={pathname === "/calculator" ? "page" : undefined}
+            className={pathname === "/calculator" ? "font-bold text-accent" : "text-text2 hover:text-accent"}
+          >
+            Калькулятор
+          </Link>
+        </div>
         <nav aria-label="Эры" className="-mb-px mt-2 flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {TIERS.map((tier) => {
             const isActive = tier.id === active;

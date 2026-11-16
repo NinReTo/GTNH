@@ -19,14 +19,18 @@ import {
 import { LV_MACHINE_FOLDERS, machineId } from "@/lib/lv";
 import { KINDS, MACHINES, SINGLE_BLOCKS } from "@/lib/machines";
 import { SINGLES, findSingle } from "@/lib/singles";
+import { findTier } from "@/lib/tiers";
 
 const single = (slug: string): LineStep => ({ kind: "single", slug });
 const machine = (slug: string): LineStep => ({ kind: "machine", slug });
 const stepsOf = (predicate: (step: LineStep) => boolean) => LINES.flatMap((line) => line.steps.filter(predicate));
 
 describe("прогрессии", () => {
+  // Ветряк и угольная яма — не паровые машины из прогрессий, они стоят в каталоге яруса.
+  const STEAM_CATALOG = ["windmill", "charcoal-pile-igniter"];
+
   test("каждая паровая постройка стоит ровно в одной прогрессии", () => {
-    for (const candidate of MACHINES.filter((entry) => entry.tier === "steam")) {
+    for (const candidate of MACHINES.filter((entry) => entry.tier === "steam" && !STEAM_CATALOG.includes(entry.slug))) {
       expect(stepsOf((step) => isSameStep(step, machine(candidate.slug))), candidate.slug).toHaveLength(1);
     }
   });
@@ -79,8 +83,8 @@ describe("прогрессии", () => {
 });
 
 describe("каталог яруса", () => {
-  test("на паре всё стоит в прогрессиях — каталог пуст", () => {
-    expect(catalogOf("steam")).toEqual([]);
+  test("на паре в каталоге только ветряк и угольная яма — остальное в прогрессиях", () => {
+    expect(catalogOf("steam").flatMap((group) => group.steps)).toEqual([machine("windmill"), machine("charcoal-pile-igniter")]);
   });
 
   test("в LV — постройки, генераторы и машины по группам, без пустых групп", () => {
@@ -129,10 +133,11 @@ describe("ярус MV", () => {
 });
 
 describe("ярус HV и постройки GT++", () => {
-  test("в каталоге HV — семь построек, три генератора и машины", () => {
+  test("в каталоге HV — семнадцать построек (с биочаном и постройками из вики 2.9), три генератора и машины", () => {
     const groups = catalogOf("hv");
-    expect(groups[0].steps).toHaveLength(7);
+    expect(groups[0].steps).toHaveLength(17);
     expect(groups[0].steps).toContainEqual(machine("cleanroom"));
+    expect(groups[0].steps).toContainEqual(machine("bacterial-vat"));
     expect(groups.find((group) => group.id === "generator")?.steps).toHaveLength(3);
     expect(SINGLES.filter((entry) => entry.tier === "hv")).toHaveLength(3 + ASSETS.hvMachineFolders.length);
   });
@@ -158,17 +163,16 @@ describe("ярус HV и постройки GT++", () => {
 
 describe("ярусы от EV до MAX", () => {
   const expected = [
-    { tier: "ev", buildings: 6, generators: 4, folders: ASSETS.evMachineFolders, scene: "large-combustion-engine" },
-    { tier: "iv", buildings: 4, generators: 4, folders: ASSETS.ivMachineFolders, scene: "assembly-line" },
-    { tier: "luv", buildings: 5, generators: 2, folders: ASSETS.luvMachineFolders, scene: "fusion-reactor-1" },
-    { tier: "uv", buildings: 3, generators: 2, folders: ASSETS.uvMachineFolders, scene: "fusion-reactor-3" },
-    { tier: "uhv", buildings: 2, generators: 0, folders: ASSETS.uhvMachineFolders, scene: "electric-implosion-compressor" },
-    { tier: "uev", buildings: 4, generators: 0, folders: ASSETS.uevMachineFolders, scene: "fusion-reactor-4" },
-    { tier: "uiv", buildings: 10, generators: 0, folders: ASSETS.uivMachineFolders, scene: "transcendent-plasma-mixer" },
-    { tier: "umv", buildings: 1, generators: 0, folders: ASSETS.umvMachineFolders, scene: "endothermic-fridge" },
-    { tier: "uxv", buildings: 1, generators: 0, folders: ASSETS.uxvMachineFolders, scene: "eye-of-harmony" },
-    { tier: "max", buildings: 1, generators: 0, folders: ASSETS.maxMachineFolders, scene: "stargate" },
-    { tier: "zpm", buildings: 5, generators: 2, folders: ASSETS.zpmMachineFolders, scene: "fusion-reactor-2" },
+    { tier: "ev", buildings: 22, generators: 4, folders: ASSETS.evMachineFolders, scene: "large-combustion-engine" },
+    { tier: "iv", buildings: 42, generators: 4, folders: ASSETS.ivMachineFolders, scene: "assembly-line" },
+    { tier: "luv", buildings: 21, generators: 2, folders: ASSETS.luvMachineFolders, scene: "fusion-reactor-1" },
+    { tier: "uv", buildings: 18, generators: 2, folders: ASSETS.uvMachineFolders, scene: "fusion-reactor-3" },
+    { tier: "uhv", buildings: 5, generators: 0, folders: ASSETS.uhvMachineFolders, scene: "electric-implosion-compressor" },
+    { tier: "uev", buildings: 7, generators: 0, folders: ASSETS.uevMachineFolders, scene: "fusion-reactor-4" },
+    { tier: "uiv", buildings: 13, generators: 0, folders: ASSETS.uivMachineFolders, scene: "transcendent-plasma-mixer" },
+    { tier: "umv", buildings: 1, generators: 0, folders: ASSETS.umvMachineFolders, scene: "eye-of-harmony" },
+    { tier: "uxv", buildings: 1, generators: 0, folders: ASSETS.uxvMachineFolders, scene: "stargate" },
+    { tier: "zpm", buildings: 20, generators: 2, folders: ASSETS.zpmMachineFolders, scene: "fusion-reactor-2" },
   ] as const;
 
   test.each(expected)("в каталоге $tier — постройки, генераторы и машины", ({ tier, buildings, generators, folders, scene }) => {
@@ -189,9 +193,11 @@ describe("ярусы от EV до MAX", () => {
   test.each(expected)("у каждой машины $tier есть версия LV, и вкладка яруса горит на её странице", ({ tier, folders, scene }) => {
     for (const folder of folders) expect(LV_MACHINE_FOLDERS, folder).toContain(folder);
     expect(activeTier(`/machines/${scene}`)).toBe(tier);
-    if (folders.length > 0) expect(activeTier(`/singles/${machineId(folders[0])}-${tier}`)).toBe(tier);
+    const [first] = folders as readonly string[];
+    if (first) expect(activeTier(`/singles/${machineId(first)}-${tier}`)).toBe(tier);
   });
 });
+
 
 describe("следующая машина", () => {
   test("внутри прогрессии — следующая ступень", () => {
@@ -209,7 +215,8 @@ describe("следующая машина", () => {
   test("после последней машины яруса дальше ничего нет", () => {
     const lines = linesOf("steam");
     const final = lines[lines.length - 1];
-    expect(nextStep(final.steps[final.steps.length - 1])).toBeUndefined();
+    expect(nextStep(final.steps[final.steps.length - 1])).toEqual(machine("windmill"));
+    expect(nextStep(machine("charcoal-pile-igniter"))).toBeUndefined();
     expect(nextStep(single("нет-такой"))).toBeUndefined();
   });
 });

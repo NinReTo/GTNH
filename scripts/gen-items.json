@@ -1,0 +1,848 @@
+{
+ "i-cable-tin": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/wire",
+  "tint": [
+   220,
+   220,
+   220
+  ]
+ },
+ "i-cable-copper": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/wire",
+  "tint": [
+   255,
+   100,
+   0
+  ]
+ },
+ "i-cable-gold": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/wire",
+  "tint": [
+   255,
+   255,
+   30
+  ]
+ },
+ "i-cable-aluminium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/wire",
+  "tint": [
+   128,
+   200,
+   240
+  ]
+ },
+ "i-cable-tungsten": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/wire",
+  "tint": [
+   50,
+   50,
+   50
+  ]
+ },
+ "i-cable-vanadiumgallium": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/wire",
+  "tint": [
+   128,
+   128,
+   140
+  ]
+ },
+ "i-cable-naquadah": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/wire",
+  "tint": [
+   50,
+   50,
+   50
+  ]
+ },
+ "i-cable-naquadahalloy": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/wire",
+  "tint": [
+   40,
+   40,
+   40
+  ]
+ },
+ "c-ingot-copper": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/ingot",
+  "tint": [
+   255,
+   100,
+   0
+  ]
+ },
+ "c-ingot-tin": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/ingot",
+  "tint": [
+   220,
+   220,
+   220
+  ]
+ },
+ "c-ingot-bronze": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/ingot",
+  "tint": [
+   255,
+   128,
+   0
+  ]
+ },
+ "c-gem-coal": {
+  "src": "gregtech/textures/items/materialicons/LIGNITE/gem",
+  "tint": [
+   70,
+   70,
+   70
+  ]
+ },
+ "c-gem-coke": {
+  "src": "gregtech/textures/items/materialicons/LIGNITE/gem",
+  "tint": [
+   64,
+   64,
+   64
+  ]
+ },
+ "c-ingot-iron": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/ingot",
+  "tint": [
+   200,
+   200,
+   200
+  ]
+ },
+ "c-ingot-steel": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/ingot",
+  "tint": [
+   128,
+   128,
+   128
+  ]
+ },
+ "c-dust-iron": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   200,
+   200,
+   200
+  ]
+ },
+ "c-dust-carbon": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   20,
+   20,
+   20
+  ]
+ },
+ "c-cell-oxygen": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   0,
+   100,
+   200
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-dust-ruby": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   255,
+   100,
+   100
+  ]
+ },
+ "c-dust-alumina": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   235,
+   255,
+   255
+  ]
+ },
+ "c-ingot-aluminium": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/ingot",
+  "tint": [
+   128,
+   200,
+   240
+  ]
+ },
+ "c-dust-nickel": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   200,
+   200,
+   250
+  ]
+ },
+ "c-dust-invar": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   180,
+   180,
+   120
+  ]
+ },
+ "c-dust-manganese": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   250,
+   250,
+   250
+  ]
+ },
+ "c-dust-chrome": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   255,
+   230,
+   230
+  ]
+ },
+ "c-dust-stainless": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   200,
+   200,
+   220
+  ]
+ },
+ "c-ingot-stainless": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/ingot",
+  "tint": [
+   200,
+   200,
+   220
+  ]
+ },
+ "c-crushed-ilmenite": {
+  "src": "gregtech/textures/items/materialicons/NONE/crushedPurified",
+  "tint": [
+   70,
+   55,
+   50
+  ]
+ },
+ "c-cell-sulfuric": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   255,
+   128,
+   0
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-dust-rutile": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   212,
+   13,
+   92
+  ]
+ },
+ "c-cell-chlorine": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   255,
+   230,
+   230
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-cell-ticl4": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   212,
+   13,
+   92
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-dust-magnesium": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   255,
+   200,
+   200
+  ]
+ },
+ "c-dust-mgcl2": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   212,
+   13,
+   92
+  ]
+ },
+ "c-dust-sodium": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   0,
+   0,
+   150
+  ]
+ },
+ "c-hot-titanium": {
+  "src": "gregtech/textures/items/materialicons/NONE/ingotHot",
+  "tint": [
+   220,
+   160,
+   240
+  ]
+ },
+ "c-ingot-titanium": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/ingot",
+  "tint": [
+   220,
+   160,
+   240
+  ]
+ },
+ "c-dust-scheelite": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   200,
+   140,
+   20
+  ]
+ },
+ "c-cell-hcl": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   183,
+   200,
+   196
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-dust-tungstic": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   245,
+   241,
+   22
+  ]
+ },
+ "c-dust-wo3": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   15,
+   5,
+   22
+  ]
+ },
+ "c-cell-hydrogen": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   0,
+   0,
+   255
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-dust-tungsten": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   50,
+   50,
+   50
+  ]
+ },
+ "c-dust-steel": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   128,
+   128,
+   128
+  ]
+ },
+ "c-dust-wsteel": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   100,
+   100,
+   160
+  ]
+ },
+ "c-hot-wsteel": {
+  "src": "gregtech/textures/items/materialicons/NONE/ingotHot",
+  "tint": [
+   100,
+   100,
+   160
+  ]
+ },
+ "c-ingot-wsteel": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/ingot",
+  "tint": [
+   100,
+   100,
+   160
+  ]
+ },
+ "c-crushed-chalcopyrite": {
+  "src": "gregtech/textures/items/materialicons/NONE/crushedPurified",
+  "tint": [
+   160,
+   120,
+   40
+  ]
+ },
+ "c-cell-aquaregia": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   255,
+   177,
+   50
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-cell-ptconc": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   255,
+   255,
+   200
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-cell-nh4cl": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   255,
+   255,
+   255
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-cell-pdammonia": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   177,
+   177,
+   177
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-dust-pdraw": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   177,
+   177,
+   177
+  ]
+ },
+ "c-cell-formic": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   255,
+   170,
+   119
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-dust-palladium": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   177,
+   177,
+   177
+  ]
+ },
+ "c-dust-ptresidue": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   100,
+   99,
+   46
+  ]
+ },
+ "c-cell-rhsulfate": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   238,
+   170,
+   85
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-dust-rhodium": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   244,
+   244,
+   244
+  ]
+ },
+ "c-dust-rpp": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   255,
+   230,
+   230
+  ]
+ },
+ "c-hot-rpp": {
+  "src": "gregtech/textures/items/materialicons/NONE/ingotHot",
+  "tint": [
+   255,
+   230,
+   230
+  ]
+ },
+ "c-ingot-rpp": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/ingot",
+  "tint": [
+   255,
+   230,
+   230
+  ]
+ },
+ "c-dust-leach": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   100,
+   70,
+   41
+  ]
+ },
+ "c-dust-saltpeter": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   230,
+   230,
+   230
+  ]
+ },
+ "c-cell-saltwater": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   0,
+   0,
+   200
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-dust-rarest": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   100,
+   70,
+   41
+  ]
+ },
+ "c-dust-irresidue": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   132,
+   102,
+   73
+  ]
+ },
+ "c-cell-osacid": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   132,
+   102,
+   73
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-cell-ossolution": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   132,
+   102,
+   73
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-dust-osmium": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   50,
+   50,
+   255
+  ]
+ },
+ "c-hot-osmium": {
+  "src": "gregtech/textures/items/materialicons/NONE/ingotHot",
+  "tint": [
+   50,
+   50,
+   255
+  ]
+ },
+ "c-ingot-osmium": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/ingot",
+  "tint": [
+   50,
+   50,
+   255
+  ]
+ },
+ "c-dust-iro2": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   132,
+   102,
+   73
+  ]
+ },
+ "c-cell-iracid": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   132,
+   102,
+   73
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-dust-ircl": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   132,
+   102,
+   73
+  ]
+ },
+ "c-dust-calcium": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   255,
+   245,
+   245
+  ]
+ },
+ "c-dust-iridium": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   240,
+   240,
+   245
+  ]
+ },
+ "c-hot-iridium": {
+  "src": "gregtech/textures/items/materialicons/NONE/ingotHot",
+  "tint": [
+   240,
+   240,
+   245
+  ]
+ },
+ "c-ingot-iridium": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/ingot",
+  "tint": [
+   240,
+   240,
+   245
+  ]
+ },
+ "c-cell-lutetium": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   188,
+   62,
+   199
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-cell-chrome": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   255,
+   230,
+   230
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-cell-americium": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   200,
+   200,
+   200
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-dust-nqearth": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   77,
+   77,
+   85
+  ]
+ },
+ "c-cell-phosphoric": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   220,
+   220,
+   0
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-dust-nqphosphate": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   77,
+   77,
+   85
+  ]
+ },
+ "c-cell-nqsolution": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   31,
+   30,
+   51
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-dust-nqsulphate": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   31,
+   30,
+   51
+  ]
+ },
+ "c-cell-naquadria": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   30,
+   30,
+   30
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-cell-neutronium": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   250,
+   250,
+   250
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-ingot-neutronium": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/ingot",
+  "tint": [
+   250,
+   250,
+   250
+  ]
+ },
+ "c-dust-coal": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   70,
+   70,
+   70
+  ]
+ },
+ "c-cell-water": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   0,
+   0,
+   255
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-cell-empty": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   255,
+   255,
+   255
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "c-dust-ptmetal": {
+  "src": "gregtech/textures/items/materialicons/METALLIC/dust",
+  "tint": [
+   255,
+   255,
+   200
+  ]
+ },
+ "c-cell-k2s2o7": {
+  "src": "gregtech/textures/items/materialicons/FLUID/cell",
+  "tint": [
+   251,
+   187,
+   102
+  ],
+  "overlay": "gregtech/textures/items/materialicons/FLUID/cell_OVERLAY"
+ },
+ "pipe-bronze": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/pipeSide",
+  "tint": [
+   255,
+   128,
+   0
+  ]
+ },
+ "pipe-brass": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/pipeSide",
+  "tint": [
+   255,
+   180,
+   0
+  ]
+ },
+ "coke-hatch-in": {
+  "src": "gregtech/textures/blocks/iconsets/COKE_OVEN_CASING",
+  "overlay": [
+   "gregtech/textures/blocks/iconsets/OVERLAY_PIPE_IN",
+   "gregtech/textures/blocks/iconsets/ITEM_IN_SIGN"
+  ]
+ },
+ "coke-hatch-items": {
+  "src": "gregtech/textures/blocks/iconsets/COKE_OVEN_CASING",
+  "overlay": [
+   "gregtech/textures/blocks/iconsets/OVERLAY_PIPE_OUT",
+   "gregtech/textures/blocks/iconsets/ITEM_OUT_SIGN"
+  ]
+ },
+ "coke-hatch-fluid": {
+  "src": "gregtech/textures/blocks/iconsets/COKE_OVEN_CASING",
+  "overlay": [
+   "gregtech/textures/blocks/iconsets/OVERLAY_PIPE_OUT",
+   "gregtech/textures/blocks/iconsets/FLUID_OUT_SIGN"
+  ]
+ },
+ "single-lv-brewery": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_LV_SIDE",
+  "overlay": "gregtech/textures/blocks/basicmachines/potionbrewer/OVERLAY_FRONT_POTIONBREWER"
+ },
+ "single-lv-brewery-side": {
+  "src": "gregtech/textures/blocks/iconsets/MACHINE_LV_SIDE",
+  "overlay": "gregtech/textures/blocks/basicmachines/potionbrewer/OVERLAY_SIDE_POTIONBREWER"
+ },
+ "pipe-steel": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/pipeSide",
+  "tint": [
+   128,
+   128,
+   128
+  ]
+ },
+ "pipe-copper": {
+  "src": "gregtech/textures/blocks/materialicons/NONE/pipeSide",
+  "tint": [
+   255,
+   100,
+   0
+  ]
+ },
+ "pump-output-hatch": {
+  "src": "gregtech/textures/blocks/iconsets/PRIMITIVE_WOODEN_CASING_SIDE",
+  "overlay": [
+   "gregtech/textures/blocks/iconsets/OVERLAY_PIPE_OUT",
+   "gregtech/textures/blocks/iconsets/FLUID_OUT_SIGN"
+  ]
+ }
+}

@@ -42,3 +42,6 @@ next-env.d.ts
 
 # локальные настройки инструментов
 /.claude/
+
+# данные калькулятора: scripts/fetch-calc-data.mjs
+/public/calc
