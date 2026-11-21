@@ -513,12 +513,12 @@ export const HIGH_MACHINES: readonly Machine[] = [
     source: `${SOURCES}/gtPlusPlus/xmod/gregtech/common/tileentities/machines/multi/production/MTEAlloyBlastSmelter.java`,
     def: {
       layers: [
-        ["CCC", "CCC", "CCC"],
+        ["CCC", "CmC", "CCC"],
         ["HHH", "H-H", "HHH"],
         ["HHH", "H-H", "HHH"],
         ["C~C", "CCC", "CCC"],
       ],
-      kinds: { C: "absCasing", H: "absFirebox", "~": "absController" },
+      kinds: { C: "absCasing", H: "absFirebox", m: "muffler", "~": "absController" },
       hollow: "-",
     },
   },

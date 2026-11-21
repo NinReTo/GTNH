@@ -1,6 +1,7 @@
-import { GAME, PRODUCTION } from "./config";
+import { CALC, CHUNK, GAME, PRODUCTION } from "./config";
 import { coilHeat } from "./heat";
-import { OPPOSITE, addHatch, boxOf, cellOf, keyOf, lay, move, placeMachine, route, row, toMachine, withCells, type Cell, type Grid } from "./layout";
+import { tr } from "./i18n";
+import { OPPOSITE, addHatch, boxOf, type Box, cellOf, findPath, keyOf, lay, layInto, move, placeMachine, route, row, toMachine, withCells, type Cell, type Grid } from "./layout";
 import { KINDS, findMachine, kindsOf, type Fact, type KindId, type Machine } from "./machines";
 import { bbfFarmRun, fuelChainRun, type FuelChainRun, type FuelStage, bronzeRun, coilFor, powerSupply, runRecipe, steamSteelRun, steamWater, steelPrepRun, type Recipe, type Run } from "./production";
 import { SINGLES, findSingle, type Single } from "./singles";
@@ -181,44 +182,150 @@ const isKind = (grid: Grid, cell: Vec3, kind: string): boolean => grid.get(keyOf
  * Если задан under (вода для котлов), ряды стоят на блок выше, а под ними идёт эта труба — тоже с общей трубой сбоку.
  * Если задан over (лава), такая же труба идёт поверх рядов; её конец сбоку — вход от источника.
  */
-function supplyRow(grid: Grid, hatches: readonly { readonly hatch: Vec3; readonly face: Face }[], count: number, sourceKind: string, sourceFace: Face, conduit: string, under?: string, over?: string, margin = MARGIN): Grid {
+function supplyRow(grid: Grid, hatches: readonly { readonly hatch: Vec3; readonly face: Face }[], count: number, sourceKind: string, sourceFace: Face, conduit: string, under?: string, over?: string, margin = MARGIN, clamp?: Box, at?: SupplySpot, allows?: (cell: Vec3) => boolean): Grid {
   const { min, max } = boxOf([...grid.keys()].map(cellOf));
-  const perRow = Math.min(count, PRODUCTION.sourcesPerRow);
+  const perRow = at?.perRow ?? Math.min(count, PRODUCTION.sourcesPerRow);
   const rows = Math.ceil(count / perRow);
-  const left = Math.round((min[0] + max[0]) / [0, 0].length - (perRow - 1) / [0, 0].length);
-  const y = under ? 1 : 0;
+  // Этажи (фабрика калькулятора): rowsPerFloor рядов заполняют чанк в глубину, следующие — этажом выше, вплотную:
+  // у генератора заняты только перед (кабель) — верх, низ и бока свободны.
+  const floorRows = at?.rowsPerFloor ?? rows;
+  const floors = Math.ceil(rows / floorRows);
+  // at — место, которое для рядов выбрали заранее (фабрика калькулятора кладёт их внутрь своих чанков); иначе — за линией посередине.
+  const left = at?.left ?? Math.round((min[0] + max[0]) / [0, 0].length - (perRow - 1) / [0, 0].length);
+  const base = under ? 1 : 0;
+  // С трубой топлива (over) этажи идут парами: генераторы, труба, генераторы — одна труба кормит оба слоя (верхний
+  // берёт топливо снизу: генератору нужна только лицевая сторона под кабель). Пара — три слоя.
+  const paired = Boolean(at && over);
+  // Фабрика калькулятора: каждый ряд генераторов — своя сеть со своим кабелем. Ток ряда (по амперу с генератора) не
+  // больше, чем держит кабель, а общий кабель на все генераторы держал бы их сумму — сгорел бы.
+  const split = at?.amps !== undefined;
+  const floorY = (floor: number) => (paired ? supplyFloorY(floor) : floor) + base;
+  const fuelFloor = (floor: number) => paired && floor % [0, 0].length === 0;
+  const floorOf = (index: number) => Math.floor(index / floorRows);
   // Ряды идут назад через клетку: перед каждым рядом — его общий участок трубы или кабеля.
-  const busZ = (index: number) => min[2] - BEHIND + 1 - index * [0, 0].length;
+  const busZ = (index: number) => (at?.busZ ?? min[2] - BEHIND + 1) - (index % floorRows) * [0, 0].length;
   // Общий участок вдоль ряда: каждый отрезок тянет отросток к своему источнику (side).
   const line = (at: number, z: number, inRow: number, kind: string, side: Face): readonly (readonly [Vec3, Cell])[] =>
     Array.from({ length: inRow }, (_unused, column): readonly [Vec3, Cell] => [
       [left + column, at, z],
       { kind, links: [...(column > 0 ? ["nx" as const] : []), ...(column < inRow - 1 ? ["px" as const] : []), side].sort() },
     ]);
+  // Труба топлива над рядом index: вниз — к его генераторам, вверх — к генераторам ряда этажом выше, если они есть.
+  const fuelLine = (at: number, index: number, inRow: number): readonly (readonly [Vec3, Cell])[] => {
+    const upper = index + floorRows;
+    const upperInRow = upper < rows ? Math.min(perRow, count - upper * perRow) : 0;
+    return Array.from({ length: inRow }, (_unused, column): readonly [Vec3, Cell] => [
+      [left + column, at, busZ(index) - 1],
+      { kind: over ?? "", links: [...(column > 0 ? ["nx" as const] : []), ...(column < inRow - 1 ? ["px" as const] : []), "ny" as const, ...(column < upperInRow ? ["py" as const] : [])].sort() },
+    ]);
+  };
   // Сбоку от рядов — общая труба вдоль них, от неё — отвод к началу каждого ряда.
-  const spine = (next: Grid, at: number, zOf: (index: number) => number, kind: string): Grid => {
-    if (rows < [0, 0].length) return next;
-    const along = Array.from({ length: zOf(0) - zOf(rows - 1) + 1 }, (_unused, step): Vec3 => [left - 1, at, zOf(0) - step]);
-    return Array.from({ length: rows }, (_unused, index) => index).reduce((laid, index) => lay(laid, [[left - 1, at, zOf(index)], [left, at, zOf(index)]], kind), lay(next, along, kind));
+  const spine = (next: Grid, at: number, zOf: (index: number) => number, kind: string, first = 0, last = rows - 1): Grid => {
+    if (last - first < 1) return next;
+    const along = Array.from({ length: zOf(first) - zOf(last) + 1 }, (_unused, step): Vec3 => [left - 1, at, zOf(first) - step]);
+    return Array.from({ length: last - first + 1 }, (_unused, step) => first + step).reduce((laid, index) => lay(laid, [[left - 1, at, zOf(index)], [left, at, zOf(index)]], kind), lay(next, along, kind));
   };
   let current = grid;
   for (let index = 0; index < rows; index += 1) {
     const inRow = Math.min(perRow, count - index * perRow);
+    const y = floorY(floorOf(index));
     current = row(current, [left, y, busZ(index) - 1], inRow, sourceKind, sourceFace);
     current = withCells(current, [
       ...line(y, busZ(index), inRow, conduit, "nz"),
       ...(under ? line(0, busZ(index) - 1, inRow, under, "py") : []),
-      ...(over ? line(y + 1, busZ(index) - 1, inRow, over, "ny") : []),
+      ...(over && !paired ? line(y + 1, busZ(index) - 1, inRow, over, "ny") : []),
+      ...(fuelFloor(floorOf(index)) ? fuelLine(y + 1, index, inRow) : []),
     ]);
   }
-  current = spine(current, y, busZ, conduit);
+  const joiningCable: Vec3[] = [];
+  if (at?.joinFloors) {
+    const right = left + perRow;
+    const z = busZ(0);
+    const y = floorY(1);
+    const last = left + count - perRow - 1;
+    joiningCable.push([right - 1, floorY(0), z]);
+    for (let level = floorY(0); level <= y; level += 1) joiningCable.push([right, level, z]);
+    for (let x = right - 1; x >= last; x -= 1) joiningCable.push([x, y, z]);
+    current = lay(current, joiningCable, conduit);
+  }
+  for (let floor = 0; floor < floors && !split; floor += 1) {
+    const first = floor * floorRows;
+    const last = Math.min(rows, first + floorRows) - 1;
+    // На этаже с одним рядом общей трубы сбоку нет — к нему ведёт только столбик ниже.
+    current = last > first || floors === 1 ? spine(current, floorY(floor), busZ, conduit, first, last) : lay(current, [[left - 1, floorY(floor), busZ(first)], [left, floorY(floor), busZ(first)]], conduit);
+  }
+  // Этажи соединяет столбик у начала первого ряда.
+  if (floors > 1 && !split) current = lay(current, Array.from({ length: floorY(floors - 1) - base + 1 }, (_unused, step): Vec3 => [left - 1, base + step, busZ(0)]), conduit);
   if (under) current = spine(current, 0, (index) => busZ(index) - 1, under);
-  if (over) current = spine(lay(current, [[left - 1, y + 1, busZ(0) - 1], [left, y + 1, busZ(0) - 1]], over), y + 1, (index) => busZ(index) - 1, over);
-  return hatches.reduce((next, { hatch, face }) => {
-    const out = move(hatch, face);
-    const goals = [...next.entries()].filter(([, value]) => value.kind === conduit).map(([key]) => cellOf(key));
-    return lay(next, route(next, out, goals, margin), conduit, OPPOSITE[face]);
-  }, current);
+  if (over && paired) {
+    // Фабрика калькулятора: труба топлива над рядами нижнего слоя пары, общая сбоку, а все пары — от стояка
+    // на клетку левее (x = left − 2): его нижний конец — вход топлива (бак или труба от котлов).
+    const riserZ = busZ(0) - 1;
+    let fuelTop = base;
+    for (let floor = 0; floor < floors; floor += [0, 0].length) {
+      const first = floor * floorRows;
+      const last = Math.min(rows, first + floorRows) - 1;
+      const fuelY = floorY(floor) + 1;
+      current = spine(current, fuelY, (index) => busZ(index) - 1, over, first, last);
+      current = lay(current, [[left - [0, 0].length, fuelY, riserZ], [left - 1, fuelY, riserZ], [left, fuelY, riserZ]], over);
+      fuelTop = fuelY;
+    }
+    current = lay(current, Array.from({ length: fuelTop - base + 1 }, (_unused, step): Vec3 => [left - [0, 0].length, base + step, riserZ]), over);
+  } else if (over) current = spine(lay(current, [[left - 1, base + 1, busZ(0) - 1], [left, base + 1, busZ(0) - 1]], over), base + 1, (index) => busZ(index) - 1, over);
+  // Одна рабочая копия сетки и свой список кабелей: у большой фабрики люков тысячи, и обходить ради каждого всю сетку — минуты.
+  // Новые клетки — только кабели, а они и так цели пути, поэтому границы сетки считаются один раз.
+  const next = new Map(current);
+  const area = boxOf([...next.keys()].map(cellOf));
+  // Сети: без разделения — одна (все кабели); с разделением — по ряду генераторов, и люк ведём только к своей сети.
+  const rowNetworks: Vec3[][] = split
+    ? Array.from({ length: rows }, (_unused, index) => Array.from({ length: Math.min(perRow, count - index * perRow) }, (_cell, column): Vec3 => [left + column, floorY(floorOf(index)), busZ(index)]))
+    : [[...next.entries()].filter(([, value]) => value.kind === conduit).map(([key]) => cellOf(key))];
+  const networks = at?.joinFloors ? [[...rowNetworks.flat(), ...joiningCable.slice(1, -1)]] : rowNetworks;
+  const networkOf = split && at?.amps ? assignNetworks(hatches, at.amps, networks.map((cells) => cells.length)) : hatches.map(() => 0);
+  // Сколько ампер у сети ещё свободно (генераторов в ряду минус ток люков, что к ней подключены).
+  const need = (index: number) => at?.amps?.[index] ?? 0;
+  const spare = networks.map((cells, network) => cells.length - hatches.reduce((sum, _hatch, index) => sum + (networkOf[index] === network ? need(index) : 0), 0));
+  // Фабрика калькулятора: не нашёлся путь в чанках с машинами — этот люк пропускаем
+  // (фабрика пишет, к скольким машинам кабель не дошёл), а не оставляем без энергии всю фабрику.
+  // Кабель — низко, как трубы: сперва не выше блока над люком или над нижней клеткой своей сети (не перелезая через
+  // крыши построек), потом в тех же чанках на любой высоте.
+  // Подниматься кабелю можно только в самом блоке генераторов (там шахта): по фабрике он идёт не выше блока над люком.
+  const lastRow = Math.min(rows, floorRows) - 1;
+  const inSupply = (cell: Vec3) => cell[0] >= left - [0, 0].length && cell[0] <= left + perRow && cell[2] <= busZ(0) && cell[2] >= busZ(lastRow) - 1;
+  const pathTo = (from: Vec3, goals: readonly Vec3[]) => {
+    if (!clamp) return route(next, from, goals, margin, area);
+    const ceiling = from[1] + 1;
+    const high = { has: (key: string) => { const cell = cellOf(key); return cell[1] > ceiling && !inSupply(cell); } };
+    return findPath(next, from, goals, margin, area, { clamp, blocked: high, allows }) ??
+      findPath(next, from, goals, margin, area, { clamp, allows }) ??
+      (allows ? undefined : findPath(next, from, goals, margin, area));
+  };
+  for (const [index, { hatch, face }] of hatches.entries()) {
+    const from = move(hatch, face);
+    let network = networkOf[index];
+    let path = pathTo(from, networks[network]);
+    if (!path && split) {
+      // До своей сети не пройти (люки тесно, кабели соседних сетей перегородили путь) — к ближайшей сети, где ещё
+      // хватает генераторов на ток этого люка, а если таких нет — к любой: кабель не сгорит (ток сети — не больше её
+      // генераторов, а их в ряду меньше, чем держит кабель), сеть лишь будет чуть недокормлена.
+      const ownersOf = (isRoomy: boolean) => new Map(networks.flatMap((cells, other) => (other !== network && (!isRoomy || spare[other] >= need(index)) ? cells.map((cell) => [keyOf(cell), other] as const) : [])));
+      const tryOwners = (owner: ReadonlyMap<string, number>) => (owner.size > 0 ? pathTo(from, [...owner.keys()].map(cellOf)) : undefined);
+      const roomy = ownersOf(true);
+      const any = allows ? roomy : ownersOf(false);
+      path = tryOwners(roomy) ?? (allows ? undefined : tryOwners(any));
+      const other = path ? any.get(keyOf(path[path.length - 1])) : undefined;
+      if (other !== undefined) {
+        spare[network] += need(index);
+        spare[other] -= need(index);
+        network = other;
+      }
+    }
+    if (!path) continue;
+    layInto(next, { path, kind: conduit, startLink: OPPOSITE[face] });
+    // Последняя клетка пути — уже кабель своей сети, остальные были свободны.
+    networks[network].push(...path.slice(0, -1));
+  }
+  return next;
 }
 
 /** Все клетки постройки, которые сейчас занимает люк этого вида, с направлением их граней. */
@@ -230,11 +337,18 @@ function hatchesOf(grid: Grid, body: readonly Vec3[], kind: string): { readonly 
 }
 
 /** Ставит на постройку два энергетических люка (свой, если он есть в схеме, плюс недостающие — на стену wall, обычно заднюю). */
-export function energyHatches(grid: Grid, body: readonly Vec3[], wall: Face = "nz"): { readonly grid: Grid; readonly hatches: readonly { readonly hatch: Vec3; readonly face: Face }[] } {
+export function energyHatches(
+  grid: Grid,
+  body: readonly Vec3[],
+  wall: Face = "nz",
+  avoid: readonly string[] = [],
+): { readonly grid: Grid; readonly hatches: readonly { readonly hatch: Vec3; readonly face: Face }[] } {
   let current = grid;
   for (let index = hatchesOf(current, body, "energy").length; index < PRODUCTION.hatchesPerMachine; index += 1) {
-    const used = hatchesOf(current, body, "energy").map(({ hatch }) => keyOf(hatch));
-    current = addHatch(current, body, "energy", wall, used).grid;
+    // avoid — клетки, где люку стоять нельзя (общая стена соседних построек фабрики).
+    const used = [...hatchesOf(current, body, "energy").map(({ hatch }) => keyOf(hatch)), ...avoid];
+    // На стене — повыше: внизу у построек фабрики идут линии труб, а сверху к люку свободно подходит кабель.
+    current = addHatch(current, body, "energy", wall, used, wall !== "py").grid;
   }
   return { grid: current, hatches: hatchesOf(current, body, "energy") };
 }
@@ -401,6 +515,8 @@ export interface Energy {
   readonly grid: Grid;
   /** Сколько генераторов стоит в линии. */
   readonly generators: number;
+  /** Вид блока кабеля, его толщина (1x…16x), сколько ампер несёт одна сеть (по амперу с генератора) и сколько сетей. */
+  readonly cable: { readonly kind: string; readonly size: number; readonly amps: number; readonly voltage: number; readonly networks: number };
   readonly facts: readonly Fact[];
   readonly parts: readonly { readonly title: string; readonly text: string }[];
   readonly extraKinds: Readonly<Record<string, BlockKind>>;
@@ -408,7 +524,7 @@ export interface Energy {
 
 /** Генераторы яруса на среднее потребление и кабели от них к каждому энергетическому люку. */
 /** margin — запас вокруг построек для поиска пути кабелей; большой фабрике калькулятора нужен шире. */
-export function powerFor(grid: Grid, hatches: readonly { readonly hatch: Vec3; readonly face: Face }[], tier: TierId, average: number, generatorSlug: string, margin = MARGIN): Energy {
+export function powerFor(grid: Grid, hatches: readonly { readonly hatch: Vec3; readonly face: Face }[], tier: TierId, average: number, generatorSlug: string, margin = MARGIN, clamp?: Box, at?: SupplySpot, fuelPipe?: string, allows?: (cell: Vec3) => boolean): Energy {
   const power = POWER[tier];
   const voltage = voltageOf(tier);
   const supply = powerSupply(average, voltage, power.cableAmps);
@@ -417,8 +533,9 @@ export function powerFor(grid: Grid, hatches: readonly { readonly hatch: Vec3; r
   const fuel = generator?.facts.find((fact) => /Топливо|Работает на|Ест/.test(fact.label));
   const cable = KINDS[power.cable as keyof typeof KINDS].label;
   return {
-    grid: supplyRow(grid, hatches, supply.generators, generatorSlug, "pz", power.cable, undefined, undefined, margin),
+    grid: supplyRow(grid, hatches, supply.generators, generatorSlug, "pz", power.cable, undefined, fuelPipe, margin, clamp, at, allows),
     generators: supply.generators,
+    cable: cableOf(power.cable, power.cableAmps, supply, voltage, at),
     facts: [
       { label: "Энергия", value: `${format(average)} EU/t` },
       { label: "Генераторы", value: `${supply.generators} × ${format(voltage)} EU/t` },
@@ -430,6 +547,64 @@ export function powerFor(grid: Grid, hatches: readonly { readonly hatch: Vec3; r
     ],
     extraKinds: { [generatorSlug]: singleKind(generatorSlug, name) },
   };
+}
+
+/** Высота этажа floor над низом рядов, когда этажи идут парами вокруг общей трубы топлива: 0, 2, 3, 5, 6, … */
+export const supplyFloorY = (floor: number): number => Math.floor(floor / [0, 0].length) * [0, 0, 0].length + (floor % [0, 0].length) * [0, 0].length;
+
+/** Кабель генераторов: одна сеть на всё или (фабрика калькулятора) — сеть на каждый ряд генераторов. */
+function cableOf(kind: string, cableAmps: number, supply: { readonly generators: number; readonly cableSize: number }, voltage: number, at?: SupplySpot): Energy["cable"] {
+  if (!at?.amps || !at.perRow || at.joinFloors) return { kind, size: supply.cableSize, amps: supply.generators, voltage, networks: 1 };
+  const amps = Math.min(supply.generators, at.perRow);
+  const size = CALC.cableSizes.find((one) => one * cableAmps >= amps) ?? CALC.cableSizes[CALC.cableSizes.length - 1];
+  return { kind, size, amps, voltage, networks: Math.ceil(supply.generators / at.perRow) };
+}
+
+/** Где встанут ряды генераторов: x первого генератора и z общего кабеля первого ряда (генераторы — на клетку дальше по −z). */
+export interface SupplySpot {
+  readonly left: number;
+  readonly busZ: number;
+  /** Генераторов в ряду и рядов на этаже (generatorRows); без них — как у линий сайта, в один этаж. */
+  readonly perRow?: number;
+  readonly rowsPerFloor?: number;
+  /** Два коротких ряда по обе стороны общей трубы питают один кабель, если он выдержит их суммарный ток. */
+  readonly joinFloors?: boolean;
+  /** Ток каждого люка (средний, в амперах яруса) — с ним ряды генераторов становятся отдельными сетями. */
+  readonly amps?: readonly number[];
+}
+
+/**
+ * Раздача люков по сетям: люки в том порядке, в каком их дала фабрика (по постройкам: люки одной печи подряд — значит,
+ * в одной сети, и их кабели сливаются под ней в один), заполняют сеть, пока их ток помещается в её генераторы (по
+ * амперу с каждого), потом — следующую; не влез никуда — в сеть, где осталось больше.
+ */
+export function assignNetworks(hatches: readonly { readonly hatch: Vec3 }[], amps: readonly number[], capacity: readonly number[]): readonly number[] {
+  const left = [...capacity];
+  const order = hatches.map((_hatch, index) => index).sort((a, b) => (amps[b] ?? 0) - (amps[a] ?? 0));
+  const result = hatches.map(() => 0);
+  let current = 0;
+  for (const index of order) {
+    const need = amps[index] ?? 0;
+    while (current < left.length - 1 && left[current] < need) current += 1;
+    const chosen = left[current] >= need ? current : left.indexOf(Math.max(...left));
+    left[chosen] -= need;
+    result[index] = chosen;
+  }
+  return result;
+}
+
+/** Сколько генераторов нужно на заданную мощность и по сколько в ряд — чтобы заранее найти им место. */
+/** Ряды генераторов фабрики калькулятора — во весь чанк (рядом общий кабель вдоль рядов), этажами вверх. */
+/** withFuel — над рядами труба топлива, и сбоку стояк: в ряду на генератор меньше, чтобы всё осталось в чанке. */
+export function generatorRows(tier: TierId, average: number, withFuel = false): { readonly perRow: number; readonly rows: number; readonly rowsPerFloor: number; readonly floors: number } {
+  const { generators } = powerSupply(average, voltageOf(tier), POWER[tier].cableAmps);
+  // Справа от рядов — свободный столбец, шахта: по ней кабель каждой сети спускается к своему ряду.
+  // Чётный предел оставляет место для цельных пар ампер, если каждый люк берёт по 2 А.
+  const perRow = Math.min(generators, CHUNK.side - (withFuel ? [0, 0, 0, 0].length : [0, 0].length));
+  const rows = Math.ceil(generators / perRow);
+  // Ряд — две клетки в глубину: кабель и генераторы за ним.
+  const rowsPerFloor = Math.min(rows, Math.floor(CHUNK.side / [0, 0].length));
+  return { perRow, rows, rowsPerFloor, floors: Math.ceil(rows / rowsPerFloor) };
 }
 
 /* Сталь LV: дробилка, электролизёры и насос перед печью; вкладка с кирпичными домнами на ту же выработку. */
@@ -923,7 +1098,7 @@ function smeltLine({ slug, title, tier, recipe: recipeId, source, withPrep }: Sm
     ],
     setup: toMachine(
       fuel?.grid ?? energy.grid,
-      { slug: `setup-${slug}--${generator.slug}`, name: `${title} line`, title: `Линия: ${title.toLowerCase()}`, tier, summary: `${furnace.title}${freezer ? ` и ${freezer.title.toLowerCase()}` : ""} с генераторами и кабелями.`, story: [], facts: [], source: furnace.source },
+      { slug: `setup-${slug}--${generator.slug}`, name: `${tr("en", title)} line`, title: `Линия: ${title.toLowerCase()}`, tier, summary: `${furnace.title}${freezer ? ` и ${freezer.title.toLowerCase()}` : ""} с генераторами и кабелями.`, story: [], facts: [], source: furnace.source },
       { ...energy.extraKinds, ...prep?.extraKinds, ...fuel?.extraKinds },
       furnace.def.interior,
     ),

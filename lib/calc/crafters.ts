@@ -31,6 +31,11 @@ export interface Crafter {
 const SINGLE_PREFIX = "Basic ";
 const HAND_TYPES = new Set<string>(CALC.handTypes);
 const PRIMITIVE = new Set<string>(CALC.primitiveMachines);
+/** Модуль постройки конца игры доступен с яруса своей постройки из каталога. */
+const isModuleOpen = (name: string, tier: number): boolean => {
+  const parent = byName.get(CALC.endgameMultis[name] ?? "");
+  return parent !== undefined && dataTier(parent.tier) <= tier;
+};
 /** Ярус выгрузки по ярусу сайта: пар — −1, LV — 0. */
 const dataTier = (tier: TierId): number => TIERS.findIndex((candidate) => candidate.id === tier) - 1;
 const byName = new Map(MACHINES.map((machine) => [machine.name, machine]));
@@ -76,7 +81,8 @@ export function crafterFor(recipe: Recipe, tier: number, vendor: () => VendorRec
   // shortcut: постройка может собираться позже, чем ярус её рецепта; точнее — завести её в каталог сайта.
   // Берём только постройки из правил машин ShadowTheAge (там нет котла, генераторов и реакторов) и только рецепты не выше
   // яруса — без надбавки за ток, как у построек каталога.
-  const unlisted = names.find((name) => !byName.has(name) && !STEAM.test(name) && vendorMachines[name] !== undefined && !excludes(vendorMachines[name].excludesRecipe));
+  const isKnown = (name: string): boolean => (vendorMachines[name] !== undefined && !excludes(vendorMachines[name].excludesRecipe)) || isModuleOpen(name, tier);
+  const unlisted = names.find((name) => !byName.has(name) && !STEAM.test(name) && isKnown(name));
   if (unlisted && recipe.isGt && recipe.tier <= tier) return { kind: "multi", label: unlisted };
   // Печь Minecraft: в GregTech её рецепты ведёт электропечь (одноблочная «Basic Electric Furnace» уже выше).
   if (!recipe.isGt && names.length > 0 && !hasFluid && recipe.type === CALC.furnace.type) return { kind: "vanilla", label: names[0] };

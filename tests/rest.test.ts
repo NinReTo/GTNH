@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
-import { CAMERA, FLOOR, FOG, GAME, HERO, HOVER, ICON, LIGHT, PERF, THEME, WORKSHOP } from "@/lib/config";
-import { cameraSetup, iconCameraSetup, pullback, sceneScale, sizeScale, zoomDistance } from "@/lib/camera";
+import { CAMERA, EBF, FLOOR, FOG, GAME, HERO, HOVER, ICON, LIGHT, PERF, THEME, WORKSHOP } from "@/lib/config";
+import { cameraSetup, iconCameraSetup, pullback, sceneScale, sizeScale, startSetup, zoomDistance } from "@/lib/camera";
 import { coilHeat, heatBonuses, heatCapacity, voltageHeatBonus } from "@/lib/heat";
 import { clamp, clamp01, inverseLerp, smooth01 } from "@/lib/math";
 import { packLayers, unpackLayers } from "@/lib/packed-layers";
@@ -46,6 +46,19 @@ describe("приближение колёсиком", () => {
   test("ближний предел меньше начального расстояния, дальний — больше", () => {
     expect(CAMERA.zoomMin).toBeLessThan(1);
     expect(CAMERA.zoomMax).toBeGreaterThan(1);
+  });
+
+  test("длинная фабрика целиком помещается в обзор на узком и широком экранах", () => {
+    const size: [number, number, number] = [348, 76, 464];
+    const reachOf = (setup: ReturnType<typeof cameraSetup>) => Math.hypot(...setup.position.map((value, axis) => value - setup.target[axis]));
+    const setup = startSetup(size);
+    expect(setup.target).toEqual([0, size[1] * EBF.blockSize / 2, 0]);
+    const sphere = Math.hypot(...size) * EBF.blockSize / 2;
+    const halfFov = CAMERA.fov * Math.PI / CAMERA.degreesPerTurn;
+    for (const aspect of [0.5, 2]) {
+      const halfFrame = Math.min(halfFov, Math.atan(Math.tan(halfFov) * aspect));
+      expect(reachOf(startSetup(size, aspect)) * Math.sin(halfFrame)).toBeGreaterThan(sphere);
+    }
   });
 });
 
@@ -340,9 +353,6 @@ describe("правило «все числа в lib/config.ts»", () => {
     "components/cards/Cards.tsx",
     "components/landing/TierTabs.tsx",
     "lib/cards.ts",
-    "lib/logo.ts",
-    "lib/snow.ts",
-    "components/scene/WinterLogo.tsx",
     "lib/tiers.ts",
     "components/scene/SceneCanvas.tsx",
     "components/scene/Workshop.tsx",

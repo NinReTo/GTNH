@@ -17,7 +17,7 @@ export default function SingleScene({ slug }: SingleSceneProps) {
   const [aspect] = useState(() => window.innerWidth / (window.innerHeight * HERO.screens));
 
   return (
-    <SceneCanvas settings={settings} camera={singleCameraSetup(aspect)} footprint={[1, 1]}>
+    <SceneCanvas settings={settings} camera={singleCameraSetup(aspect)} structureSize={[1, 1, 1]} footprint={[1, 1]}>
       <SingleCube slug={slug} />
     </SceneCanvas>
   );

@@ -9,7 +9,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "textures": "node scripts/fetch-textures.mjs",
-    "calc-data": "node scripts/fetch-calc-data.mjs"
+    "calc-data": "node scripts/fetch-calc-data.mjs",
+    "check-en": "node scripts/check-en.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

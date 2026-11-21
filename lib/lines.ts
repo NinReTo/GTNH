@@ -1,3 +1,4 @@
+import { tr, type Lang } from "./i18n";
 import { MACHINES, SINGLE_BLOCKS, STEAM_TIERS, findMachine, type SingleBlock } from "./machines";
 import { SINGLES, findSingle, steamSlug, type SingleGroup } from "./singles";
 import type { TierId } from "./tiers";
@@ -88,11 +89,14 @@ export function stepLabel(step: LineStep): string {
   return step.kind === "single" ? (findSingle(step.slug)?.label ?? "") : "Постройка";
 }
 
-/** Название ступени для ссылок «Дальше». */
-export function stepTitle(step: LineStep): string {
-  if (step.kind === "machine") return findMachine(step.slug)?.title ?? step.slug;
+/** Название ступени для ссылок «Дальше»: на русской версии — русское название из игры, на английской — английское. */
+export function stepTitle(step: LineStep, lang: Lang = "ru"): string {
+  if (step.kind === "machine") {
+    const found = findMachine(step.slug);
+    return found ? (lang === "ru" ? found.title : found.name) : step.slug;
+  }
   const found = findSingle(step.slug);
-  return found ? `${found.title}, ${found.label.toLowerCase()}` : step.slug;
+  return found ? `${lang === "ru" ? found.title : found.name}, ${tr(lang, found.label).toLowerCase()}` : step.slug;
 }
 
 /** Адрес страницы ступени. */

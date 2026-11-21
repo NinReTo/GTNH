@@ -9,6 +9,8 @@ import { SceneSection } from "@/components/scene/SceneSection";
 import { craftLinesOf } from "@/lib/crafts";
 import { findMaterial } from "@/lib/setups";
 import { findTier } from "@/lib/tiers";
+import { href, localize, pick } from "@/lib/i18n";
+import { useLang } from "@/lib/use-lang";
 
 const prose = "mt-6 max-w-xl text-base leading-relaxed text-text2";
 const link = "text-text1 underline decoration-accent underline-offset-4 hover:text-accent";
@@ -19,21 +21,24 @@ const link = "text-text1 underline decoration-accent underline-offset-4 hover:te
  */
 export function MaterialView({ slug }: { slug: string }) {
   const [chosen, setChosen] = useState(0);
-  const material = findMaterial(slug);
-  if (!material) return null;
-  const tier = findTier(material.tier);
+  const lang = useLang();
+  const t = (ru: string, en: string) => pick(lang, ru, en);
+  const found = findMaterial(slug);
+  if (!found) return null;
+  const material = localize(lang, found);
+  const tier = localize(lang, findTier(material.tier));
   const option = material.options[chosen] ?? material.options[0];
-  const kicker = material.tier === "steam" ? "Источник пара" : "Источник энергии";
+  const kicker = material.tier === "steam" ? t("Источник пара", "Steam source") : t("Источник энергии", "Power source");
   // Ветки дерева в порядке первого появления: у стали LV сначала «Без электричества», потом печь.
   const groups = [...new Set(material.options.map((candidate) => candidate.group))];
-  const chain = craftLinesOf(material.tier).find((line) => line.material === material.slug);
+  const chain = localize(lang, craftLinesOf(material.tier).find((line) => line.material === material.slug));
 
   return (
     <>
       {/* Своя сцена на каждый вариант: при смене источника постройка собирается заново. */}
       <SceneSection key={option.setup.slug} slug={option.setup.slug}>
         <p className="font-mono text-xs uppercase tracking-[0.3em]" style={{ color: tier?.color }}>
-          {tier?.title} · главный металл
+          {tier?.title} · {t("главный металл", "main metal")}
         </p>
         <h1 className="mt-4 max-w-3xl font-mono text-4xl font-bold uppercase leading-none tracking-tight text-text1 sm:text-6xl">
           {material.title}
@@ -82,7 +87,7 @@ export function MaterialView({ slug }: { slug: string }) {
 
         <section className="mx-auto grid max-w-6xl gap-12 px-6 py-24 sm:px-12 lg:grid-cols-2 lg:py-32">
           <div>
-            <SectionHeading index="01" kicker="Как получить" title={option.setup.title} />
+            <SectionHeading index="01" kicker={t("Как получить", "How to make it")} title={option.setup.title} />
             {option.story.map((paragraph) => (
               <p key={paragraph} className={prose}>
                 {paragraph}
@@ -107,8 +112,8 @@ export function MaterialView({ slug }: { slug: string }) {
         {chain && (
           <section className="border-t border-line">
             <div className="mx-auto max-w-6xl px-6 py-24 sm:px-12 lg:py-32">
-              <SectionHeading index="02" kicker="От сырья до слитка" title="Цепочка" />
-              <p className={prose}>Все шаги по порядку и машины, в которых они идут. Последние шаги — это сама линия выше.</p>
+              <SectionHeading index="02" kicker={t("От сырья до слитка", "From raw materials to the ingot")} title={t("Цепочка", "The chain")} />
+              <p className={prose}>{t("Все шаги по порядку и машины, в которых они идут. Последние шаги — это сама линия выше.", "All the steps in order and the machines that do them. The last steps are the line above.")}</p>
               <CraftLine line={chain} />
             </div>
           </section>
@@ -116,16 +121,16 @@ export function MaterialView({ slug }: { slug: string }) {
 
         <section className="border-t border-line">
           <div className="mx-auto max-w-6xl px-6 py-24 sm:px-12 lg:py-32">
-            <SectionHeading index={chain ? "03" : "02"} kicker="Структура" title="Из чего сложена" />
+            <SectionHeading index={chain ? "03" : "02"} kicker={t("Структура", "Structure")} title={t("Из чего сложена", "What it is built from")} />
             <div className="mt-12">
               <MachineDiagram key={option.setup.slug} slug={option.setup.slug} />
             </div>
           </div>
         </section>
 
-        <nav className="border-t border-line" aria-label="Назад">
+        <nav className="border-t border-line" aria-label={t("Назад", "Back")}>
           <div className="mx-auto max-w-6xl px-6 py-16 sm:px-12">
-            <Link href={`/tiers/${material.tier}`} className={`${link} font-mono text-sm uppercase tracking-[0.2em]`}>
+            <Link href={href(lang, `/tiers/${material.tier}`)} className={`${link} font-mono text-sm uppercase tracking-[0.2em]`}>
               ← {tier?.title}
             </Link>
           </div>

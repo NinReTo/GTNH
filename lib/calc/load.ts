@@ -12,7 +12,7 @@ const reached = new Map<number, Reach>();
 export function loadIndex(): Promise<Index> {
   loading ??= (async () => {
     const response = await fetch(DATA_URL);
-    if (!response.ok || !response.body) throw new Error(`Не удалось скачать рецепты: ${response.status}`);
+    if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`);
     const buffer = await new Response(response.body.pipeThrough(new DecompressionStream("gzip"))).arrayBuffer();
     return buildIndex(new Repository(buffer));
   })();

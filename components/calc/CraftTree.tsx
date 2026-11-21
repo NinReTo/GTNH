@@ -1,16 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { formatNumber } from "@/components/landing/ui";
+import { useCalcText } from "./text";
 import { choiceOf, type Choice, type Choices, type Index, type Reach } from "@/lib/calc/planner";
 import { CALC } from "@/lib/config";
 import { Icon } from "./Icon";
 import { RecipePicker } from "./RecipePicker";
 
 const { secondsPerMinute, treeOpenDepth } = CALC.ui;
-
-/** Сколько в минуту: целые — без дробей, меньше единицы — с двумя знаками, чтобы 0,06 не превращалось в 0. */
-const rateText = (value: number): string => formatNumber(value, value < 1 ? [0, 0].length : 0);
 
 export interface TreeProps {
   readonly index: Index;
@@ -33,14 +30,17 @@ interface NodeProps extends TreeProps {
 function Node(props: NodeProps) {
   const { index, reached, choices, onPick, onGiven, goods, perSecond, depth, trail } = props;
   const [isOpen, setOpen] = useState(depth < treeOpenDepth);
+  const text = useCalcText();
+  const { t } = text;
   const item = index.repository.goods(goods);
-  const isRaw = index.raw.has(goods);
+  const isRaw = index.raw.has(goods) && reached.cost.has(goods);
   const isGiven = choices.given.has(goods);
   const isLoop = trail.includes(goods);
   const choice = isLoop ? undefined : choiceOf(index, reached, choices, goods);
   const output = choice?.recipe.outputs.find((entry) => entry.goods[0] === goods);
   const runs = choice ? perSecond / ((output?.amount ?? 1) * (output?.probability ?? 1)) : 0;
-  const unit = item.kind === "fluid" ? "л/мин" : "шт/мин";
+  const unit = item.kind === "fluid" ? t("л/мин", "L/min") : t("шт/мин", "/min");
+  const perMinute = perSecond * secondsPerMinute;
 
   return (
     <li>
@@ -48,7 +48,7 @@ function Node(props: NodeProps) {
         <button
           type="button"
           aria-expanded={choice ? isOpen : undefined}
-          aria-label={isOpen ? "Свернуть" : "Раскрыть"}
+          aria-label={isOpen ? t("Свернуть", "Collapse") : t("Раскрыть", "Expand")}
           disabled={!choice}
           className="w-5 font-mono text-text3 hover:text-accent disabled:invisible"
           onClick={() => setOpen(!isOpen)}
@@ -56,18 +56,19 @@ function Node(props: NodeProps) {
           {isOpen ? "▾" : "▸"}
         </button>
         <Icon goods={item} />
-        <span className="text-text1">{item.name}</span>
+        <span className="text-text1">{text.name(item)}</span>
         <span className="font-mono text-xs text-text3">
-          {rateText(perSecond * secondsPerMinute)} {unit}
+          {/* Меньше единицы — с двумя знаками, чтобы 0,06 не превращалось в 0. */}
+          {text.number(perMinute, perMinute < 1 ? [0, 0].length : 0)} {unit}
         </span>
-        {isRaw && <span className="font-mono text-xs text-text3">сырьё</span>}
-        {isLoop && <span className="font-mono text-xs text-text3">по кругу — берётся со стороны</span>}
-        {!isRaw && !isGiven && !isLoop && !choice && <span className="text-xs text-red-400">на ярусе не достать</span>}
+        {isRaw && <span className="font-mono text-xs text-text3">{t("сырьё", "raw")}</span>}
+        {isLoop && <span className="font-mono text-xs text-text3">{t("по кругу — берётся со стороны", "loop — brought in from outside")}</span>}
+        {!isRaw && !isGiven && !isLoop && !choice && <span className="text-xs text-red-400">{t("на ярусе не достать", "not available on this tier")}</span>}
         {choice && <RecipePicker index={index} reached={reached} goods={goods} choice={choice} onPick={(picked) => onPick(goods, picked)} />}
         {!isRaw && depth > 0 && (
           <label className="flex items-center gap-1 text-xs text-text2">
             <input type="checkbox" checked={isGiven} onChange={() => onGiven(goods)} />
-            есть у меня
+            {t("есть у меня", "I have it")}
           </label>
         )}
       </div>

@@ -16,6 +16,9 @@ export type FaceRule = "front" | "up" | "outward";
 /** Вид блока: как называется и чем нарисован. */
 export interface BlockKind {
   readonly label: string;
+  /** Предмет для чертежа из выгрузки игры. */
+  readonly gameItem?: { readonly mod: string; readonly internalName: string; readonly damage: number };
+  readonly gameName?: string;
   /** Блок занимает не весь куб (сундук, воронка, труба): рисуется своей формой из lib/shapes.ts. */
   readonly shape?: "chest" | "hopper" | "pipe";
   /** Куда смотрит носик воронки, если не вниз: сторона клетки (px, nx, pz, nz). */
@@ -207,10 +210,11 @@ export function buildStructure(def: StructureDef, kinds: Readonly<Record<string,
     };
   });
 
+  // reduce, а не Math.max(...): у фабрики калькулятора строк схемы десятки тысяч — столько аргументов не влезает в стек.
   const size: Vec3 = [
-    Math.max(...def.layers.flatMap((rows) => rows.map((row) => row.length))),
+    def.layers.reduce((widest, rows) => rows.reduce((wide, row) => Math.max(wide, row.length), widest), 0),
     def.layers.length,
-    Math.max(...def.layers.map((rows) => rows.length)),
+    def.layers.reduce((deepest, rows) => Math.max(deepest, rows.length), 0),
   ];
   const middle: Vec3 = [0, (size[1] * EBF.blockSize) / 2, 0];
   const lightPosition: Vec3 = hollow.length
@@ -256,9 +260,10 @@ export function createBlockPicker(homes: readonly Vec3[]): (origin: Vec3, direct
   if (homes.length === 0) return () => null;
   const size = EBF.blockSize;
   // Клетка i по каждой оси — полуинтервал [corner + i·size, corner + (i+1)·size); центры блоков ровно посередине.
-  const corner = [0, 1, 2].map((axis) => Math.min(...homes.map((home) => home[axis])) - size / 2);
+  // reduce, а не Math.min(...): у фабрики калькулятора блоков миллионы — столько аргументов не влезает в стек.
+  const corner = [0, 1, 2].map((axis) => homes.reduce((low, home) => Math.min(low, home[axis]), Infinity) - size / 2);
   const cellOf = (value: number, axis: number) => Math.floor((value - corner[axis]) / size);
-  const counts = [0, 1, 2].map((axis) => Math.max(...homes.map((home) => cellOf(home[axis], axis))) + 1);
+  const counts = [0, 1, 2].map((axis) => homes.reduce((high, home) => Math.max(high, cellOf(home[axis], axis)), 0) + 1);
   const key = (x: number, y: number, z: number) => (x * counts[1] + y) * counts[2] + z;
   const occupied = new Map<number, Vec3>();
   homes.forEach((home) => occupied.set(key(cellOf(home[0], 0), cellOf(home[1], 1), cellOf(home[2], 2)), home));

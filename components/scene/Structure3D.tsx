@@ -193,7 +193,10 @@ function buildBatches(blocks: readonly Block[], materials: Record<string, KindMa
   };
   blocks.forEach((block, index) => {
     const key = [block.kind, materials[block.kind].face ? block.face : "", ...linksOf(block)].join(":");
-    groups.set(key, [...(groups.get(key) ?? []), index]);
+    // Дописываем в тот же список, не копируя: у фабрики калькулятора в одном наборе десятки тысяч труб.
+    const group = groups.get(key);
+    if (group) group.push(index);
+    else groups.set(key, [index]);
   });
   const matrix = new Matrix4();
   const slots: { mesh: InstancedMesh; instance: number }[] = [];
@@ -229,9 +232,11 @@ interface Structure3DProps {
    * пересчитывается для каждого пикселя, и десяток источников заметно тормозит.
    */
   readonly hasLight?: boolean;
+  /** Блоки стоят на месте и не раздвигаются под курсором — у фабрики калькулятора это только мешает её разглядывать. */
+  readonly isStill?: boolean;
 }
 
-export function Structure3D({ machine, shadows, hasLight = true }: Structure3DProps) {
+export function Structure3D({ machine, shadows, hasLight = true, isStill = false }: Structure3DProps) {
   /** Где курсор над этой сценой; у каждой сцены свой источник. */
   const getPointer = useContext(PointerContext);
   const structure = useMemo(() => structureOf(machine), [machine]);
@@ -284,11 +289,12 @@ export function Structure3D({ machine, shadows, hasLight = true }: Structure3DPr
   const coreColor = useMemo(() => new Color(CORE.color).multiplyScalar(CORE.intensity), []);
   const isWater = structure.interior === "water";
   // Огромные постройки раздвигаются шаром: блоки отходят от точки внутри постройки во все стороны.
-  const isSphere = structure.blocks.length >= HOVER.hugeBlocks;
+  const isSphere = !isStill && structure.blocks.length >= HOVER.hugeBlocks;
   const domeSize = isSphere ? domeScale(structure.size) : 1;
   const radius = hoverRadius(structure.blocks.length) * domeSize;
   const dome = useMemo(() => (isSphere ? domeLayout(structure.blocks, structure.size) : []), [isSphere, structure]);
-  const pickBlock = useMemo(() => (isSphere ? createBlockPicker(structure.blocks.map((block) => block.home)) : null), [isSphere, structure]);
+  const homeList = useMemo(() => structure.blocks.map((block) => block.home), [structure]);
+  const pickBlock = useMemo(() => (isSphere ? createBlockPicker(homeList) : null), [isSphere, homeList]);
   const localOrigin = useMemo(() => new Vector3(), []);
   const localTarget = useMemo(() => new Vector3(), []);
   /** Первый блок под курсором — в координатах постройки. От него расходится купол. */
@@ -304,6 +310,7 @@ export function Structure3D({ machine, shadows, hasLight = true }: Structure3DPr
   // Блоки раздвигаются только рядом с курсором: чем ближе центр блока к лучу
   // из камеры через курсор, тем дальше он отходит.
   useFrame((state, delta) => {
+    if (isStill) return;
     let pointer = getPointer();
     if (pointer) state.raycaster.setFromCamera(cursor.set(...pointer), state.camera);
     if (isSphere && pickBlock && pointer && root.current) {
@@ -324,8 +331,7 @@ export function Structure3D({ machine, shadows, hasLight = true }: Structure3DPr
       }
     }
 
-    const homesList = structure.blocks.map((block) => block.home);
-    const sphereTargets = isSphere && pointer ? domeWeights(dome, homesList, entry.current, radius) : null;
+    const sphereTargets = isSphere && pointer ? domeWeights(dome, homeList, entry.current, radius) : null;
     const moved = new Set<InstancedMesh>();
     structure.blocks.forEach((block, index) => {
       const target = isSphere

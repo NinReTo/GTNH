@@ -1,4 +1,4 @@
-import { CAMERA, EBF, ICON } from "./config";
+import { CAMERA, CHUNK, EBF, ICON } from "./config";
 import { clamp } from "./math";
 import type { Vec3 } from "./structure";
 
@@ -17,9 +17,9 @@ export function sizeScale(size: Vec3): number {
  * Новое расстояние камеры до цели после прокрутки колёсиком: вниз — дальше,
  * вверх — ближе. Не ближе zoomMin и не дальше zoomMax от начального расстояния.
  */
-export function zoomDistance(current: number, initial: number, deltaY: number): number {
+export function zoomDistance(current: number, initial: number, deltaY: number, farthest: number = initial): number {
   const next = current * Math.exp(deltaY * CAMERA.zoomPerPixel);
-  return clamp(next, Math.min(initial * CAMERA.zoomMin, CAMERA.zoomNearest), initial * CAMERA.zoomMax);
+  return clamp(next, Math.min(initial * CAMERA.zoomMin, CAMERA.zoomNearest), Math.max(initial, farthest) * CAMERA.zoomMax);
 }
 
 /** Расстояние от камеры до точки, вокруг которой она вращается. */
@@ -39,6 +39,16 @@ export function sceneScale(setup: CameraSetup): number {
 export interface CameraSetup {
   readonly position: Vec3;
   readonly target: Vec3;
+}
+
+/** Границы постройки и допустимый отступ камеры, в координатах сцены. */
+export function structureView(size: Vec3): { readonly min: Vec3; readonly max: Vec3; readonly margin: number } {
+  const [width, height, depth] = size.map((side) => side * EBF.blockSize);
+  return {
+    min: [-width / 2, 0, -depth / 2],
+    max: [width / 2, height, depth / 2],
+    margin: CAMERA.structureViewChunks * CHUNK.side * EBF.blockSize,
+  };
 }
 
 /**
@@ -63,6 +73,25 @@ export function iconCameraSetup(size: Vec3): CameraSetup {
  */
 export function cameraSetup(size: Vec3, aspect: number = CAMERA.referenceAspect): CameraSetup {
   return scaledSetup(sizeScale(size), aspect);
+}
+
+/**
+ * Радиус обзора: вся сфера, охватывающая фабрику, помещается даже вдоль короткой стороны кадра.
+ */
+export function factoryOrbitRadius(size: Vec3, aspect: number): number {
+  const halfFov = CAMERA.fov * Math.PI / CAMERA.degreesPerTurn;
+  const viewportAspect = aspect > 0 ? aspect : CAMERA.referenceAspect;
+  const halfFrame = Math.min(halfFov, Math.atan(Math.tan(halfFov) * viewportAspect));
+  const sphereRadius = Math.hypot(...size) * EBF.blockSize / 2;
+  return CAMERA.near + sphereRadius / Math.sin(halfFrame) * CAMERA.overviewPadding;
+}
+
+export function startSetup(size: Vec3, aspect: number = CAMERA.referenceAspect): CameraSetup {
+  const reference = reachOf({ position: CAMERA.position, target: CAMERA.target });
+  const reach = factoryOrbitRadius(size, aspect) / reference;
+  const target: Vec3 = [0, size[1] * EBF.blockSize / 2, 0];
+  const position = CAMERA.position.map((value, axis) => target[axis] + (value - CAMERA.target[axis]) * reach);
+  return { position: [position[0], position[1], position[2]], target };
 }
 
 /** Камера шапки одноблочной машины: тот же угол, что у построек, но ближе — иначе один блок теряется. */

@@ -1,5 +1,5 @@
 import { BOILERS } from "./boilers";
-import { GAME } from "./config";
+import { CALC, GAME } from "./config";
 import { singleGuide, type Guide } from "./guides";
 import { LV_SINGLES } from "./lv";
 import { HIGH_SINGLES } from "./high";
@@ -110,8 +110,40 @@ const STEAM_SINGLES: readonly Single[] = SINGLE_BLOCKS.flatMap((single) =>
   STEAM_TIERS.map((tier) => steamSingle(single, tier)),
 );
 
+const ELECTRIC_SINGLES = [...LV_SINGLES, ...MV_SINGLES, ...HV_SINGLES, ...HIGH_SINGLES];
+
+const SEMIFLUID_MODELS = [
+  ["lv", "Базовый полужидкостный генератор", "Basic Semifluid Generator"],
+  ["mv", "Продвинутый полужидкостный генератор", "Advanced Semifluid Generator"],
+  ["hv", "Турбо полужидкостный генератор", "Turbo Semifluid Generator"],
+  ["ev", "Турбо полужидкостный генератор II", "Turbo Semifluid Generator II"],
+  ["iv", "Турбо полужидкостный генератор III", "Turbo Semifluid Generator III"],
+] as const;
+
+const SEMIFLUID_GENERATORS: readonly Single[] = SEMIFLUID_MODELS.map(([tier, title, name], index) => {
+  const diesel = ELECTRIC_SINGLES.find((each) => each.slug === `combustion-generator-${tier}`)!;
+  const efficiency = CALC.ui.percent - (index + 1) * CALC.power.semifluidEfficiencyPenalty;
+  return {
+    slug: `semifluid-generator-${tier}`,
+    name, title, tier,
+    label: "Полужидкое топливо",
+    group: "generator",
+    does: "полужидкое топливо — в электричество",
+    faces: diesel.faces, // В игре используются те же рисунки дизельного генератора.
+    story: ["Генератор GT++ превращает полужидкое топливо в электричество."],
+    facts: [diesel.facts.find(({ label }) => label === "Выдаёт")!, { label: "КПД", value: `${efficiency} %` }],
+    guide: {
+      wiki: "Singleblock Generators",
+      tips: [
+        { title: "Топливо", text: "Подавайте топливо трубой и проверяйте совместимость по списку топлива в калькуляторе." },
+        { title: "Выход", text: "Кабель подключайте к грани с меткой выхода энергии." },
+      ],
+    },
+  };
+});
+
 /** Все одноблочные машины сайта — по странице на каждую. */
-export const SINGLES: readonly Single[] = [...BOILERS, ...STEAM_SINGLES, ...LV_SINGLES, ...MV_SINGLES, ...HV_SINGLES, ...HIGH_SINGLES];
+export const SINGLES: readonly Single[] = [...BOILERS, ...STEAM_SINGLES, ...ELECTRIC_SINGLES, ...SEMIFLUID_GENERATORS];
 
 export function findSingle(slug: string): Single | undefined {
   return SINGLES.find((single) => single.slug === slug);

@@ -1883,5 +1883,13 @@
   "src": "gregtech/textures/blocks/iconsets/MACHINE_BRONZEPLATEDBRICKS",
   "overlay": "gregtech/textures/blocks/iconsets/OVERLAY_FRONT_DISTILLATION_TOWER_ACTIVE",
   "base": "gregtech/textures/blocks/iconsets/MACHINE_BRONZEPLATEDBRICKS"
+ },
+ "cable-insulated": {
+  "src": "gregtech/textures/blocks/iconsets/INSULATION_FULL",
+  "tint": [
+   64,
+   64,
+   64
+  ]
  }
 }

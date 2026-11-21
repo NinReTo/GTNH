@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { DIAGRAM, GAME, THEME } from "@/lib/config";
 import { Figure, formatNumber } from "./ui";
+import { pick } from "@/lib/lang";
+import { useLang } from "@/lib/use-lang";
 
 const { width, bars } = DIAGRAM;
 const TIERS = GAME.voltageTiers;
@@ -20,10 +22,11 @@ export function VoltageLadder() {
   const tier = TIERS[selected];
   // Делим, а не возводим 4 в степень: MAX в моде чуть меньше «вчетверо от UXV».
   const timesBase = Math.round(tier.voltage / TIERS[0].voltage);
+  const lang = useLang();
 
   return (
-    <Figure caption="Наведите на ярус: каждый следующий ровно вчетверо мощнее предыдущего.">
-      <svg viewBox={`0 0 ${width} ${HEIGHT}`} role="img" aria-label="Ярусы напряжения GregTech" className="w-full">
+    <Figure caption={pick(lang, "Наведите на ярус: каждый следующий ровно вчетверо мощнее предыдущего.", "Hover over a tier: each one is exactly four times stronger than the one before.")}>
+      <svg viewBox={`0 0 ${width} ${HEIGHT}`} role="img" aria-label={pick(lang, "Ярусы напряжения GregTech", "GregTech voltage tiers")} className="w-full">
         {TIERS.map((candidate, index) => {
           const y = index * bars.rowHeight;
           const isSelected = index === selected;
@@ -34,7 +37,7 @@ export function VoltageLadder() {
                 {candidate.name}
               </text>
               <text x={bars.labelWidth - bars.gap} y={y + bars.rowHeight / 2} dominantBaseline="middle" textAnchor="end" fill={THEME.text3} fontSize={bars.fontSize} className="font-mono">
-                {formatNumber(candidate.voltage)}
+                {formatNumber(candidate.voltage, 0, lang)}
               </text>
               <rect
                 x={bars.labelWidth}
@@ -48,8 +51,8 @@ export function VoltageLadder() {
         })}
       </svg>
       <p className="mt-4 font-mono text-sm text-text2">
-        <span className="text-xl text-accent">{tier.name}</span> — {formatNumber(tier.voltage)} EU/t, в{" "}
-        {formatNumber(timesBase)} раз выше {TIERS[0].name}
+        <span className="text-xl text-accent">{tier.name}</span> — {formatNumber(tier.voltage, 0, lang)} EU/t,{" "}
+        {pick(lang, `в ${formatNumber(timesBase, 0, lang)} раз выше ${TIERS[0].name}`, `${formatNumber(timesBase, 0, lang)} times ${TIERS[0].name}`)}
       </p>
     </Figure>
   );

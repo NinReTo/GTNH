@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import { DIAGRAM } from "@/lib/config";
+import type { Lang } from "@/lib/lang";
 
-/** Число в русской записи: пробелы между разрядами, запятая в дробях. */
-export function formatNumber(value: number, fractionDigits = 0): string {
-  return value.toLocaleString("ru-RU", {
+/** Число в записи языка: по-русски — пробелы между разрядами и запятая в дробях, по-английски — запятые и точка. */
+export function formatNumber(value: number, fractionDigits = 0, lang: Lang = "ru"): string {
+  return value.toLocaleString(lang === "ru" ? "ru-RU" : "en-US", {
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
   });

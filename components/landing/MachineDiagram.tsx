@@ -6,6 +6,8 @@ import { kindsOf, structureOf } from "@/lib/machines";
 import { findScene } from "@/lib/setups";
 import { countByKind, explodedPosition, type BlockKind, type Vec3 } from "@/lib/structure";
 import { Figure, Slider, formatNumber } from "./ui";
+import { pick, tr } from "@/lib/i18n";
+import { useLang } from "@/lib/use-lang";
 
 const { width, iso } = DIAGRAM;
 const ANGLE = (iso.angle * Math.PI) / iso.halfTurnDegrees;
@@ -36,6 +38,7 @@ type MachineDiagramProps = {
 export function MachineDiagram({ slug }: MachineDiagramProps) {
   const [weight, setWeight] = useState<number>(iso.initialExplode);
   const [highlighted, setHighlighted] = useState<string | null>(null);
+  const lang = useLang();
   const machine = findScene(slug);
   if (!machine) return null;
 
@@ -66,14 +69,14 @@ export function MachineDiagram({ slug }: MachineDiagramProps) {
                 height={iso.swatch}
                 className="pixelated shrink-0"
               />
-              <span className="flex-1 text-text1">{kind.label}</span>
+              <span className="flex-1 text-text1">{tr(lang, kind.label)}</span>
               <span className="font-mono text-2xl text-accent">{formatNumber(counts[id])}</span>
             </button>
           </li>
         );
       })}
       <li className="flex items-baseline justify-between pt-4 font-mono text-xs uppercase tracking-[0.2em] text-text3">
-        <span>Всего блоков</span>
+        <span>{pick(lang, "Всего блоков", "Total blocks")}</span>
         <span className="text-2xl text-text1">{formatNumber(blocks.length)}</span>
       </li>
     </ul>
@@ -85,8 +88,11 @@ export function MachineDiagram({ slug }: MachineDiagramProps) {
     return (
       <div className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         <p className="self-center text-base text-text2">
-          Постройка слишком большая для плоского рисунка. Разберите её в трёхмерной модели в начале страницы: наведите
-          курсор — блоки разойдутся куполом, а колёсиком с Ctrl или Cmd можно подъехать ближе.
+          {pick(
+            lang,
+            "Постройка слишком большая для плоского рисунка. Разберите её в трёхмерной модели в начале страницы: наведите курсор — блоки разойдутся куполом, а колёсиком с Ctrl или Cmd можно подъехать ближе.",
+            "This multiblock is too big for a flat drawing. Take it apart in the 3D model at the top of the page: hover over it and the blocks spread out in a dome; zoom in with the wheel while holding Ctrl or Cmd.",
+          )}
         </p>
         {list}
       </div>
@@ -123,8 +129,8 @@ export function MachineDiagram({ slug }: MachineDiagramProps) {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-      <Figure caption="Двигайте ползунок — блоки раздвинутся. Наведите на строку справа, чтобы найти такие блоки в постройке.">
-        <svg viewBox={`0 0 ${width} ${iso.height}`} role="img" aria-label={`Разбор по блокам: ${machine.title}`} className="w-full">
+      <Figure caption={pick(lang, "Двигайте ползунок — блоки раздвинутся. Наведите на строку справа, чтобы найти такие блоки в постройке.", "Move the slider to spread the blocks apart. Hover over a row on the right to find those blocks in the multiblock.")}>
+        <svg viewBox={`0 0 ${width} ${iso.height}`} role="img" aria-label={`${pick(lang, "Разбор по блокам", "Block breakdown")}: ${lang === "ru" ? machine.title : machine.name}`} className="w-full">
           {placed.map(({ block, position }) => {
             const kind: BlockKind = kinds[block.kind];
             return (
@@ -134,7 +140,7 @@ export function MachineDiagram({ slug }: MachineDiagramProps) {
                 onMouseEnter={() => setHighlighted(block.kind)}
                 onMouseLeave={() => setHighlighted(null)}
               >
-                <title>{kind.label}</title>
+                <title>{tr(lang, kind.label)}</title>
                 {CUBE_FACES.map((face) => (
                   <polygon
                     key={face.shade}
@@ -150,7 +156,7 @@ export function MachineDiagram({ slug }: MachineDiagramProps) {
             );
           })}
         </svg>
-        <Slider label="Раздвинуть" value={weight} display={`${formatNumber(weight * iso.percent)} %`} onChange={setWeight} />
+        <Slider label={pick(lang, "Раздвинуть", "Spread")} value={weight} display={`${formatNumber(weight * iso.percent)} %`} onChange={setWeight} />
       </Figure>
 
       {list}

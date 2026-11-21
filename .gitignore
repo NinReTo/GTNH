@@ -45,3 +45,9 @@ next-env.d.ts
 
 # данные калькулятора: scripts/fetch-calc-data.mjs
 /public/calc
+
+# Мод ведётся в отдельном репозитории.
+/minecraft-blueprints/
+
+# исходники сгенерированных картинок (scripts/gen-image.mjs): на сайт идёт только WebP
+*.original.png

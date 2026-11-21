@@ -4,6 +4,8 @@ import { useState } from "react";
 import { DIAGRAM, GAME } from "@/lib/config";
 import { coilHeat, heatBonuses, heatCapacity, voltageHeatBonus } from "@/lib/heat";
 import { formatNumber } from "./ui";
+import { pick, tr } from "@/lib/i18n";
+import { useLang } from "@/lib/use-lang";
 
 /** Ярусы, на которых у печи есть рецепты: от MV и выше. */
 const VOLTAGE_CHOICES = GAME.voltageTiers
@@ -23,12 +25,15 @@ export function HeatCalculator() {
   const coil = GAME.coils.find((candidate) => candidate.id === coilId) ?? GAME.coils[0];
   // Те же формулы, что в исходниках мода: lib/heat.ts.
   const capacity = heatCapacity(coil.ordinal, voltageTier);
+  const lang = useLang();
+  const t = (ru: string, en: string) => pick(lang, ru, en);
+  const number = (value: number, digits = 0) => formatNumber(value, digits, lang);
 
   return (
     <div className="border border-line">
       <div className="grid gap-px bg-line lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="bg-bg p-4 sm:p-6">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-text3">Катушки</p>
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-text3">{t("Катушки", "Coils")}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {GAME.coils.map((candidate) => (
               <button
@@ -46,12 +51,12 @@ export function HeatCalculator() {
                   height={DIAGRAM.calculator.swatch}
                   className="pixelated"
                 />
-                {candidate.name}
+                {tr(lang, candidate.name)}
               </button>
             ))}
           </div>
 
-          <p className="mt-6 font-mono text-xs uppercase tracking-[0.2em] text-text3">Напряжение</p>
+          <p className="mt-6 font-mono text-xs uppercase tracking-[0.2em] text-text3">{t("Напряжение", "Voltage")}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {VOLTAGE_CHOICES.map((tier) => (
               <button
@@ -68,13 +73,13 @@ export function HeatCalculator() {
         </div>
 
         <div className="flex flex-col justify-center bg-bg p-4 sm:p-6">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-text3">Нагрев печи</p>
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-text3">{t("Нагрев печи", "Furnace heat")}</p>
           <p className="mt-2 font-mono text-5xl font-bold text-accent sm:text-6xl">
-            {formatNumber(capacity)}
+            {number(capacity)}
             <span className="ml-2 text-2xl text-text2">K</span>
           </p>
           <p className="mt-3 font-mono text-xs text-text3">
-            {formatNumber(coilHeat(coil.ordinal))} катушки + {formatNumber(voltageHeatBonus(voltageTier))} напряжение
+            {number(coilHeat(coil.ordinal))} {t("катушки", "coils")} + {number(voltageHeatBonus(voltageTier))} {t("напряжение", "voltage")}
           </p>
         </div>
       </div>
@@ -82,9 +87,9 @@ export function HeatCalculator() {
       <table className="w-full border-t border-line text-left text-sm">
         <thead className="font-mono text-xs uppercase tracking-[0.2em] text-text3">
           <tr>
-            <th className="px-4 py-3 font-normal sm:px-6">Рецепт</th>
-            <th className="px-4 py-3 font-normal">Нужно</th>
-            <th className="px-4 py-3 font-normal">Что даёт запас</th>
+            <th className="px-4 py-3 font-normal sm:px-6">{t("Рецепт", "Recipe")}</th>
+            <th className="px-4 py-3 font-normal">{t("Нужно", "Needs")}</th>
+            <th className="px-4 py-3 font-normal">{t("Что даёт запас", "What spare heat gives")}</th>
           </tr>
         </thead>
         <tbody>
@@ -93,12 +98,12 @@ export function HeatCalculator() {
             const saving = (1 - bonus.energyFactor) * DIAGRAM.calculator.percent;
             return (
               <tr key={recipe.name} className="border-t border-line">
-                <td className="px-4 py-3 text-text1 sm:px-6">{recipe.name}</td>
-                <td className="px-4 py-3 font-mono text-text2">{formatNumber(recipe.heat)} K</td>
+                <td className="px-4 py-3 text-text1 sm:px-6">{tr(lang, recipe.name)}</td>
+                <td className="px-4 py-3 font-mono text-text2">{number(recipe.heat)} K</td>
                 <td className={`px-4 py-3 font-mono ${bonus.canRun ? "text-text1" : "text-text3"}`}>
                   {bonus.canRun
-                    ? `−${formatNumber(saving, 1)} % энергии · идеальных разгонов: ${bonus.perfectOverclocks}`
-                    : `не хватает ${formatNumber(recipe.heat - capacity)} K`}
+                    ? t(`−${number(saving, 1)} % энергии · идеальных разгонов: ${bonus.perfectOverclocks}`, `−${number(saving, 1)} % energy · perfect overclocks: ${bonus.perfectOverclocks}`)
+                    : t(`не хватает ${number(recipe.heat - capacity)} K`, `${number(recipe.heat - capacity)} K short`)}
                 </td>
               </tr>
             );

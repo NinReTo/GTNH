@@ -26,7 +26,8 @@ export interface Tier {
 export const TIERS: readonly Tier[] = [
   {
     id: "steam",
-    title: "Пар",
+    // Название эры — как у остальных эр (LV, MV…): латиницей и без перевода в обеих версиях сайта.
+    title: "Steam",
     subtitle: "до электричества",
     color: GAME.tierColors.steam,
     // Фасад бронзовой паровой печи — самая узнаваемая машина пара.

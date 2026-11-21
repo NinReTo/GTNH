@@ -27,7 +27,7 @@ export const cellOf = (key: string): Vec3 => key.split(",").map(Number) as unkno
 export const move = (cell: Vec3, side: Face, steps = 1): Vec3 => [0, 1, 2].map((axis) => cell[axis] + STEP[side][axis] * steps) as unknown as Vec3;
 
 /** Сторона, в которую надо шагнуть из from, чтобы попасть в соседнюю клетку to. */
-function sideTo(from: Vec3, to: Vec3): Face {
+export function sideTo(from: Vec3, to: Vec3): Face {
   const side = SIDES.find((candidate) => keyOf(move(from, candidate)) === keyOf(to));
   if (!side) throw new Error(`Клетки ${keyOf(from)} и ${keyOf(to)} не соседние`);
   return side;
@@ -45,8 +45,10 @@ export interface Box {
 }
 
 export function boxOf(cells: readonly Vec3[]): Box {
-  const pick = (choose: (...values: number[]) => number) => [0, 1, 2].map((axis) => choose(...cells.map((cell) => cell[axis]))) as unknown as Vec3;
-  return { min: pick(Math.min), max: pick(Math.max) };
+  // Без Math.min(...клетки): у большой фабрики клеток миллионы — столько аргументов не влезает в стек.
+  const pick = (choose: (a: number, b: number) => number, start: number) =>
+    [0, 1, 2].map((axis) => cells.reduce((best, cell) => choose(best, cell[axis]), start)) as unknown as Vec3;
+  return { min: pick(Math.min, Infinity), max: pick(Math.max, -Infinity) };
 }
 
 /** Стена бокса, на которой лежит клетка: сначала боковые (x), потом задняя и передняя, иначе — верх. */
@@ -87,10 +89,23 @@ export function placeMachine(grid: Grid, machine: Machine, at: Vec3, kinds: Read
 }
 
 /**
- * Ставит люк на стену постройки: берёт уже стоящий люк этого вида или блок корпуса на этой стене —
- * пониже и поближе к середине стены. Грань люка смотрит наружу, клетка перед ней должна быть свободна.
+ * Служебный блок — люк, шина, контроллер, обслуживание: по слову в имени вида (camelCase), а не по куску —
+ * «inputBus», «cokeHatchIn», но не корпус «gRobustTungstensteel».
  */
-export function addHatch(grid: Grid, body: readonly Vec3[], kind: string, wall: Face, skip: readonly string[] = []): { readonly grid: Grid; readonly hatch: Vec3; readonly out: Vec3 } {
+export const SERVICE_KIND = /(?:[Cc]ontroller|[Hh]atch|[Bb]us|[Ee]nergy|[Dd]ynamo|[Mm]uffler|[Mm]aintenance)(?![a-z])/;
+
+/**
+ * Ставит люк на стену постройки: берёт уже стоящий люк этого вида или блок корпуса на этой стене —
+ * пониже (high — повыше) и поближе к середине стены. Грань люка смотрит наружу, клетка перед ней должна быть свободна.
+ */
+export function addHatch(
+  grid: Grid,
+  body: readonly Vec3[],
+  kind: string,
+  wall: Face,
+  skip: readonly string[] = [],
+  high = false,
+): { readonly grid: Grid; readonly hatch: Vec3; readonly out: Vec3 } {
   const box = boxOf(body);
   const middle = [0, 1, 2].map((axis) => (box.min[axis] + box.max[axis]) / 2);
   const isFree = (cell: Vec3) => !grid.has(keyOf(cell));
@@ -98,10 +113,10 @@ export function addHatch(grid: Grid, body: readonly Vec3[], kind: string, wall: 
   const candidates = body
     .filter((cell) => {
       const value = grid.get(keyOf(cell));
-      return value && !value.isHollow && !/ontroller|Hatch|Bus|energy|muffler|maintenance/i.test(value.kind) && !skip.includes(keyOf(cell)) && isFree(move(cell, wall));
+      return value && !value.isHollow && !SERVICE_KIND.test(value.kind) && !skip.includes(keyOf(cell)) && isFree(move(cell, wall));
     })
     .filter((cell) => wallOf(cell, box) === wall || (wall === "nz" && cell[2] === box.min[2]) || (wall === "pz" && cell[2] === box.max[2]))
-    .sort((a, b) => a[1] - b[1] || Math.abs(a[0] - middle[0]) + Math.abs(a[2] - middle[2]) - (Math.abs(b[0] - middle[0]) + Math.abs(b[2] - middle[2])));
+    .sort((a, b) => (high ? b[1] - a[1] : a[1] - b[1]) || Math.abs(a[0] - middle[0]) + Math.abs(a[2] - middle[2]) - (Math.abs(b[0] - middle[0]) + Math.abs(b[2] - middle[2])));
   const hatch = existing ?? candidates[0];
   if (!hatch) throw new Error(`Нет места для люка ${kind} на стене ${wall}`);
   return { grid: withCells(grid, [[hatch, { kind, face: wall }]]), hatch, out: move(hatch, wall) };
@@ -111,12 +126,51 @@ export function addHatch(grid: Grid, body: readonly Vec3[], kind: string, wall: 
  * Путь по свободным клеткам от from до любой клетки-цели (поиск в ширину): так трубы и кабели
  * обходят постройки и друг друга. Цели могут быть заняты — например, уже проложенным кабелем.
  */
-export function route(grid: Grid, from: Vec3, goals: readonly Vec3[], margin: number): readonly Vec3[] {
-  const goalKeys = new Set(goals.map(keyOf));
-  const box = boxOf([...[...grid.keys()].map(cellOf), from, ...goals]);
-  const inside = (cell: Vec3) => cell[1] >= 0 && [0, 1, 2].every((axis) => cell[axis] >= box.min[axis] - margin && cell[axis] <= box.max[axis] + margin);
-  const previous = new Map<string, string | null>([[keyOf(from), null]]);
-  const queue: Vec3[] = [from];
+export function route(grid: Grid, from: Vec3, goals: readonly Vec3[], margin: number, area?: Box, clamp?: Box): readonly Vec3[] {
+  const path = findPath(grid, from, goals, margin, area, { clamp });
+  if (!path) throw new Error(`Не нашёл пути от ${keyOf(from)}`);
+  return path;
+}
+
+/** Ограничения поиска пути. */
+export interface PathLimits {
+  /** Дополнительные точки старта. Поиск находит один кратчайший путь от любой из них. */
+  readonly starts?: readonly Vec3[];
+  /** Предпочтение соседней клетки при одинаковой длине пути. */
+  readonly preference?: (cell: Vec3) => number;
+  /** Клетки, свободные сейчас, но обещанные другим (их не занимаем). */
+  readonly blocked?: { has(key: string): boolean };
+  /** Путь длиннее стольких шагов не нужен. */
+  readonly maxSteps?: number;
+  /** Жёсткая рамка поверх запаса margin: например, фабрика не выходит за свои чанки. */
+  readonly clamp?: Box;
+  /** Допустимые клетки внутри рамки, например только чанки с машинами. */
+  readonly allows?: (cell: Vec3) => boolean;
+  /** Допустимое направление между соседними клетками. */
+  readonly allowsStep?: (from: Vec3, to: Vec3) => boolean;
+}
+
+/** Как route, но без пути — undefined (нет прохода или он длиннее maxSteps шагов). */
+export function findPath(
+  grid: Grid,
+  from: Vec3,
+  goals: readonly Vec3[],
+  margin: number,
+  area?: Box,
+  { blocked, maxSteps = Infinity, clamp, allows, allowsStep, starts = [], preference }: PathLimits = {},
+): readonly Vec3[] | undefined {
+  const origins = [from, ...starts].filter((cell) => !allows || allows(cell));
+  if (origins.length === 0) return undefined;
+  const goalKeys = new Set(goals.filter((cell) => !allows || allows(cell)).map(keyOf));
+  if (goalKeys.size === 0) return undefined;
+  // area — уже посчитанные границы сетки: у большой фабрики обходить все клетки на каждый путь — минуты.
+  const box = boxOf([...(area ? [area.min, area.max] : [...grid.keys()].map(cellOf)), ...origins, ...goals]);
+  const low = [0, 1, 2].map((axis) => Math.max(box.min[axis] - margin, clamp?.min[axis] ?? -Infinity));
+  const high = [0, 1, 2].map((axis) => Math.min(box.max[axis] + margin, clamp?.max[axis] ?? Infinity));
+  const inside = (cell: Vec3) => cell[1] >= 0 && [0, 1, 2].every((axis) => cell[axis] >= low[axis] && cell[axis] <= high[axis]);
+  const previous = new Map<string, string | null>(origins.map((cell) => [keyOf(cell), null]));
+  const queue = [...origins];
+  const steps = origins.map(() => 0);
   for (let index = 0; index < queue.length; index += 1) {
     const cell = queue[index];
     if (goalKeys.has(keyOf(cell))) {
@@ -124,28 +178,54 @@ export function route(grid: Grid, from: Vec3, goals: readonly Vec3[], margin: nu
       for (let key: string | null = keyOf(cell); key; key = previous.get(key) ?? null) path.unshift(cellOf(key));
       return path;
     }
-    for (const side of SIDES) {
+    if (steps[index] >= maxSteps) continue;
+    const directions = preference ? [...SIDES].sort((a, b) => preference(move(cell, b)) - preference(move(cell, a))) : SIDES;
+    for (const side of directions) {
       const next = move(cell, side);
       const key = keyOf(next);
-      if (previous.has(key) || !inside(next) || (grid.has(key) && !goalKeys.has(key))) continue;
+      if (previous.has(key) || !inside(next) || (allows && !allows(next)) || (allowsStep && !allowsStep(cell, next)) ||
+        ((grid.has(key) || blocked?.has(key)) && !goalKeys.has(key))) continue;
       previous.set(key, keyOf(cell));
       queue.push(next);
+      steps.push(steps[index] + 1);
     }
   }
-  throw new Error(`Не нашёл пути от ${keyOf(from)}`);
+  return undefined;
 }
 
 /** Кладёт трубу или кабель по пути. Отростки — к соседям по пути и к концам; с уже лежащим участком того же вида они срастаются. */
 export function lay(grid: Grid, path: readonly Vec3[], kind: string, startLink?: Face, endLink?: Face): Grid {
-  const placed = path.map((cell, index): readonly [Vec3, Cell] => {
-    const links = new Set<Face>(grid.get(keyOf(cell))?.kind === kind ? (grid.get(keyOf(cell))?.links ?? []) : []);
+  return layAll(grid, [{ path, kind, startLink, endLink }]);
+}
+
+export interface Piece {
+  readonly path: readonly Vec3[];
+  readonly kind: string;
+  readonly startLink?: Face;
+  readonly endLink?: Face;
+}
+
+/**
+ * Несколько труб по очереди, как lay одна за другой, но с одной копией сетки: у большой фабрики сетка — сотни тысяч
+ * клеток, и копировать её на каждый отросток (их тысячи) — минуты.
+ */
+export function layAll(grid: Grid, pieces: readonly Piece[]): Grid {
+  const next = new Map(grid);
+  for (const piece of pieces) layInto(next, piece);
+  return next;
+}
+
+/** Кладёт трубу в рабочую копию сетки (её завёл вызывающий — так сетка не копируется на каждую трубу). */
+export function layInto(next: Map<string, Cell>, { path, kind, startLink, endLink }: Piece): void {
+  path.forEach((cell, index) => {
+    const own = next.get(keyOf(cell));
+    const links = new Set<Face>(own?.kind === kind ? (own.links ?? []) : []);
     if (index > 0) links.add(sideTo(cell, path[index - 1]));
     if (index < path.length - 1) links.add(sideTo(cell, path[index + 1]));
     if (index === 0 && startLink) links.add(startLink);
     if (index === path.length - 1 && endLink) links.add(endLink);
-    return [cell, { kind, links: [...links].sort() }];
+    next.set(keyOf(cell), { kind, links: [...links].sort() });
   });
-  return withCells(grid, placed);
 }
 
 /** Ряд одинаковых блоков (генераторы, котлы) вдоль x, лицом в одну сторону. */
@@ -178,13 +258,21 @@ export function toMachine(grid: Grid, base: Omit<Machine, "def">, extraKinds: Re
     if (value.links) links[symbol] = value.links;
     return symbol;
   };
+  // Идём по занятым клеткам, а не по всему объёму коробки: у большой фабрики коробка — десятки миллионов клеток, почти
+  // все пустые. Пустая строка схемы — одна общая строка пробелов.
+  const width = max[0] - min[0] + 1;
+  const depth = max[2] - min[2] + 1;
+  const blank = " ".repeat(width);
+  const filled = new Map<number, string[]>();
+  for (const [key, value] of grid) {
+    const [x, y, z] = cellOf(key);
+    const row = (max[1] - y) * depth + (max[2] - z);
+    const symbols = filled.get(row) ?? Array.from(blank);
+    symbols[x - min[0]] = symbolOf(value);
+    filled.set(row, symbols);
+  }
   const layers = Array.from({ length: max[1] - min[1] + 1 }, (_layer, fromTop) =>
-    Array.from({ length: max[2] - min[2] + 1 }, (_row, fromFront) =>
-      Array.from({ length: max[0] - min[0] + 1 }, (_column, x) => {
-        const value = grid.get(keyOf([min[0] + x, max[1] - fromTop, max[2] - fromFront]));
-        return value ? symbolOf(value) : " ";
-      }).join(""),
-    ),
+    Array.from({ length: depth }, (_row, fromFront) => filled.get(fromTop * depth + fromFront)?.join("") ?? blank),
   );
   const def: StructureDef & { readonly kinds: Readonly<Record<string, KindId>> } = {
     layers,

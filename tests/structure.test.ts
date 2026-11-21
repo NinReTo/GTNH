@@ -1,7 +1,11 @@
 import { existsSync } from "node:fs";
 import { describe, expect, test } from "vitest";
-import { EBF, EXPLODE, HOVER } from "@/lib/config";
-import { KINDS, MACHINES, SINGLE_BLOCKS, STEAM_TIERS, findMachine, structureOf, type KindId } from "@/lib/machines";
+import { CALC, EBF, EXPLODE, HOVER } from "@/lib/config";
+import { chainOrder, independentFurnaceGroups, pumpGroup, quadRow, sharedCluster, sharesWalls } from "@/lib/calc/factory";
+import type { Step } from "@/lib/calc/planner";
+import type { Goods } from "@/lib/calc/repository";
+import { addHatch, boxOf, findPath, keyOf, move, placeMachine, SERVICE_KIND } from "@/lib/layout";
+import { KINDS, MACHINES, SINGLE_BLOCKS, STEAM_TIERS, findMachine, kindsOf, structureOf, type KindId } from "@/lib/machines";
 import { TIERS, findTier } from "@/lib/tiers";
 import {
   approach,
@@ -475,5 +479,188 @@ describe("плавное движение блока", () => {
 
   test("отрицательное время ничего не двигает", () => {
     expect(approach(0.4, 1, -1)).toBe(0.4);
+  });
+});
+
+describe("люки на постройках", () => {
+  test("служебный блок узнаётся по слову, а не по куску имени: «Robust» — не шина", () => {
+    expect(["inputBus", "pyroOutputBus", "cokeHatchIn", "ebfEnergy", "eohController", "pyroMuffler"].every((kind) => SERVICE_KIND.test(kind))).toBe(true);
+    expect(["gRobustTungstensteel", "ovenBusy"].some((kind) => SERVICE_KIND.test(kind))).toBe(false);
+  });
+
+  test("обход для трубы: не заходит на обещанные клетки и не длиннее заданного", () => {
+    const wall = new Map([[keyOf([1, 0, 0]), { kind: "casing" }]]);
+    const area = { min: [0, 0, -1] as Vec3, max: [2, 1, 1] as Vec3 };
+    // Прямо — стена; в обход — 4 шага (вбок, вперёд, вперёд, обратно).
+    expect(findPath(wall, [0, 0, 0], [[2, 0, 0]], 0, area)).toHaveLength(5);
+    expect(findPath(wall, [0, 0, 0], [[2, 0, 0]], 0, area, { maxSteps: 3 })).toBeUndefined();
+    expect(findPath(new Map(), [0, 0, 0], [[2, 0, 0]], 0, area, { starts: [[1, 0, 0]] }))
+      .toEqual([[1, 0, 0], [2, 0, 0]]);
+    expect(findPath(new Map(), [0, 0, 0], [[1, 0, 1]], 0, boxOf([[0, 0, 0], [1, 0, 1]]), {
+      preference: (cell) => Number(keyOf(cell) === "0,0,1"),
+    })).toEqual([[0, 0, 0], [0, 0, 1], [1, 0, 1]]);
+    // Обходы через z = 1 и z = −1 обещаны другим — остаётся только верх.
+    const promised = new Set([keyOf([1, 0, 1]), keyOf([1, 0, -1])]);
+    const over = findPath(wall, [0, 0, 0], [[2, 0, 0]], 0, area, { blocked: promised })!;
+    expect(over.some((cell) => cell[1] === 1)).toBe(true);
+  });
+
+  test("на экстремальный теплообменник встаёт люк выхода спереди", () => {
+    const building = findMachine("extreme-heat-exchanger")!;
+    const placed = placeMachine(new Map(), building, [0, 0, 0], kindsOf(building), true);
+    const bottom = placed.cells.filter((cell) => cell[1] === 0);
+    expect(addHatch(placed.grid, bottom, "outputHatch", "pz").out[2]).toBeGreaterThan(0);
+  });
+
+  test("стены делит постройка с одинаковыми боковыми стенами (доменная печь), но не с контроллером сбоку", () => {
+    expect(sharesWalls(findMachine("electric-blast-furnace")!)).toBe(true);
+    // Кирпичная домна и коксовая печь — свой ряд со стенками; у постройки с контроллером на боку стены не общие.
+    const sideController = MACHINES.find((machine) => machine.def.layers.some((rows) => rows.some((row) => row.trimStart().startsWith("~") || row.trimEnd().endsWith("~"))));
+    if (sideController) expect(sharesWalls(sideController)).toBe(false);
+  });
+});
+
+describe("доменные печи квадратом 2 × 2 (схема игрока «x4 EBF»)", () => {
+  const goods = (kind: "item" | "fluid") => ({ ptr: kind === "item" ? 1 : [0, 0].length, kind }) as Goods;
+  const step = { inputs: [{ goods: goods("item"), perSecond: 1 }, { goods: goods("fluid"), perSecond: 1 }], outputs: [{ goods: goods("item"), perSecond: 1 }] } as unknown as Step;
+  const count = (grid: ReadonlyMap<string, { readonly kind: string }>, kind: string) => [...grid.values()].filter((cell) => cell.kind === kind).length;
+
+  test("четыре печи: 42 катушки вместо 64, у каждой два энергетических люка, свои контроллер, глушитель и люк обслуживания", () => {
+    const slot = quadRow(new Map(), step, 4, -2);
+    expect(count(slot.grid, "coil")).toBe(42);
+    expect(count(slot.grid, "ebfController")).toBe(4);
+    expect(count(slot.grid, "energy")).toBe(8);
+    expect(count(slot.grid, "muffler")).toBe(4);
+    expect(count(slot.grid, "maintenance")).toBe(4);
+    // Входная шина одна в центре, выходные шины и жидкостные входы — по одному на пару.
+    expect(count(slot.grid, "inputBus")).toBe(1);
+    expect(count(slot.grid, "outputBus")).toBe(2);
+    expect(count(slot.grid, "inputHatch")).toBe(2);
+    for (const [key, cell] of slot.grid) {
+      const y = Number(key.split(",")[1]);
+      if (["maintenance", "inputHatch", "energy"].includes(cell.kind)) expect(y).toBe(2);
+      if (cell.kind === "muffler") expect(y).toBe(5);
+    }
+    expect(slot.placed.fluidIn.spurs.every(({ path }) => path.every((cell) => !slot.grid.has(cell.join(","))))).toBe(true);
+    expect(slot.placed.consumers).toHaveLength(8);
+    // Квадрат поднят: под ним слой 1 — трубы к шинам, слой 0 — кабели к люкам на дне.
+    const bottom = [...slot.grid.keys()].map((key) => Number(key.split(",")[1]));
+    expect(Math.min(...bottom)).toBe([0, 0].length);
+    expect(slot.placed.itemIn.spurs).toHaveLength(1);
+    expect(slot.placed.itemOut.spurs).toHaveLength(2);
+  });
+
+  test("неполный квадрат — только клетки и люки тех печей, что есть", () => {
+    const single = quadRow(new Map(), step, 1, -2);
+    expect(count(single.grid, "coil")).toBe(16);
+    expect(count(single.grid, "ebfController")).toBe(1);
+    expect(single.placed.consumers).toHaveLength(2);
+    const pair = quadRow(new Map(), step, 2, -2);
+    expect(count(pair.grid, "coil")).toBeLessThan(32);
+    expect(count(pair.grid, "ebfController")).toBe(2);
+    // Пять печей — полный квадрат и одна отдельная.
+    const five = quadRow(new Map(), step, 5, -2);
+    expect(count(five.grid, "ebfController")).toBe(5);
+    expect(count(five.grid, "coil")).toBe(42 + 16);
+  });
+
+  test("жидкий выход домен идёт от нижних люков в обход корпуса", () => {
+    const mixed = { ...step, outputs: [...step.outputs, { goods: goods("fluid"), perSecond: 1 }] };
+    const slot = quadRow(new Map(), mixed, 4, -2);
+    expect(count(slot.grid, "outputHatch")).toBe(2);
+    expect(slot.placed.fluidOut.spurs).toHaveLength(2);
+    for (const { path, end } of slot.placed.fluidOut.spurs) {
+      expect(path.every((cell) => !slot.grid.has(keyOf(cell)))).toBe(true);
+      expect(slot.grid.get(keyOf(move(path[path.length - 1], end)))?.kind).toBe("outputHatch");
+    }
+  });
+
+  test.each([2, 3, 4])("общие стены для %s корпусов оставляют свои входы, выходы и питание", (copies) => {
+    const machine = findMachine("electric-blast-furnace")!;
+    const building = {
+      ...machine,
+      slug: "test-shared-multiblock",
+      def: { ...machine.def, layers: [["bbb", "bmb", "bbb"], ["CCC", "C-C", "CCC"], ["b~b", "bbb", "bbb"]] },
+    };
+    const group = sharedCluster(step, building, copies)!;
+    expect(group).toBeDefined();
+    const rows = [group.head, ...group.bands.map(({ band }) => band)];
+    expect(rows).toHaveLength(copies);
+    expect(count(group.grid, "ebfController")).toBe(copies);
+    expect(count(group.grid, "coil")).toBeLessThan(copies * 8);
+    const ports = rows.flatMap((row) => [
+      ...row.itemIn.cells, ...row.fluidIn.cells, ...row.itemOut.cells, ...row.consumers.map(({ hatch }) => hatch),
+    ]);
+    expect(new Set(ports.map((cell) => cell.join(","))).size).toBe(ports.length);
+  });
+
+  test("две домны разных рецептов делят стену, каждый рецепт имеет свои порты", () => {
+    const machine = findMachine("electric-blast-furnace")!;
+    const building = {
+      ...machine,
+      def: { ...machine.def, layers: [...machine.def.layers.slice(0, -1), ["b~b", "bbb", "bbb"]] },
+    };
+    const first = { ...step, inputs: step.inputs.filter(({ goods }) => goods.kind === "item") };
+    const second = { ...first };
+    const group = sharedCluster(first, building, 2, [second])!;
+    expect(group).toBeDefined();
+    expect(group.bands[0].band.step).toBe(second);
+    const rows = [group.head, group.bands[0].band];
+    const exits = rows.flatMap((row) => [...row.itemIn.cells, ...row.fluidIn.cells, ...row.itemOut.cells]);
+    expect(new Set(exits.map((cell) => cell.join(","))).size).toBe(exits.length);
+    expect(rows.every(({ consumers }) => consumers.length === 2 && consumers.every(({ face }) => face === "ny"))).toBe(true);
+  });
+
+  test("шесть одиночных рецептов домны сначала образуют квадрат, затем пару", () => {
+    const machine = findMachine("electric-blast-furnace")!;
+    const steps = Array.from({ length: 6 }, () => ({ ...step, crafter: { kind: "multi", machine }, machines: 1 }) as Step);
+    const groups = independentFurnaceGroups(steps);
+    const square = groups.get(steps[0])!.group;
+    const controllers = [...square.grid].filter(([, cell]) => cell.kind === "ebfController").map(([key]) => key.split(","));
+    expect(new Set(controllers.map(([x]) => x)).size).toBe(2);
+    expect(new Set(controllers.map(([, , z]) => z)).size).toBe(2);
+    expect(count(square.grid, "energy")).toBe(8);
+    const maintenance = [...square.grid].filter(([, cell]) => cell.kind === "maintenance");
+    expect(maintenance.length).toBeGreaterThan(0);
+    expect(maintenance.length).toBeLessThan(4);
+    expect(maintenance.every(([key]) => Number(key.split(",")[1]) === CALC.quadEbf.floor)).toBe(true);
+    expect(square.bands).toHaveLength(3);
+    expect(groups.get(steps[4])?.group.bands).toHaveLength(1);
+    expect(steps.slice(0, 4).every((one) => groups.get(one) === groups.get(steps[0]))).toBe(true);
+    expect(groups.get(steps[5])).toBe(groups.get(steps[4]));
+  });
+
+  test("паровые насосы делят корпус и сохраняют отдельные выводы", () => {
+    const pump = findMachine("steam-water-pump")!;
+    const pair = pumpGroup(pump, 2)!;
+    expect(pair.grid.size).toBeLessThan(structureOf(pump).blocks.length * 2);
+    expect(count(pair.grid, "pumpController")).toBe(2);
+    expect(count(pair.grid, "pumpSteamHatch")).toBe(1);
+    expect(count(pair.grid, "pumpOutputHatch")).toBe(2);
+    expect(new Set(pair.ports.flatMap(({ steam, water }) => [keyOf(steam), keyOf(water)])).size).toBe(3);
+    expect(count(pumpGroup(pump, 2, CALC.ticksPerSecond)!.grid, "pumpSteamHatch")).toBe(2);
+  });
+
+  test("доменные плавильни сплавов делят топки и сохраняют отдельные глушители", () => {
+    const smelter = findMachine("alloy-blast-smelter")!;
+    const group = sharedCluster(step, smelter, 2)!;
+    expect(count(group.grid, "absFirebox")).toBeLessThan(32);
+    expect(count(group.grid, "absController")).toBe(2);
+    expect(count(group.grid, "muffler")).toBe(2);
+    expect(group.head.itemIn).toBe(group.bands[0].band.itemIn);
+    expect(sharesWalls(findMachine("railcraft-boiler")!)).toBe(false);
+    expect(sharesWalls({ ...smelter, source: "Tinkers' Construct" })).toBe(false);
+  });
+
+});
+
+describe("порядок рядов фабрики цепочкой", () => {
+  const goods = (ptr: number) => ({ ptr }) as Goods;
+  const step = (made: number, from: readonly number[]) => ({ goods: made, inputs: from.map((ptr) => ({ goods: goods(ptr), perSecond: 1 })), outputs: [{ goods: goods(made), perSecond: 1 }] }) as unknown as Step;
+
+  test("поставщик стоит сразу перед потребителем, а не через чужие ряды того же уровня", () => {
+    // 1 → 2 → 4 и 3 → 4. По уровню от сырья было бы 1, 3, 2, 4 — между 1 и 2 вклинилась бы 3.
+    const steps = [step(1, []), step(3, []), step(2, [1]), step(4, [3, 2])];
+    expect(chainOrder(steps, 4).map((one) => one.goods)).toEqual([3, 1, 2, 4]);
   });
 });

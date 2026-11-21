@@ -8,6 +8,9 @@ import { useDevicePixelRatio } from "./useDevicePixelRatio";
 import { stepHref, type LineStep } from "@/lib/lines";
 import { findMachine, structureOf } from "@/lib/machines";
 import { findSingle } from "@/lib/singles";
+import { href as langHref } from "@/lib/lang";
+import { tr } from "@/lib/i18n";
+import { useLang } from "@/lib/use-lang";
 
 /** Трёхмерное для карточек грузится только в браузере. */
 export const CardStageLoader = dynamic(() => import("./CardStage"), { ssr: false });
@@ -105,27 +108,31 @@ function frameOf(isCurrent: boolean): string {
 
 /** Карточка постройки: модель и подпись; щелчок открывает страницу постройки. */
 export function MachineCard({ slug, isCurrent = false }: { slug: string; isCurrent?: boolean }) {
+  const lang = useLang();
   const machine = findMachine(slug);
   if (!machine) return null;
   const { size } = structureOf(machine);
-  const href = stepHref({ kind: "machine", slug });
+  const href = langHref(lang, stepHref({ kind: "machine", slug }));
+  const title = lang === "ru" ? machine.title : machine.name;
   return (
     <Link href={href} className={frameOf(isCurrent)} aria-current={isCurrent ? "page" : undefined}>
-      <CardPicture spec={{ kind: "machine", slug }} href={href} label={machine.title} />
-      <Caption title={machine.title} note={size.join(" × ")} />
+      <CardPicture spec={{ kind: "machine", slug }} href={href} label={title} />
+      <Caption title={title} note={size.join(" × ")} />
     </Link>
   );
 }
 
 /** Карточка одноблочной машины; щелчок открывает её страницу. */
 export function SingleCard({ slug, isCurrent = false }: { slug: string; isCurrent?: boolean }) {
+  const lang = useLang();
   const single = findSingle(slug);
   if (!single) return null;
-  const href = stepHref({ kind: "single", slug });
+  const href = langHref(lang, stepHref({ kind: "single", slug }));
+  const title = lang === "ru" ? single.title : single.name;
   return (
     <Link href={href} className={frameOf(isCurrent)} aria-current={isCurrent ? "page" : undefined}>
-      <CardPicture spec={{ kind: "single", slug }} href={href} label={`${single.title}, ${single.label.toLowerCase()}`} />
-      <Caption title={single.title} note={single.does} />
+      <CardPicture spec={{ kind: "single", slug }} href={href} label={`${title}, ${tr(lang, single.label).toLowerCase()}`} />
+      <Caption title={title} note={tr(lang, single.does)} />
     </Link>
   );
 }

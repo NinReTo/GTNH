@@ -1,9 +1,13 @@
-import { CALC } from "../config";
+import { CALC, GAME } from "../config";
+import { voltageHeatBonus } from "../heat";
+import { coilFor } from "../production";
 import { crafterFor, type Crafter } from "./crafters";
-import { isRaw } from "./raw";
+import { pipeCapacity } from "./conduits";
+import { isRaw, rawTier } from "./raw";
 import type { Goods, Recipe, RecipeIo, Repository } from "./repository";
 import { machineRun, type MachineRun } from "./vendor/model";
 import { Recipe as VendorRecipe, Repository as VendorRepository } from "./vendor/repository";
+import { CoilTierNames } from "./vendor/utils";
 
 /**
  * Планировщик фабрики: от выбранного предмета и выработки — к цепочке рецептов, машинам и сырью.
@@ -16,6 +20,11 @@ import { Recipe as VendorRecipe, Repository as VendorRepository } from "./vendor
  */
 
 const SKIPPED_TYPES = new Set<string>(CALC.skippedTypes);
+const EMPTY_CELL = "Empty Cell";
+const AMBIENT_AIR = "Air";
+const isAirCompression = (recipe: Recipe, repository: Repository): boolean =>
+  recipe.type === "Compressor" && recipe.inputs.length === 0 &&
+  recipe.outputs.some((output) => repository.goods(output.goods[0]).name === AMBIENT_AIR);
 
 export interface Index {
   readonly repository: Repository;
@@ -26,6 +35,8 @@ export interface Index {
   /** Какие рецепты дают товар (номера в recipes) — для выбора рецепта вручную. */
   readonly producers: ReadonlyMap<number, readonly number[]>;
   readonly raw: ReadonlySet<number>;
+  /** С какого яруса сырьё можно добыть (руды с других планет — не с LV). */
+  readonly rawTier: ReadonlyMap<number, number>;
 }
 
 function append(map: Map<number, number[]>, key: number, value: number): void {
@@ -38,18 +49,50 @@ function append(map: Map<number, number[]>, key: number, value: number): void {
 export function buildIndex(repository: Repository): Index {
   // Инструмент (стопка в 1 штуку) — не сырьё для фабрики: разбивать пилы и серпы в пыль — не производство.
   const isTool = (input: RecipeIo): boolean => input.kind === "item" && input.goods.every((goods) => repository.goods(goods).stackSize === 1);
-  // Рецепт без расходуемых входов (только катализаторы) — «бесплатный» выход вроде Ока Гармонии; тоже не годится.
+  // Рецепт без расходуемых входов (только катализаторы) — «бесплатный» выход; не годится. У Глаза гармонии газы из
+  // катализаторов сначала становятся входами (withEyeFuel).
+  // Пустая колба — лишь тара для жидкости: на фабрике жидкости идут трубами в баки, колбы из рецептов убираем.
+  // Рецепт, где кроме колб ничего нет (выдавить колбу, слить колбу), после этого сам отсеется ниже.
+  const isCell = (io: RecipeIo): boolean => io.kind === "item" && io.goods.every((goods) => repository.goods(goods).name === EMPTY_CELL);
   const recipes = repository
     .recipes()
-    .filter((recipe) => !SKIPPED_TYPES.has(recipe.type) && recipe.outputs.length > 0 && recipe.inputs.length > 0 && !recipe.inputs.some(isTool) && !isRecycling(recipe, repository));
+    .map((recipe) => withEyeFuel(recipe, repository))
+    .map((recipe) => {
+      const isPipeCraft = recipe.type.startsWith("Crafting") &&
+        recipe.outputs.some((output) => pipeCapacity(repository.goods(output.goods[0]).name) !== undefined);
+      const isPipeTool = (io: RecipeIo) => isPipeCraft && io.kind === "item" &&
+        io.goods.every((ptr) => /^Single Use (Wrench|Hard Hammer)$/.test(repository.goods(ptr).name));
+      return {
+        ...recipe,
+        inputs: recipe.inputs.filter((io) => !isCell(io) && !isPipeTool(io)),
+        outputs: recipe.outputs.filter((io) => !isCell(io)),
+        catalysts: isPipeCraft ? [...recipe.catalysts, ...recipe.inputs.filter(isPipeTool).map((io) => ({ ...io, amount: 0 }))] : recipe.catalysts,
+      };
+    })
+    .filter((recipe) => !SKIPPED_TYPES.has(recipe.type) && recipe.outputs.length > 0 &&
+      (recipe.inputs.length > 0 || isAirCompression(recipe, repository)) && !recipe.inputs.some(isTool) && !isRecycling(recipe, repository));
   const consumers = new Map<number, number[]>();
   const producers = new Map<number, number[]>();
   recipes.forEach((recipe, position) => {
     for (const input of recipe.inputs) for (const goods of input.goods) append(consumers, goods, position);
     for (const output of recipe.outputs) append(producers, output.goods[0], position);
   });
-  const raw = new Set([...repository.itemPtrs, ...repository.fluidPtrs].filter((ptr) => isRaw(repository.goods(ptr))));
-  return { repository, vendor: VendorRepository.load(repository.buffer), recipes, consumers, producers, raw };
+  const compressedAir = new Set(recipes.filter((recipe) => isAirCompression(recipe, repository))
+    .flatMap((recipe) => recipe.outputs.map(({ goods }) => goods[0])));
+  const raw = new Set([...repository.itemPtrs, ...repository.fluidPtrs].filter((ptr) => !compressedAir.has(ptr) && isRaw(repository.goods(ptr))));
+  const rawTiers = new Map([...raw].map((ptr) => [ptr, rawTier(repository.goods(ptr))]));
+  return { repository, vendor: VendorRepository.load(repository.buffer), recipes, consumers, producers, raw, rawTier: rawTiers };
+}
+
+/** Глаз гармонии: водород и гелий из катализаторов — во входы, по ярусу небесного тела (CALC.eyeOfHarmony, как в коде мода). */
+function withEyeFuel(recipe: Recipe, repository: Repository): Recipe {
+  const { machine, fluids, fluidPerTier, baseTicks, timeGrowth } = CALC.eyeOfHarmony;
+  if (!recipe.multiblocks.includes(machine)) return recipe;
+  const bodyTier = Math.max(0, Math.round(Math.log(recipe.ticks / baseTicks) / Math.log(timeGrowth)));
+  const fuel = recipe.catalysts
+    .filter((io) => io.kind === "fluid" && fluids.includes(repository.goods(io.goods[0]).name))
+    .map((io) => ({ ...io, amount: fluidPerTier * (bodyTier + 1) }));
+  return { ...recipe, inputs: [...recipe.inputs, ...fuel] };
 }
 
 /** Время и энергия рецепта: у печи Minecraft их нет в выгрузке — берём электропечь GregTech. */
@@ -75,6 +118,12 @@ function fitsTier(recipe: Recipe, crafter: Crafter, tier: number): boolean {
   if (!recipe.isGt || recipe.tier <= tier) return true;
   return crafter.kind === "multi" && recipe.voltage * recipe.amperage <= CALC.voltages[tier] * CALC.multiblockAmps;
 }
+
+const furnaceCoilFor = (recipe: Recipe, tier: number) =>
+  coilFor(Math.max(0, recipe.heat - voltageHeatBonus(tier + 1)));
+
+export const furnaceCoilName = (coil: (typeof GAME.coils)[number]): string =>
+  `${coil.id === "tungstensteel" ? "TPV-Alloy" : CoilTierNames[GAME.coils.indexOf(coil)]} Coil Block`;
 
 /**
  * Утилизация: переплавка, дробление или расплав готовой вещи обратно в металл. В выгрузке такие рецепты посчитаны не из
@@ -219,11 +268,20 @@ export function reach(index: Index, tier: number): Reach {
   const offers = new Map<number, Choice>();
   const heap = new Heap();
   for (const goods of index.raw) {
+    // Руда с планеты, куда на этом ярусе не долететь, — не сырьё: от неё цепочку не строим.
+    if ((index.rawTier.get(goods) ?? 0) > tier) continue;
     const price = rawCost(repository.goods(goods));
     tentative.set(goods, price);
     heap.push(price, goods);
   }
   const crafters = new Map<number, Crafter | null>();
+  const coilByRecipe = new Map<number, number>();
+  const coilConsumers = new Map<number, number[]>();
+  const coilGoods = new Map<string, number>();
+  for (const ptr of repository.itemPtrs) {
+    const { name } = repository.goods(ptr);
+    if (/ Coil Block$/.test(name)) coilGoods.set(name, ptr);
+  }
   const crafterOf = (recipe: Recipe): Crafter | undefined => {
     if (!crafters.has(recipe.ptr)) {
       const crafter = crafterFor(recipe, tier, () => index.vendor.GetObject(recipe.ptr, VendorRecipe));
@@ -231,18 +289,45 @@ export function reach(index: Index, tier: number): Reach {
     }
     return crafters.get(recipe.ptr) ?? undefined;
   };
+  recipes.forEach((recipe, position) => {
+    if (!recipe.heat || crafterOf(recipe)?.machine?.slug !== "electric-blast-furnace") return;
+    const coil = furnaceCoilFor(recipe, tier);
+    const ptr = coil ? coilGoods.get(furnaceCoilName(coil)) : undefined;
+    if (ptr === undefined) crafters.set(recipe.ptr, null);
+    else {
+      coilByRecipe.set(recipe.ptr, ptr);
+      append(coilConsumers, ptr, position);
+    }
+  });
+  for (const recipe of recipes) {
+    if (recipe.inputs.length > 0 || coilByRecipe.has(recipe.ptr)) continue;
+    const crafter = crafterOf(recipe);
+    if (!crafter) continue;
+    for (const output of recipe.outputs) {
+      const target = output.goods[0];
+      const cost = runSeconds(recipe, crafter, tier) / output.amount;
+      if (cost >= (tentative.get(target) ?? Infinity)) continue;
+      tentative.set(target, cost);
+      offers.set(target, { recipe, crafter, inputs: [] });
+      heap.push(cost, target);
+    }
+  }
   // Сколько входов рецепта ещё ждут закрепления цены.
   const waiting = new Map<number, number>();
   while (heap.size > 0) {
     const [price, goods] = heap.pop();
     if (settled.has(goods) || price > (tentative.get(goods) ?? Infinity)) continue;
     settled.set(goods, price);
-    for (const position of index.consumers.get(goods) ?? []) {
+    const consumers = index.consumers.get(goods) ?? [];
+    const waitingForCoil = coilConsumers.get(goods);
+    for (const position of waitingForCoil ? [...consumers, ...waitingForCoil] : consumers) {
       const recipe = recipes[position];
       const crafter = crafterOf(recipe);
       if (!crafter) continue;
       // Вход закрыт, когда закреплён хотя бы один его вариант; считаем закрытые входы заново — их немного.
-      const open = recipe.inputs.filter((input) => !input.goods.some((variant) => settled.has(variant))).length;
+      const coil = coilByRecipe.get(recipe.ptr);
+      const open = recipe.inputs.filter((input) => !input.goods.some((variant) => settled.has(variant))).length +
+        Number(coil !== undefined && !settled.has(coil));
       const before = waiting.get(position) ?? recipe.inputs.length;
       if (open === before && waiting.has(position)) continue;
       waiting.set(position, open);
@@ -261,7 +346,10 @@ export function reach(index: Index, tier: number): Reach {
       }
     }
   }
-  return { tier, cost: settled, chosen: offers, crafterOf };
+  return { tier, cost: settled, chosen: offers, crafterOf: (recipe) => {
+    const coil = coilByRecipe.get(recipe.ptr);
+    return coil === undefined || settled.has(coil) ? crafterOf(recipe) : undefined;
+  } };
 }
 
 export interface Flow {
@@ -276,6 +364,7 @@ export interface Step {
   readonly recipe: Recipe;
   readonly crafter: Crafter;
   readonly run: MachineRun;
+  readonly furnaceCoil?: (typeof GAME.coils)[number];
   /** Сколько раз в секунду идёт рецепт по всей фабрике. */
   readonly runsPerSecond: number;
   readonly machines: number;
@@ -287,6 +376,11 @@ export interface Step {
   readonly outputs: readonly Flow[];
   /** Уровень от сырья: 1 + наибольший уровень входов (для порядка рядов фабрики). */
   readonly level: number;
+}
+
+/** Потребление одной машины во время рецепта. Загрузка влияет на средний расход, но не на этот пик. */
+export function runningEut(step: Step): number {
+  return step.busy > 0 ? step.eut / (step.busy * step.machines) : 0;
 }
 
 export interface Plan {
@@ -359,7 +453,8 @@ export function plan(index: Index, reached: Reach, target: number, perSecond: nu
       continue;
     }
     if (index.raw.has(goods)) {
-      raw.set(goods, (raw.get(goods) ?? 0) + need);
+      if (reached.cost.has(goods)) raw.set(goods, (raw.get(goods) ?? 0) + need);
+      else missing.add(goods);
       continue;
     }
     const choice = pick(goods);
@@ -387,7 +482,12 @@ export function plan(index: Index, reached: Reach, target: number, perSecond: nu
     const { ticks, eut } = timing(recipe);
     // Рецепт выше яруса (постройка на нескольких амперах) идёт без разгона — как на ярусе самого рецепта.
     const runTier = recipe.isGt ? Math.max(reached.tier, recipe.tier) : reached.tier;
-    const vendorRun = machineRun(index.vendor.GetObject(recipe.ptr, VendorRecipe), crafter.kind === "multi" ? crafter.label : null, runTier);
+    const furnaceCoil = crafter.machine?.slug === "electric-blast-furnace"
+      ? furnaceCoilFor(recipe, reached.tier)
+      : undefined;
+    const coilTier = furnaceCoil ? GAME.coils.indexOf(furnaceCoil) : 0;
+    const vendorRun = machineRun(index.vendor.GetObject(recipe.ptr, VendorRecipe), crafter.kind === "multi" ? crafter.label : null,
+      runTier, furnaceCoil ? { coilTier } : undefined);
     // Рецепты печи без времени в выгрузке разгоняем сами, как одноблочную машину; остальное — по правилам ShadowTheAge.
     const extra = recipe.isGt || crafter.kind === "hand" ? 0 : overclocks(eut, reached.tier);
     const run: MachineRun = recipe.isGt
@@ -401,10 +501,12 @@ export function plan(index: Index, reached: Reach, target: number, perSecond: nu
       recipe,
       crafter,
       run,
+      furnaceCoil,
       runsPerSecond: count,
       machines,
       busy: load / machines,
-      eut: count * seconds * eut * run.powerFactor,
+      // Множитель модели GregTech уже содержит ампераж рецепта.
+      eut: count * seconds * (recipe.isGt && ticks > 0 ? recipe.voltage : eut) * run.powerFactor,
       inputs: flows(recipe.inputs, count, choice.inputs),
       outputs: flows(recipe.outputs, count),
       level: level.get(goods) ?? 0,

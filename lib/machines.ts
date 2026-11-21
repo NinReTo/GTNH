@@ -332,15 +332,16 @@ export const KINDS = {
   lavaPipe: { label: "Стальная жидкостная труба с лавой", texture: "pipe-steel", shape: "pipe" },
   pumpSteamHatch: { label: "Паровой люк помпы", texture: "input-hatch", face: { rule: "outward", base: "wood" } },
   pumpOutputHatch: { label: "Выходной люк помпы с водой", texture: "pump-output-hatch", face: { rule: "outward", base: "wood" } },
-  // Кабели линий производства — по ярусам, из того же материала, что и в рецепте корпуса машины.
-  cableLv: { label: "Оловянный кабель", texture: "i-cable-tin", shape: "pipe" },
-  cableMv: { label: "Медный кабель", texture: "i-cable-copper", shape: "pipe" },
-  cableHv: { label: "Золотой кабель", texture: "i-cable-gold", shape: "pipe" },
-  cableEv: { label: "Алюминиевый кабель", texture: "i-cable-aluminium", shape: "pipe" },
-  cableIv: { label: "Вольфрамовый кабель", texture: "i-cable-tungsten", shape: "pipe" },
-  cableLuv: { label: "Кабель из ванадий-галлия", texture: "i-cable-vanadiumgallium", shape: "pipe" },
-  cableZpm: { label: "Кабель из наквады", texture: "i-cable-naquadah", shape: "pipe" },
-  cableUv: { label: "Кабель из сплава наквады", texture: "i-cable-naquadahalloy", shape: "pipe" },
+  // Кабели линий производства — по ярусам, из того же материала, что и в рецепте корпуса машины. Снаружи у всех
+  // изоляция (INSULATION_FULL мода, цвет 64, 64, 64 — Client.cfg GregTech): материал виден только на срезе.
+  cableLv: { label: "Оловянный кабель", texture: "cable-insulated", shape: "pipe" },
+  cableMv: { label: "Медный кабель", texture: "cable-insulated", shape: "pipe" },
+  cableHv: { label: "Золотой кабель", texture: "cable-insulated", shape: "pipe" },
+  cableEv: { label: "Алюминиевый кабель", texture: "cable-insulated", shape: "pipe" },
+  cableIv: { label: "Вольфрамовый кабель", texture: "cable-insulated", shape: "pipe" },
+  cableLuv: { label: "Кабель из ванадий-галлия", texture: "cable-insulated", shape: "pipe" },
+  cableZpm: { label: "Кабель из наквады", texture: "cable-insulated", shape: "pipe" },
+  cableUv: { label: "Кабель из сплава наквады", texture: "cable-insulated", shape: "pipe" },
   ...GEN_KINDS,
 } satisfies Record<string, BlockKind>;
 

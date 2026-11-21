@@ -105,7 +105,7 @@ describe("каталог яруса", () => {
 });
 
 describe("ярус MV", () => {
-  test("в каталоге — четыре постройки, три генератора и машины по группам", () => {
+  test("в каталоге — четыре постройки, четыре генератора и машины по группам", () => {
     const groups = catalogOf("mv");
     expect(groups[0].steps.slice(0, 4)).toEqual([
       machine("multi-smelter"),
@@ -113,9 +113,9 @@ describe("ярус MV", () => {
       machine("fluid-drilling-rig"),
       machine("large-bronze-boiler"),
     ]);
-    expect(groups.find((group) => group.id === "generator")?.steps).toHaveLength(3);
+    expect(groups.find((group) => group.id === "generator")?.steps).toHaveLength(4);
     const singles = SINGLES.filter((entry) => entry.tier === "mv");
-    expect(singles).toHaveLength(3 + ASSETS.mvMachineFolders.length);
+    expect(singles).toHaveLength(4 + ASSETS.mvMachineFolders.length);
   });
 
   test("генераторы MV выдают напряжение своего яруса, вчетверо выше LV", () => {
@@ -133,13 +133,13 @@ describe("ярус MV", () => {
 });
 
 describe("ярус HV и постройки GT++", () => {
-  test("в каталоге HV — семнадцать построек (с биочаном и постройками из вики 2.9), три генератора и машины", () => {
+  test("в каталоге HV — семнадцать построек (с биочаном и постройками из вики 2.9), четыре генератора и машины", () => {
     const groups = catalogOf("hv");
     expect(groups[0].steps).toHaveLength(17);
     expect(groups[0].steps).toContainEqual(machine("cleanroom"));
     expect(groups[0].steps).toContainEqual(machine("bacterial-vat"));
-    expect(groups.find((group) => group.id === "generator")?.steps).toHaveLength(3);
-    expect(SINGLES.filter((entry) => entry.tier === "hv")).toHaveLength(3 + ASSETS.hvMachineFolders.length);
+    expect(groups.find((group) => group.id === "generator")?.steps).toHaveLength(4);
+    expect(SINGLES.filter((entry) => entry.tier === "hv")).toHaveLength(4 + ASSETS.hvMachineFolders.length);
   });
 
   test("генераторы HV выдают напряжение своего яруса", () => {
@@ -163,8 +163,8 @@ describe("ярус HV и постройки GT++", () => {
 
 describe("ярусы от EV до MAX", () => {
   const expected = [
-    { tier: "ev", buildings: 22, generators: 4, folders: ASSETS.evMachineFolders, scene: "large-combustion-engine" },
-    { tier: "iv", buildings: 42, generators: 4, folders: ASSETS.ivMachineFolders, scene: "assembly-line" },
+    { tier: "ev", buildings: 22, generators: 5, folders: ASSETS.evMachineFolders, scene: "large-combustion-engine" },
+    { tier: "iv", buildings: 42, generators: 5, folders: ASSETS.ivMachineFolders, scene: "assembly-line" },
     { tier: "luv", buildings: 21, generators: 2, folders: ASSETS.luvMachineFolders, scene: "fusion-reactor-1" },
     { tier: "uv", buildings: 18, generators: 2, folders: ASSETS.uvMachineFolders, scene: "fusion-reactor-3" },
     { tier: "uhv", buildings: 5, generators: 0, folders: ASSETS.uhvMachineFolders, scene: "electric-implosion-compressor" },
