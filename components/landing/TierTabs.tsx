@@ -1,5 +1,6 @@
 "use client";
 
+import { asset } from "@/lib/asset";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV } from "@/lib/config";
@@ -101,7 +102,7 @@ export function TierTabs() {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element -- значок 16×16 из текстур мода, сглаживать нельзя */}
                 <img
-                  src={`/textures/gregtech/${tier.icon}.webp`}
+                  src={asset(`/textures/gregtech/${tier.icon}.webp`)}
                   alt=""
                   width={NAV.iconSize}
                   height={NAV.iconSize}

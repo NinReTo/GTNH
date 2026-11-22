@@ -1,5 +1,6 @@
 "use client";
 
+import { asset } from "@/lib/asset";
 import { useState } from "react";
 import { DIAGRAM, GAME } from "@/lib/config";
 import { coilHeat, heatBonuses, heatCapacity, voltageHeatBonus } from "@/lib/heat";
@@ -45,7 +46,7 @@ export function HeatCalculator() {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element -- текстуру 16×16 нельзя сглаживать */}
                 <img
-                  src={`/textures/gregtech/coil-${candidate.id}.webp`}
+                  src={asset(`/textures/gregtech/coil-${candidate.id}.webp`)}
                   alt=""
                   width={DIAGRAM.calculator.swatch}
                   height={DIAGRAM.calculator.swatch}

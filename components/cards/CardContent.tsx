@@ -1,5 +1,6 @@
 "use client";
 
+import { asset } from "@/lib/asset";
 import { useLayoutEffect, useMemo } from "react";
 import { useThree } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
@@ -21,7 +22,7 @@ import {
 /** Металл корпуса — тот же материал, что у блоков построек. */
 const HULL_KIND: BlockKind = { label: "Корпус машины", texture: "hull" };
 
-const textureUrl = (name: string) => `/textures/gregtech/${name}.webp`;
+const textureUrl = (name: string) => asset(`/textures/gregtech/${name}.webp`);
 
 /** Одноблочная машина — один куб: фасад со значком машины, остальные грани — её корпус. */
 function Cube({ faces }: { faces: Faces }) {

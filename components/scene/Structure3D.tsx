@@ -1,5 +1,6 @@
 "use client";
 
+import { asset } from "@/lib/asset";
 import { useContext, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
@@ -44,10 +45,10 @@ import { pipeLinks, shapeBoxes } from "@/lib/shapes";
 import { PointerContext, type Pointer } from "@/lib/store";
 import { shapeGeometry } from "./shapeGeometry";
 
-const GT = "/textures/gregtech";
+const GT = asset("/textures/gregtech");
 export const DETAIL_URLS = {
-  metalNormal: "/textures/pbr/metal-normal.webp",
-  metalRoughness: "/textures/pbr/metal-roughness.webp",
+  metalNormal: asset("/textures/pbr/metal-normal.webp"),
+  metalRoughness: asset("/textures/pbr/metal-roughness.webp"),
 };
 
 /** Какие файлы текстур нужны постройке: у каждого вида — своя, плюс основа и свечение грани. */

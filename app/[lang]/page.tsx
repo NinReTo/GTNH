@@ -1,3 +1,4 @@
+import { asset } from "@/lib/asset";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import Link from "next/link";
@@ -32,7 +33,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
         {hasImage && (
           // eslint-disable-next-line @next/next/no-img-element -- одна большая картинка на всю шапку, без оптимизатора
           <img
-            src={HOME.image}
+            src={asset(HOME.image)}
             alt={t(
               "Человек идёт к Звёздным вратам сквозь все эры GregTech и по пути становится роботом",
               "A person walks toward the Stargate through every GregTech era and turns into a robot on the way",

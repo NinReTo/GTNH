@@ -1,9 +1,11 @@
 import type { NextConfig } from "next";
 
+const pagesPath = process.env.NEXT_PUBLIC_BASE_PATH;
+
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  ...(pagesPath
+    ? { output: "export", basePath: pagesPath, trailingSlash: true }
+    : { cacheComponents: true, partialPrefetching: true }),
   turbopack: {
     root: __dirname,
     rules: {

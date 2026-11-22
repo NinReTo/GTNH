@@ -1,9 +1,10 @@
+import { asset } from "@/lib/asset";
 import { buildIndex, reach, type Index, type Reach } from "./planner";
 import { Repository } from "./repository";
 
 /** Выгрузка рецептов GTNH (scripts/fetch-calc-data.mjs кладёт её в public/calc). */
-export const DATA_URL = "/calc/data.bin";
-export const ATLAS_URL = "/calc/atlas.webp";
+export const DATA_URL = asset("/calc/data.bin");
+export const ATLAS_URL = asset("/calc/atlas.webp");
 
 let loading: Promise<Index> | undefined;
 const reached = new Map<number, Reach>();

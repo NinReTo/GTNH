@@ -1,11 +1,12 @@
 "use client";
 
+import { asset } from "@/lib/asset";
 import { useLayoutEffect } from "react";
 import { useTexture } from "@react-three/drei";
 import { RepeatWrapping, SRGBColorSpace, type Texture } from "three";
 import { FLOOR, MATERIAL } from "@/lib/config";
 
-const PBR = "/textures/pbr";
+const PBR = asset("/textures/pbr");
 
 function setupFloorTexture(texture: Texture, repeats: number): void {
   texture.wrapS = RepeatWrapping;

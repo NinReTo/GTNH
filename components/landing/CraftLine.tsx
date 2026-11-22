@@ -1,3 +1,4 @@
+import { asset } from "@/lib/asset";
 import type { CraftItem, CraftLine as CraftLineData, CraftStep } from "@/lib/crafts";
 
 /** Цвета окна Minecraft: серая панель и утопленные ячейки с тёмной кромкой сверху-слева. */
@@ -10,7 +11,7 @@ function Slot({ item, isOutput = false }: { item: CraftItem | null; isOutput?: b
       {item && (
         // Значки 16 × 16 из мода: растягиваем без сглаживания, как в игре.
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={`/textures/gregtech/${item.icon}.webp`} alt={item.label} className="size-8 [image-rendering:pixelated]" />
+        <img src={asset(`/textures/gregtech/${item.icon}.webp`)} alt={item.label} className="size-8 [image-rendering:pixelated]" />
       )}
       {item?.count && (
         <span className="absolute bottom-0 right-0.5 font-mono text-xs font-bold text-white [text-shadow:1px_1px_#3f3f3f]" aria-hidden="true">

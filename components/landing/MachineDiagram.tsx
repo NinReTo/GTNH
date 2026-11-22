@@ -1,5 +1,6 @@
 "use client";
 
+import { asset } from "@/lib/asset";
 import { useState } from "react";
 import { DIAGRAM, EBF, HOVER, THEME } from "@/lib/config";
 import { kindsOf, structureOf } from "@/lib/machines";
@@ -63,7 +64,7 @@ export function MachineDiagram({ slug }: MachineDiagramProps) {
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- текстуру 16×16 нельзя сглаживать, оптимизатор картинок её размоет */}
               <img
-                src={`/textures/gregtech/${kind.texture}.webp`}
+                src={asset(`/textures/gregtech/${kind.texture}.webp`)}
                 alt=""
                 width={iso.swatch}
                 height={iso.swatch}

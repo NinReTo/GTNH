@@ -1,5 +1,6 @@
 "use client";
 
+import { asset } from "@/lib/asset";
 import { createContext, useContext, useEffect, useState } from "react";
 import { formatNumber } from "@/components/landing/ui";
 import type { Crafter } from "@/lib/calc/crafters";
@@ -22,7 +23,7 @@ export interface CalcText {
   readonly matches: (goods: Goods, needle: string) => boolean;
 }
 
-export const NAMES_URL = "/i18n/calc-ru.json";
+export const NAMES_URL = asset("/i18n/calc-ru.json");
 let namesPromise: Promise<Readonly<Record<string, string>>> | undefined;
 
 /** Русские названия товаров: скачиваются один раз и только на русской версии. Нет файла — английские. */

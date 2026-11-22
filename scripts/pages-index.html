@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GT New Horizons</title>
+    <script>
+      const language = navigator.languages.find((tag) => /^(ru|en)(-|$)/i.test(tag));
+      location.replace((language && /^ru/i.test(language) ? "./ru/" : "./en/") + location.search + location.hash);
+    </script>
+  </head>
+  <body>
+    <a href="./ru/" lang="ru">Русский</a>
+    <a href="./en/">English</a>
+  </body>
+</html>
