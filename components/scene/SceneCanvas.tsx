@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useRef, useState, type PointerEvent, type
 import { Canvas, useThree } from "@react-three/fiber";
 import { Environment, OrbitControls } from "@react-three/drei";
 import { Box3, NoToneMapping, Vector3 } from "three";
+import { WORKSHOP_HDR } from "@/lib/asset";
 import { CAMERA, FLOOR, FOG, LIGHT, POST, THEME } from "@/lib/config";
 import { factoryOrbitRadius, sceneScale, structureView, type CameraSetup } from "@/lib/camera";
 import type { Vec3 } from "@/lib/structure";
@@ -254,7 +255,7 @@ export function SceneCanvas({ settings, camera, overview = camera, structureSize
               появляется сразу, не дожидаясь окружения и тяжёлых текстур пола. */}
           <Suspense fallback={null}>{children}</Suspense>
           <Suspense fallback={null}>
-            <Environment files="/hdri/workshop_1k.hdr" environmentIntensity={LIGHT.environmentIntensity} />
+            <Environment files={WORKSHOP_HDR} environmentIntensity={LIGHT.environmentIntensity} />
           </Suspense>
           <Suspense fallback={null}>
             <Floor scale={scale} />

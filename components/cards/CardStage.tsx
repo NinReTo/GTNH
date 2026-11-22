@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, OrbitControls } from "@react-three/drei";
+import { WORKSHOP_HDR } from "@/lib/asset";
 import { CAMERA, ICON, LIGHT, THEME } from "@/lib/config";
 import { useDevicePixelRatio } from "./useDevicePixelRatio";
 import {
@@ -24,14 +25,13 @@ import {
 import { PointerContext, toPointer, type Pointer } from "@/lib/store";
 import { CardContent } from "./CardContent";
 
-const ENVIRONMENT = "/hdri/workshop_1k.hdr";
 
 /** Свет карточки — тот же, что в шапке: рассеянный и снимок цеха. */
 function CardLight() {
   return (
     <>
       <ambientLight intensity={LIGHT.ambientIntensity} />
-      <Environment files={ENVIRONMENT} environmentIntensity={LIGHT.environmentIntensity} />
+      <Environment files={WORKSHOP_HDR} environmentIntensity={LIGHT.environmentIntensity} />
     </>
   );
 }
