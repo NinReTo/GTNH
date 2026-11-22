@@ -346,6 +346,21 @@ describe.skipIf(!existsSync(DATA))("калькулятор на выгрузке
     expect(small.stats.chunks).toBeLessThanOrEqual(chunks);
   }, 60_000);
 
+  test.each([1, 6])("фабрика Electronic Circuit при выпуске %i в минуту компактна и подключена", async (rate) => {
+    const reached = reach(index, 0);
+    const diesel = generatorChoices(tierIdOf(0))[0];
+    const fuel = fuelsOf(diesel, index.repository, index.vendor)[0];
+    const line = plan(index, reached, find("Electronic Circuit"), rate / CALC.ui.secondsPerMinute);
+    const factory = await buildFactory(line, "circuit-test", undefined, undefined, {
+      pipes: pipeOffers(index.repository, reached.cost),
+      cables: cableOffers(index.repository, reached.cost),
+      goodsNamed: goodsByName(index.repository),
+      power: { generatorSlug: diesel.slug, fuel },
+    });
+    expect(factory.missingConnections, JSON.stringify({ stats: factory.stats, notes: factory.notes })).toBe(0);
+    expect(factory.stats.chunks, JSON.stringify(factory.stats)).toBeLessThanOrEqual(9);
+  }, 90_000);
+
   test("одноблочные машины тёмной стали с дизельным питанием собраны в одном чанке", async () => {
     const reached = reach(index, 0);
     const diesel = generatorChoices(tierIdOf(0))[0];

@@ -1623,7 +1623,7 @@ function boilerBank(count: number, boiler: string, steamPipe: string, waterPipe:
  * 3 слоя, и такая же группа встаёт над ней с 4-го слоя; сначала — на машины того же вида (label), потом — на любые
  * одноблочные того же размера.
  */
-function shelfPacker(widthChunks: number, fillGaps = false, heightLimit = Infinity, gap: number = CALC.factory.rowGap) {
+function shelfPacker(widthChunks: number, fillGaps = false, heightLimit = Infinity, gap: number = CALC.factory.rowGap, shareChunks = false) {
   const side = CHUNK.side;
   const limit = WEST + widthChunks * side - 1;
   let cx = WEST;
@@ -1696,7 +1696,7 @@ function shelfPacker(widthChunks: number, fillGaps = false, heightLimit = Infini
       const isSingle = stackable && !multi;
       // Продолжаем уже начатый чанк одиночных машин. Новый открываем, когда группа больше нигде не помещается.
       const fitsSingles = (chunk: (typeof chunks)[number]) =>
-        chunk.multis === 0 || chunk.multis >= chunk.singles + width * depth;
+        shareChunks || chunk.multis === 0 || chunk.multis >= chunk.singles + width * depth;
       const destinations = isSingle
         ? [...chunks.filter(fitsSingles).sort((a, b) => b.singles - a.singles || b.multis - a.multis), ...gaps]
         : [...gaps, ...chunks];
@@ -1779,8 +1779,10 @@ async function placeFactory(
     boilerMachine && "def" in boilerMachine ? boilerMachine.def.layers.length : 0,
     ...order.map((step) => step.crafter.machine?.def.layers.length ?? 0));
   const heightLimit = tallest * CALC.equipmentHeight.base;
-  const gap = closeFit ? 0 : serviceSpace ? CALC.factory.serviceGap : CALC.factory.rowGap;
-  const pack = shelfPacker(bandChunks, fillGaps, heightLimit, gap);
+  const gap = closeFit && !serviceSpace ? 0 : serviceSpace ? CALC.factory.serviceGap : CALC.factory.rowGap;
+  // При повторной прокладке оставляем блок под оборудованием для трасс в том же чанке.
+  const cableFloor = Number(serviceSpace && closeFit);
+  const pack = shelfPacker(bandChunks, fillGaps, heightLimit - cableFloor, gap, serviceSpace && closeFit);
   const placed: Placed[] = [];
   /** Ряды шага после первого: каждый соединяется с предыдущим рядом того же шага. */
   const bands: { readonly previous: Placed; readonly band: Placed }[] = [];
@@ -1913,7 +1915,7 @@ async function placeFactory(
   // Сохраняем порядок цепочки внутри каждой группы. Сами связи определяются отдельно по рецептам.
   const priority = (step: Step) => Number(Boolean(step.crafter.machine));
   const placementOrder = order.toSorted((a, b) => priority(b) - priority(a) ||
-    (priority(a) > 0 ? drawnCopies(b) - drawnCopies(a) : 0));
+    (priority(a) > 0 || (closeFit && serviceSpace) ? drawnCopies(b) - drawnCopies(a) : 0));
   for (const step of placementOrder) {
     if (!step.crafter.machine) supply ??= placeSupply();
     const label = text.crafter(step.crafter);
@@ -1978,7 +1980,10 @@ async function placeFactory(
         min: turnCell([footprint.min[0], footprint.min[1], footprint.max[2]]),
         max: turnCell([footprint.max[0], footprint.max[1], footprint.min[2]]),
       }, used: false };
-      const by = shared?.at ?? pack(footprint, !serviceSpace, step.crafter.machine?.slug ?? text.crafter(step.crafter), turn, Boolean(building));
+      const by = shared?.at ?? move(
+        pack(footprint, !serviceSpace || closeFit, step.crafter.machine?.slug ?? text.crafter(step.crafter), turn, Boolean(building)),
+        "py", cableFloor,
+      );
       if (turn?.used) group = turnGroup(group);
       if (building) {
         const kinds = kindsOf(building);
@@ -2034,7 +2039,8 @@ async function placeFactory(
         }
         overdraw += Math.max(0, requiredAmps * pieceCopies - current);
         pending = { rows: [...pending.rows, ...pieceRows], eut: pending.eut + current * voltage };
-        if (pieces > 1 || Math.ceil(pending.eut / voltage) >= CHUNK.side - [0, 0, 0].length) flushPower();
+        const generatorGroup = closeFit && serviceSpace ? blockGens : CHUNK.side - [0, 0, 0].length;
+        if (pieces > 1 || Math.ceil(pending.eut / voltage) >= generatorGroup) flushPower();
       }
     }
     drawn += copies;
@@ -2663,6 +2669,14 @@ async function placeFactory(
         routed = reordered;
         missingRoutes = failed.length;
       }
+      if (closeFit && serviceSpace && missingPower === 0 && missingRoutes > 0) {
+        const reversedFailures: Link[] = [];
+        const reversed = await rack(grid, links.toReversed(), reserved, pendingCableExits, within, allows, reversedFailures, true);
+        if (reversedFailures.length < missingRoutes) {
+          routed = reversed;
+          missingRoutes = reversedFailures.length;
+        }
+      }
     }
     grid = routed;
 
@@ -2806,8 +2820,8 @@ export async function buildFactory(
         const areaDifference = area(candidate.size) - area(compact.size);
         const fillsHoles = hasHoles && area(candidate.size) <= current.stats.chunks &&
           emptyChunks(candidate) < actualHoles(current);
-        if (candidate.singleChunks > compact.singleChunks) continue;
         const gathersSingles = candidate.singleChunks < compact.singleChunks && area(candidate.size) <= current.stats.chunks;
+        if (!fillsHoles && areaDifference === 0 && candidate.singleChunks > compact.singleChunks) continue;
         if (!fillsHoles && !gathersSingles && (areaDifference > 0 || (areaDifference === 0 && compare(candidate, compact) >= 0 &&
           (compactFactory !== undefined || factory.missingConnections === 0)))) continue;
         const alternative = await candidate.finish(() => {});
@@ -2833,11 +2847,17 @@ export async function buildFactory(
       if (alternative.missingConnections < connected.missingConnections && actualHoles(alternative) <= actualHoles(connected)) connected = alternative;
     }
     const band = Math.max(2, Math.min(...best.size));
-    for (const width of [band, band + 1]) {
-      if (connected.missingConnections === 0) break;
-      const spaced = await placeFactory(plan, slug, text, undefined, width, options, chain, true, true);
-      const alternative = await spaced.finish(() => {});
-      if (alternative.missingConnections < connected.missingConnections && actualHoles(alternative) <= actualHoles(connected)) connected = alternative;
+    for (const closeFit of [true, false]) {
+      for (const width of [band, band + 1]) {
+        if (connected.missingConnections === 0) break;
+        const spaced = await placeFactory(plan, slug, text, undefined, width, options, chain, true, true, closeFit);
+        const alternative = await spaced.finish(() => {});
+        // Рабочая раскладка важнее пустот внутри её прямоугольных границ.
+        // Через такие чанки трубы и кабели всё равно не прокладываются.
+        if (alternative.missingConnections > 0 && actualHoles(alternative) > actualHoles(connected)) continue;
+        if (alternative.missingConnections < connected.missingConnections ||
+          (alternative.missingConnections === connected.missingConnections && alternative.stats.chunks < connected.stats.chunks)) connected = alternative;
+      }
     }
     return connected;
   }
