@@ -10,6 +10,7 @@ import { Repository } from "@/lib/calc/repository";
 import { groupOreOptions, ingredientForm } from "@/lib/calc/recipe-groups";
 import { CALC, CHUNK } from "@/lib/config";
 import { findMachine, kindsOf, structureOf } from "@/lib/machines";
+import { makeText } from "@/components/calc/text";
 
 const DATA = "public/calc/data.bin";
 
@@ -30,6 +31,37 @@ describe.skipIf(!existsSync(DATA))("калькулятор на выгрузке
     const raw = gunzipSync(readFileSync(DATA));
     index = buildIndex(new Repository(raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength)));
   }, 60_000);
+
+  test("поиск MV электросхем находит конкретные модели из словаря", () => {
+    const names = JSON.parse(readFileSync("public/i18n/calc-ru.json", "utf8"));
+    const { matches } = makeText("ru", names);
+    const results = [...index.producers.keys()].filter((ptr) => !index.raw.has(ptr))
+      .map((ptr) => index.repository.goods(ptr))
+      .filter((goods) => matches(goods, "mv эле", index.repository.circuitTiers.get(goods.ptr)))
+      .map(({ name }) => name);
+    expect(results).toEqual(expect.arrayContaining(["Good Electronic Circuit", "Good Integrated Circuit", "Integrated Processor"]));
+    expect(results.some((name) => /\bUMV\b/.test(name))).toBe(false);
+  });
+
+  test("общий поиск находит схемы всех ярусов и принимает ярус в любом порядке", () => {
+    const ru = makeText("ru", undefined);
+    const en = makeText("en", undefined);
+    const { repository } = index;
+    expect(new Set(repository.circuitTiers.values()).size).toBe(15);
+    for (const [ptr, tier] of repository.circuitTiers) {
+      const goods = repository.goods(ptr);
+      expect(ru.matches(goods, "электросхемы", tier)).toBe(true);
+      expect(ru.matches(goods, `схемы ${tier}`, tier)).toBe(true);
+      expect(ru.matches(goods, `${tier} эле`, tier)).toBe(true);
+      expect(en.matches(goods, `circuits ${tier}`, tier)).toBe(true);
+    }
+    const results = [...index.producers.keys()].filter((ptr) => !index.raw.has(ptr))
+      .map((ptr) => repository.goods(ptr))
+      .filter((goods) => ru.matches(goods, "ev эле", repository.circuitTiers.get(goods.ptr)))
+      .map(({ name }) => name);
+    expect(results).toEqual(expect.arrayContaining(["Quantum Processor", "Nano Assembly", "Workstation"]));
+    expect(results.some((name) => /\bUEV\b/.test(name))).toBe(false);
+  });
 
   test("угольные руды группируются только при одинаковом выходе и режиме работы", () => {
     const coal = find("Coal");

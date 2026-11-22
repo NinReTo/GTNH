@@ -77,6 +77,7 @@ export class Repository {
   readonly itemPtrs: Int32Array;
   readonly fluidPtrs: Int32Array;
   readonly recipePtrs: Int32Array;
+  readonly circuitTiers: ReadonlyMap<number, string>;
 
   constructor(buffer: ArrayBuffer) {
     this.buffer = buffer;
@@ -89,6 +90,18 @@ export class Repository {
     this.fluidPtrs = this.slice(this.elements[2]);
     this.recipePtrs = this.slice(this.elements[5]);
     this.fluidSet = new Set(this.fluidPtrs);
+    const circuitTiers = new Map<number, string>();
+    // Универсальная схема помечает ярус всей группы в словаре руд.
+    for (const group of this.slice(this.elements[3])) {
+      const items = this.slice(this.field(group, 5));
+      for (const item of items) {
+        const match = /^Any ([A-Z]+) Circuit$/i.exec(this.string(this.field(item, 5)));
+        if (!match) continue;
+        for (const member of items) circuitTiers.set(member, match[1].toLowerCase());
+        break;
+      }
+    }
+    this.circuitTiers = circuitTiers;
   }
 
   private slice(pointer: number): Int32Array {

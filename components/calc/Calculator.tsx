@@ -16,7 +16,7 @@ import { BlueprintExport } from "./BlueprintExport";
 import { CALC, GAME } from "@/lib/config";
 import { useLang } from "@/lib/use-lang";
 import { CraftTree } from "./CraftTree";
-import { CalcTextProvider, makeText, useCalcText, useNames, type CalcText } from "./text";
+import { CalcTextProvider, isCircuitSearch, makeText, useCalcText, useNames, type CalcText } from "./text";
 import { Icon } from "./Icon";
 
 const { searchLimit, defaultPerMinute, secondsPerMinute, maxTier, percent, buildShare } = CALC.ui;
@@ -185,9 +185,12 @@ export function Calculator() {
     if (!index || !reached || needle.length < [0, 0].length) return { found: [], total: 0 };
     const rank = (ptr: number) => (reached.cost.has(ptr) ? -1 : (minTierOf(ptr) ?? maxTier + 1));
     const all = craftable
-      .filter((ptr) => text.matches(index.repository.goods(ptr), needle))
+      .filter((ptr) => text.matches(index.repository.goods(ptr), needle, index.repository.circuitTiers.get(ptr)))
       .sort((a, b) => rank(a) - rank(b) || name(index.repository.goods(a)).length - name(index.repository.goods(b)).length);
-    return { found: all.slice(0, searchLimit).map((ptr) => index.repository.goods(ptr)), total: all.length };
+    const includeCircuits = isCircuitSearch(needle);
+    const shown = all.filter((ptr, position) => position < searchLimit ||
+      (includeCircuits && index.repository.circuitTiers.has(ptr)));
+    return { found: shown.map((ptr) => index.repository.goods(ptr)), total: all.length };
   }, [index, reached, query, craftable, minTierOf, text, name]);
   const matches = search.found;
   /** Подпись в списке: на этом ярусе можно — пусто, иначе с какого яруса. */

@@ -20,7 +20,7 @@ export interface CalcText {
   /** Название машины рецепта: «Дробитель LV», «Электрическая доменная печь». */
   readonly crafter: (crafter: Crafter) => string;
   /** Подходит ли товар под поиск (на русской версии — и по русскому, и по английскому названию). */
-  readonly matches: (goods: Goods, needle: string) => boolean;
+  readonly matches: (goods: Goods, needle: string, circuitTier?: string) => boolean;
 }
 
 export const NAMES_URL = asset("/i18n/calc-ru.json");
@@ -42,6 +42,11 @@ export function useNames(lang: Lang): Readonly<Record<string, string>> | undefin
 }
 
 const capitalize = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+const CIRCUIT_TIERS = /^(ulv|lv|mv|hv|ev|iv|luv|zpm|uv|uhv|uev|uiv|umv|uxv|max)$/;
+const CIRCUIT_NAMES = ["circuit", "circuits", "электросхема", "электросхемы", "схема", "схемы"];
+const words = (text: string): readonly string[] => text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+
+export const isCircuitSearch = (query: string): boolean => words(query).some((word) => CIRCUIT_NAMES.includes(word));
 
 export function makeText(lang: Lang, names: Readonly<Record<string, string>> | undefined): CalcText {
   const ruName = (english: string): string => names?.[english] ?? english;
@@ -62,8 +67,19 @@ export function makeText(lang: Lang, names: Readonly<Record<string, string>> | u
       }
       return ruName(crafter.label);
     },
-    matches: (goods, needle) =>
-      goods.name.toLowerCase().includes(needle) || (lang === "ru" && ruName(goods.name).toLowerCase().includes(needle)),
+    matches: (goods, needle, circuitTier) => {
+      const names = [goods.name.toLowerCase()];
+      if (lang === "ru") names.push(ruName(goods.name).toLowerCase());
+      const terms = words(needle);
+      const tiers = terms.filter((term) => CIRCUIT_TIERS.test(term));
+      if (circuitTier && terms.length) {
+        const aliases = lang === "ru" ? ["электросхема", "электросхемы", "схема", "схемы"] : [];
+        const vocabulary = [...names.flatMap(words), "circuit", "circuits", ...aliases];
+        if (terms.every((term) => CIRCUIT_TIERS.test(term) ? circuitTier === term
+          : vocabulary.some((word) => word.startsWith(term)))) return true;
+      }
+      return names.some((name) => name.includes(needle) && tiers.every((tier) => words(name).includes(tier)));
+    },
   };
 }
 
