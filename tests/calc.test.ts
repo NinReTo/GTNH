@@ -358,7 +358,7 @@ describe.skipIf(!existsSync(DATA))("калькулятор на выгрузке
       power: { generatorSlug: diesel.slug, fuel },
     });
     expect(factory.missingConnections, JSON.stringify({ stats: factory.stats, notes: factory.notes })).toBe(0);
-    expect(factory.stats.chunks, JSON.stringify(factory.stats)).toBeLessThanOrEqual(9);
+    expect(factory.stats.chunks, JSON.stringify(factory.stats)).toBeLessThanOrEqual(4);
     expect(structureOf(factory.machine).blocks.some((block) => block.kind.startsWith("calc-") && block.itemOutput)).toBe(true);
   }, 90_000);
 

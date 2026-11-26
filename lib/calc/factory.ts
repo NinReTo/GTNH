@@ -1642,7 +1642,16 @@ function shelfPacker(widthChunks: number, fillGaps = false, heightLimit = Infini
     const onRoof = (roof: (typeof roofs)[number], box: Box): Vec3 => {
       roofs.splice(roofs.indexOf(roof), 1);
       const y = roof.height + clearance;
-      if (!multi) roofs.push({ ...roof, label, width: box.max[0] - box.min[0] + 1, depth: box.max[2] - box.min[2] + 1, height: y + height });
+      if (!multi) {
+        const w = box.max[0] - box.min[0] + 1;
+        const d = box.max[2] - box.min[2] + 1;
+        roofs.push({ ...roof, label, width: w, depth: d, height: y + height });
+        // На прежней высоте остаются две непересекающиеся части крыши.
+        if (shareChunks && roof.width > w + gap)
+          roofs.push({ ...roof, x: roof.x + w + gap, width: roof.width - w - gap, depth: d });
+        if (shareChunks && roof.depth > d + gap)
+          roofs.push({ ...roof, z: roof.z - d - gap, depth: roof.depth - d - gap });
+      }
       return [roof.x - box.min[0], y - box.min[1], roof.z - box.max[2]];
     };
     const available = (one: (typeof roofs)[number]) => one.multi === multi && (!multi || one.label === label) &&
@@ -1756,6 +1765,7 @@ async function placeFactory(
   fillGaps = false,
   serviceSpace = false,
   closeFit = false,
+  sharedAisle = false,
 ): Promise<{ readonly size: FactoryStats["chunkSize"]; readonly occupied: number; readonly singleChunks: number; readonly leastFilled: number; readonly familySpread: number; readonly wallSavings: number; readonly finish: (notify: (progress: BuildProgress) => void) => Promise<Factory> }> {
   const { t } = text;
   const total = plan.steps.length + [0, 0].length;
@@ -1779,10 +1789,11 @@ async function placeFactory(
     boilerMachine && "def" in boilerMachine ? boilerMachine.def.layers.length : 0,
     ...order.map((step) => step.crafter.machine?.def.layers.length ?? 0));
   const heightLimit = tallest * CALC.equipmentHeight.base;
-  const gap = closeFit && !serviceSpace ? 0 : serviceSpace ? CALC.factory.serviceGap : CALC.factory.rowGap;
+  const gap = sharedAisle ? CALC.factory.rowGap
+    : closeFit && !serviceSpace ? 0 : serviceSpace ? CALC.factory.serviceGap : CALC.factory.rowGap;
   // При повторной прокладке оставляем блок под оборудованием для трасс в том же чанке.
   const cableFloor = Number(serviceSpace && closeFit);
-  const pack = shelfPacker(bandChunks, fillGaps, heightLimit - cableFloor, gap, serviceSpace && closeFit);
+  const pack = shelfPacker(bandChunks, fillGaps, heightLimit - cableFloor, gap, closeFit);
   const placed: Placed[] = [];
   /** Ряды шага после первого: каждый соединяется с предыдущим рядом того же шага. */
   const bands: { readonly previous: Placed; readonly band: Placed }[] = [];
@@ -1972,7 +1983,7 @@ async function placeFactory(
       const marginX = Number(serviceSpace && shape.max[0] - shape.min[0] + 2 < CHUNK.side);
       const marginZ = Number(serviceSpace && shape.max[2] - shape.min[2] + 2 < CHUNK.side);
       const footprint: Box = {
-        min: [shape.min[0] - marginX, shape.min[1], shape.min[2] - marginZ],
+        min: sharedAisle ? shape.min : [shape.min[0] - marginX, shape.min[1], shape.min[2] - marginZ],
         max: [shape.max[0] + marginX, shape.max[1], shape.max[2] + marginZ],
       };
       const canTurn = !step.crafter.machine || (isQuad(step.crafter.machine) && !shared && pieceCopies < QUAD.furnaces.length);
@@ -2802,7 +2813,7 @@ export async function buildFactory(
   const widths = [...new Set([...CALC.factory.bandChunks, estimate, estimate + 1])].filter((width) => width <= Math.max(...best.size));
   const rank = (candidate: typeof best) => {
     const { size, singleChunks, leastFilled, familySpread, wallSavings } = candidate;
-    return [overhang(size), singleChunks, area(size), emptyChunks(candidate), Math.max(...size), -wallSavings, familySpread, -leastFilled];
+    return [overhang(size), area(size), emptyChunks(candidate), singleChunks, Math.max(...size), -wallSavings, familySpread, -leastFilled];
   };
   const compare = (a: typeof best, b: typeof best) => {
     const other = rank(b);
@@ -2862,7 +2873,7 @@ export async function buildFactory(
             candidate.leastFilled <= compact.leastFilled &&
             alternative.stats.pipes + alternative.stats.cables >= current.stats.pipes + current.stats.cables))) ||
           alternative.notes.some((note) => !factory.notes.includes(note))) continue;
-        if (area(candidate.size) === 1 || (hasHoles && actualHoles(alternative) === 0)) return alternative;
+        if (alternative.stats.chunks === 1) return alternative;
         compact = candidate;
         compactFactory = alternative;
       }
@@ -2876,17 +2887,21 @@ export async function buildFactory(
       if (alternative.missingConnections < connected.missingConnections && actualHoles(alternative) <= actualHoles(connected)) connected = alternative;
     }
     const band = Math.max(2, Math.min(...best.size));
-    for (const closeFit of [true, false]) {
+    const retries: (typeof best)[] = [];
+    for (const [closeFit, sharedAisle] of [[true, true], [true, false], [false, false]]) {
       for (const width of [band, band + 1]) {
-        if (connected.missingConnections === 0) break;
-        const spaced = await placeFactory(plan, slug, text, undefined, width, options, chain, true, true, closeFit);
-        const alternative = await spaced.finish(() => {});
-        // Рабочая раскладка важнее пустот внутри её прямоугольных границ.
-        // Через такие чанки трубы и кабели всё равно не прокладываются.
-        if (alternative.missingConnections > 0 && actualHoles(alternative) > actualHoles(connected)) continue;
-        if (alternative.missingConnections < connected.missingConnections ||
-          (alternative.missingConnections === connected.missingConnections && alternative.stats.chunks < connected.stats.chunks)) connected = alternative;
+        retries.push(await placeFactory(plan, slug, text, undefined, width, options, chain, true, true, closeFit, sharedAisle));
       }
+    }
+    // Сначала сравниваем площадки. Дорогой поиск путей запускаем с самой компактной.
+    for (const spaced of retries.sort(compare)) {
+      if (connected.missingConnections === 0 && area(spaced.size) >= connected.stats.chunks) continue;
+      const alternative = await spaced.finish(() => {});
+      // Рабочая раскладка важнее пустот внутри её прямоугольных границ.
+      // Через такие чанки трубы и кабели всё равно не прокладываются.
+      if (alternative.missingConnections > 0 && actualHoles(alternative) > actualHoles(connected)) continue;
+      if (alternative.missingConnections < connected.missingConnections ||
+        (alternative.missingConnections === connected.missingConnections && alternative.stats.chunks < connected.stats.chunks)) connected = alternative;
     }
     return connected;
   }
