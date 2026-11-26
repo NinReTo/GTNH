@@ -216,7 +216,12 @@ function supplyRow(grid: Grid, hatches: readonly { readonly hatch: Vec3; readonl
     const upperInRow = upper < rows ? Math.min(perRow, count - upper * perRow) : 0;
     return Array.from({ length: inRow }, (_unused, column): readonly [Vec3, Cell] => [
       [left + column, at, busZ(index) - 1],
-      { kind: over ?? "", links: [...(column > 0 ? ["nx" as const] : []), ...(column < inRow - 1 ? ["px" as const] : []), "ny" as const, ...(column < upperInRow ? ["py" as const] : [])].sort() },
+      {
+        kind: over ?? "",
+        links: [...(column > 0 ? ["nx" as const] : []), ...(column < inRow - 1 ? ["px" as const] : []), "ny" as const, ...(column < upperInRow ? ["py" as const] : [])].sort(),
+        ...(split && over && !/item/i.test(over)
+          ? { pipeOutputs: column < upperInRow ? ["ny", "py"] : ["ny"] } : {}),
+      },
     ]);
   };
   // Сбоку от рядов — общая труба вдоль них, от неё — отвод к началу каждого ряда.

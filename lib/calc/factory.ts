@@ -1,6 +1,6 @@
 import { chunkOf, chunksBetween, copiesAcross, copiesPerChunk, shiftIntoChunk } from "../chunks";
 import { CALC, CHUNK, EBF, GAME, PRODUCTION } from "../config";
-import { addHatch, boxOf, cellOf, findPath, keyOf, lay, layAll, layInto, move, OPPOSITE, placeMachine, row, SERVICE_KIND, sideTo, toMachine, withCells, type Box, type Cell, type Grid } from "../layout";
+import { addHatch, boxOf, cellOf, findPath, keyOf, lay, layInto, move, OPPOSITE, placeMachine, row, SERVICE_KIND, sideTo, toMachine, withCells, type Box, type Cell, type Grid } from "../layout";
 import { findMachine, kindsOf, type Machine } from "../machines";
 import { COKE_UNIT, energyHatches, generatorRows, generatorsOf, supplyFloorY, powerFor, rowAt, sharedRow, singleKind, withLink, type Energy, type SupplySpot } from "../setups";
 import { cableLoss, cableReach, chooseCable, choosePipe, fluidTemperature, pipeChannels, pipeTexture, type CableOffer, type PipeOffer } from "./conduits";
@@ -640,7 +640,7 @@ async function rack(grid: Grid, links: readonly Link[], reserved: ReadonlySet<st
   const next = new Map(grid);
   const linkTo = (cell: Vec3, side: Face) => {
     const own = next.get(keyOf(cell));
-    next.set(keyOf(cell), { kind: own?.kind ?? "", links: [...new Set([...(own?.links ?? []), side])].sort() });
+    next.set(keyOf(cell), { ...own, kind: own?.kind ?? "", links: [...new Set([...(own?.links ?? []), side])].sort() });
   };
   // Отрезки от концов линий до эстакады: пока связь не проложена, её отрезки обещаны ей.
   const exitOf = (end: Vec3) => span(end[0] + 1, east - 1).map((cx) => keyOf([cx, end[1], end[2]]));
@@ -2157,9 +2157,17 @@ async function placeFactory(
     }
     const laid = new Set<Line>();
     const machineCells = grid;
+    // Линии одного прохода меняют одну рабочую сетку. Исходные клетки машин остаются отдельно.
+    let lineGrid = new Map(grid);
+    grid = lineGrid;
     const obstructed = new Set<Line>();
     const overCapacity = new Set<Line>();
-    const ensure = (line: Line, kind: string, rate: number) => {
+    const markPipeOutlet = (next: Map<string, Cell>, at: Vec3, side: Face) => {
+      const key = keyOf(at);
+      const pipe = next.get(key);
+      if (pipe) next.set(key, { ...pipe, pipeOutputs: [...new Set([...(pipe.pipeOutputs ?? []), side])] });
+    };
+    const ensure = (line: Line, kind: string, rate: number, fluidOutlet = false, machineOutput?: "itemOutput" | "fluidOutput") => {
       if (laid.has(line)) return true;
       if (line.cells.length === 0 || obstructed.has(line)) return false;
       const capacity = pipeUse.get(kind)?.capacity;
@@ -2176,7 +2184,20 @@ async function placeFactory(
         obstructed.add(line);
         return false;
       }
-      grid = layAll(grid, [{ path: line.cells, kind }, ...line.spurs.map((spur) => ({ path: spur.path, kind, endLink: spur.end }))]);
+      if (grid !== lineGrid) lineGrid = new Map(grid);
+      const next = lineGrid;
+      layInto(next, { path: line.cells, kind });
+      for (const { path, end } of line.spurs) {
+        layInto(next, { path, kind, endLink: end });
+        const tail = path[path.length - 1];
+        if (fluidOutlet) markPipeOutlet(next, tail, end);
+        if (machineOutput) {
+          const machineKey = keyOf(move(tail, end));
+          const machine = next.get(machineKey);
+          if (machine) next.set(machineKey, { ...machine, [machineOutput]: OPPOSITE[end] });
+        }
+      }
+      grid = next;
       laid.add(line);
       return true;
     };
@@ -2220,8 +2241,8 @@ async function placeFactory(
             missingOutputs.add(input.goods.ptr);
             return;
           }
-          if (!ensure(out, outPipe(source.step, isFluid), flowOf(source.step.outputs, isFluid)) ||
-              !ensure(line, kind, flowOf(row.step.inputs, isFluid))) return;
+          if (!ensure(out, outPipe(source.step, isFluid), flowOf(source.step.outputs, isFluid), false, isFluid ? "fluidOutput" : "itemOutput") ||
+              !ensure(line, kind, flowOf(row.step.inputs, isFluid), isFluid)) return;
           // Общий участок забирает поток нескольких ответвлений. Выбираем трубу по всему выходу поставщика.
           const trunk = pipeFor(isFluid, Math.max(flowOf(source.step.outputs, isFluid), flowOf(row.step.inputs, isFluid)),
             isFluid ? Math.max(hottest(source.step.outputs), hottest(row.step.inputs)) : 0,
@@ -2243,7 +2264,7 @@ async function placeFactory(
           }
         }
         if (isFluid && !source && processWaterOf(row.step)) {
-          if (!ensure(line, kind, flowOf(row.step.inputs, isFluid))) return;
+          if (!ensure(line, kind, flowOf(row.step.inputs, isFluid), true)) return;
           if (waterPipe) return;
           const tail = line.cells.find((cell) => FACES.some((face) => face !== "ny" && isFree(move(cell, face))));
           const face = tail && FACES.find((side) => side !== "ny" && isFree(move(tail, side)));
@@ -2261,7 +2282,7 @@ async function placeFactory(
     const productLine = last ? outputLine(last, productIsFluid) : NO_LINE;
     if (last) {
       if (productLine.cells.length === 0) missingOutputs.add(plan.target.ptr);
-      else ensure(productLine, outPipe(last.step, productIsFluid), flowOf(last.step.outputs, productIsFluid));
+      else ensure(productLine, outPipe(last.step, productIsFluid), flowOf(last.step.outputs, productIsFluid), false, productIsFluid ? "fluidOutput" : "itemOutput");
     }
     const surplusOf = new Map<Placed, Flow[]>();
     for (const flow of plan.surplus) {
@@ -2273,7 +2294,7 @@ async function placeFactory(
         missingOutputs.add(flow.goods.ptr);
         continue;
       }
-      if (!ensure(line, outPipe(row.step, isFluid), flowOf(row.step.outputs, isFluid))) continue;
+      if (!ensure(line, outPipe(row.step, isFluid), flowOf(row.step.outputs, isFluid), false, isFluid ? "fluidOutput" : "itemOutput")) continue;
       surplusOf.set(row, [...(surplusOf.get(row) ?? []), flow]);
     }
     if (missingOutputs.size > 0) notes.push(t(
@@ -2291,7 +2312,8 @@ async function placeFactory(
       for (const [from, to, kind, rate] of pairs) {
         // Трубу ряда тянем, только если у предыдущего ряда она проложена (к ней что-то подходит или от неё что-то берут).
         if (to.cells.length === 0 || !laid.has(from)) continue;
-        if (!ensure(to, kind, rate)) continue;
+        if (!ensure(to, kind, rate, to === band.fluidIn,
+          to === band.itemOut ? "itemOutput" : to === band.fluidOut ? "fluidOutput" : undefined)) continue;
         links.push({ from: from.cells, to: to.cells, kind });
       }
     }
@@ -2333,6 +2355,13 @@ async function placeFactory(
     if (fuel) for (const { spot: { left, busZ } } of powerBlocks) protectShaft([left - 2, 0, busZ - 1]);
     for (const key of supplyShafts.keys()) reserved.add(key);
     const containerOf = (isFluid: boolean): Cell => (isFluid ? { kind: TANK } : { kind: "ownChest", face: "pz" });
+    const placeOutputContainer = (tail: Vec3, kind: string, side: Face, isFluid: boolean) => {
+      const next = new Map(grid);
+      layInto(next, { path: [tail], kind, endLink: side });
+      if (isFluid) markPipeOutlet(next, tail, side);
+      next.set(keyOf(move(tail, side)), containerOf(isFluid));
+      grid = next;
+    };
     // Готовый товар — в сундук (жидкость — в бак) на конце выхода последнего шага.
     const product = plan.steps.find((step) => step.outputs.some((flow) => flow.goods.ptr === plan.target.ptr))?.outputs.find((flow) => flow.goods.ptr === plan.target.ptr);
     if (last && laid.has(productLine)) {
@@ -2340,7 +2369,7 @@ async function placeFactory(
       const side = (["px", "py", "pz", "nz"] as const).find((face) => isFree(move(tail, face)));
       if (side && allows(tail)) {
         const end = move(tail, side);
-        grid = withCells(lay(grid, [tail], outPipe(last.step, productIsFluid), side), [[end, containerOf(productIsFluid)]]);
+        placeOutputContainer(tail, outPipe(last.step, productIsFluid), side, productIsFluid);
         marks.push({ kind: "product", cell: move(end, "py"), title: `${t("Готовый товар", "Product")}: ${text.name(plan.target)}`, lines: product ? [flowLine(product, text)] : [] });
       }
     }
@@ -2353,7 +2382,7 @@ async function placeFactory(
         const side = (["nx", "py", "pz", "nz"] as const).find((face) => isFree(move(start, face)));
         if (!side || !allows(start)) return;
         const spot = move(start, side);
-        grid = withCells(lay(grid, [start], outPipe(row.step, isFluid), side), [[spot, containerOf(isFluid)]]);
+        placeOutputContainer(start, outPipe(row.step, isFluid), side, isFluid);
         const title = group.length === 1 ? `${t("Излишек", "Surplus")}: ${text.name(group[0].goods)}` : `${t("Излишки", "Surplus")}: ${group.length}`;
         marks.push({ kind: "surplus", cell: move(spot, "py"), title, lines: group.map((flow) => flowLine(flow, text)) });
       });

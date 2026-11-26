@@ -1,8 +1,8 @@
 import { kindsOf, structureOf, type Machine } from "../machines";
-import { FACES } from "../structure";
+import { FACES, type Face } from "../structure";
 
 export const BLUEPRINT_PREFIX = "GTNH1.";
-// Ограничения совпадают с модом. Лимит объёма защищает выделение памяти в Schematica.
+// Ограничения совпадают с модом. Лимит объёма защищает выделение памяти при импорте.
 const MAX_BLOCKS = 200_000;
 const MAX_VOLUME = 4_000_000;
 const MAX_SIDE = 4096;
@@ -19,7 +19,9 @@ export function blueprintData(machine: Machine, title: string) {
   for (const block of blocks) block.grid.forEach((at, axis) => { min[axis] = Math.min(min[axis], at); });
   const index = new Map<string, number>();
   const palette: { kind: string; name: string; item?: string; damage?: number }[] = [];
-  const entries = blocks.map((block) => {
+  const maskOf = (faces?: readonly string[]) => FACES.reduce((mask, side, i) => faces?.includes(side) ? mask | (1 << i) : mask, 0);
+  const details: Record<number, { outputs?: number; supplies?: readonly string[]; itemOutput?: number; fluidOutput?: number }> = {};
+  const entries = blocks.map((block, position) => {
     let id = index.get(block.kind);
     if (id === undefined) {
       id = palette.length;
@@ -30,10 +32,16 @@ export function blueprintData(machine: Machine, title: string) {
       index.set(block.kind, id);
     }
     const face = block.face ? FACES.indexOf(block.face) : -1;
-    const links = FACES.reduce((mask, side, i) => block.links?.includes(side) ? mask | (1 << i) : mask, 0);
+    const links = maskOf(block.links);
+    const outputs = maskOf(block.pipeOutputs?.filter((side: Face) => block.links?.includes(side)));
+    if (outputs || block.supplies?.length || block.itemOutput || block.fluidOutput) details[position] = {
+      outputs: outputs || undefined, supplies: block.supplies,
+      itemOutput: block.itemOutput ? maskOf([block.itemOutput]) : undefined,
+      fluidOutput: block.fluidOutput ? maskOf([block.fluidOutput]) : undefined,
+    };
     return [...block.grid.map((at, axis) => at - min[axis]), id, face, links];
   });
-  return { title: title.trim(), tier: machine.tier, size, palette, blocks: entries };
+  return { title: title.trim(), tier: machine.tier, size, palette, blocks: entries, details };
 }
 
 export async function encodeBlueprint(machine: Machine, title: string): Promise<string> {

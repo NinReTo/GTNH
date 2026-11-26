@@ -12,6 +12,10 @@ export interface Cell {
   readonly face?: Face;
   /** Отростки трубы или кабеля, носик воронки. */
   readonly links?: readonly Face[];
+  readonly pipeOutputs?: readonly Face[];
+  readonly itemOutput?: Face;
+  readonly fluidOutput?: Face;
+  readonly supplies?: readonly string[];
   /** Полость печи: там светится нутро. */
   readonly isHollow?: boolean;
 }
@@ -224,7 +228,7 @@ export function layInto(next: Map<string, Cell>, { path, kind, startLink, endLin
     if (index < path.length - 1) links.add(sideTo(cell, path[index + 1]));
     if (index === 0 && startLink) links.add(startLink);
     if (index === path.length - 1 && endLink) links.add(endLink);
-    next.set(keyOf(cell), { kind, links: [...links].sort() });
+    next.set(keyOf(cell), { ...(own?.kind === kind ? own : undefined), kind, links: [...links].sort() });
   });
 }
 
@@ -244,9 +248,13 @@ export function toMachine(grid: Grid, base: Omit<Machine, "def">, extraKinds: Re
   const kinds: Record<string, KindId> = {};
   const faces: Record<string, Face> = {};
   const links: Record<string, readonly Face[]> = {};
+  const pipeOutputs: Record<string, readonly Face[]> = {};
+  const itemOutputs: Record<string, Face> = {};
+  const fluidOutputs: Record<string, Face> = {};
+  const supplies: Record<string, readonly string[]> = {};
   let hollow = "";
   const symbolOf = (value: Cell): string => {
-    const signature = [value.isHollow ? "hollow" : value.kind, value.face ?? "", ...(value.links ?? [])].join(":");
+    const signature = JSON.stringify([value.isHollow ? "hollow" : value.kind, value.face, value.links, value.pipeOutputs, value.supplies, value.itemOutput, value.fluidOutput]);
     const known = symbols.get(signature);
     if (known) return known;
     const symbol = String.fromCharCode(FIRST_SYMBOL + symbols.size);
@@ -256,6 +264,10 @@ export function toMachine(grid: Grid, base: Omit<Machine, "def">, extraKinds: Re
     else kinds[symbol] = value.kind as KindId;
     if (value.face) faces[symbol] = value.face;
     if (value.links) links[symbol] = value.links;
+    if (value.pipeOutputs) pipeOutputs[symbol] = value.pipeOutputs;
+    if (value.itemOutput) itemOutputs[symbol] = value.itemOutput;
+    if (value.fluidOutput) fluidOutputs[symbol] = value.fluidOutput;
+    if (value.supplies) supplies[symbol] = value.supplies;
     return symbol;
   };
   // Идём по занятым клеткам, а не по всему объёму коробки: у большой фабрики коробка — десятки миллионов клеток, почти
@@ -279,6 +291,10 @@ export function toMachine(grid: Grid, base: Omit<Machine, "def">, extraKinds: Re
     kinds,
     faces,
     links,
+    pipeOutputs,
+    itemOutputs,
+    fluidOutputs,
+    supplies,
     extraKinds,
     ...(hollow ? { hollow } : {}),
     ...(interior ? { interior } : {}),

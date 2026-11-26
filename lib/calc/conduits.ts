@@ -72,6 +72,7 @@ export function pipeOffers(repository: Repository, cost: ReadonlyMap<number, num
     const price = cost.get(ptr);
     if (price === undefined) return [];
     const goods = repository.goods(ptr);
+    if (goods.name.startsWith("Tiny ")) return [];
     const capacity = pipeCapacity(goods.name);
     return capacity ? [{ goods, ...capacity, cost: price, gasProof: !/\b(Wooden|Clay) Fluid Pipe$/.test(goods.name) }] : [];
   });

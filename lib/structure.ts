@@ -61,6 +61,10 @@ export interface StructureDef {
   readonly faces?: Readonly<Record<string, Face>>;
   /** Отростки трубы или носик воронки у блоков этого символа: стороны клетки (px, nz…). */
   readonly links?: Readonly<Record<string, readonly string[]>>;
+  readonly pipeOutputs?: Readonly<Record<string, readonly Face[]>>;
+  readonly itemOutputs?: Readonly<Record<string, Face>>;
+  readonly fluidOutputs?: Readonly<Record<string, Face>>;
+  readonly supplies?: Readonly<Record<string, readonly string[]>>;
   /** Виды блоков, которых нет в общем справочнике: генераторы и котлы линий производства. */
   readonly extraKinds?: Readonly<Record<string, BlockKind>>;
   /** По умолчанию в полости огонь. */
@@ -81,6 +85,10 @@ export interface Block {
   readonly face: Face | null;
   /** Отростки трубы или носик воронки, если схема задала их сама. */
   readonly links?: readonly string[];
+  readonly pipeOutputs?: readonly Face[];
+  readonly itemOutput?: Face;
+  readonly fluidOutput?: Face;
+  readonly supplies?: readonly string[];
 }
 
 export interface Structure {
@@ -207,6 +215,10 @@ export function buildStructure(def: StructureDef, kinds: Readonly<Record<string,
       push: pushes[index],
       face: def.faces?.[cell.symbol] ?? faceOf(kinds[kind].face?.rule, cell.grid),
       ...(def.links?.[cell.symbol] ? { links: def.links[cell.symbol] } : {}),
+      ...(def.pipeOutputs?.[cell.symbol] ? { pipeOutputs: def.pipeOutputs[cell.symbol] } : {}),
+      ...(def.itemOutputs?.[cell.symbol] ? { itemOutput: def.itemOutputs[cell.symbol] } : {}),
+      ...(def.fluidOutputs?.[cell.symbol] ? { fluidOutput: def.fluidOutputs[cell.symbol] } : {}),
+      ...(def.supplies?.[cell.symbol] ? { supplies: def.supplies[cell.symbol] } : {}),
     };
   });
 

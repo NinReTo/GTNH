@@ -359,6 +359,7 @@ describe.skipIf(!existsSync(DATA))("калькулятор на выгрузке
     });
     expect(factory.missingConnections, JSON.stringify({ stats: factory.stats, notes: factory.notes })).toBe(0);
     expect(factory.stats.chunks, JSON.stringify(factory.stats)).toBeLessThanOrEqual(9);
+    expect(structureOf(factory.machine).blocks.some((block) => block.kind.startsWith("calc-") && block.itemOutput)).toBe(true);
   }, 90_000);
 
   test("одноблочные машины тёмной стали с дизельным питанием собраны в одном чанке", async () => {
